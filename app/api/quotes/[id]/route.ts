@@ -1,0 +1,20 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+async function getId(ctx: { params: any }) {
+  const p = ctx?.params && typeof ctx.params.then === "function" ? await ctx.params : ctx.params;
+  const nid = Number(p?.id);
+  return Number.isFinite(nid) ? nid : NaN;
+}
+
+export async function GET(_req: Request, ctx: { params: any }) {
+  const id = await getId(ctx);
+  if (!Number.isFinite(id)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+
+  const quote = await prisma.quote.findUnique({
+    where: { id },
+    include: { product: true, user: true, items: true },
+  });
+  if (!quote) return NextResponse.json({ error: "Orçamento não encontrado" }, { status: 404 });
+  return NextResponse.json(quote);
+}
