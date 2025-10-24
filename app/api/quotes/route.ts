@@ -62,12 +62,17 @@ export async function POST(req: Request) {
       marginApplied: c.margin.toString(),
       dynamicAdjust: c.dynamic.toString(),
       finalPrice: c.final.toFixed(2),
-      breakdown: { costMat: c.costMat, costPrint: c.costPrint, costFinish: c.costFinish },
+      vatAmount: c.vatAmount ? c.vatAmount.toFixed(2) : null,
+      priceGross: c.priceGross ? c.priceGross.toFixed(2) : null,
+      breakdown: { 
+        costMat: c.costMat, costPrint: c.costPrint, costFinish: c.costFinish,
+        minOrderApplied: c.minOrderApplied, minOrderReason: c.minOrderReason
+      },
       items: {
         create: c.items.map(it => ({
           itemType: it.type, refId: it.refId, name: it.name,
           quantity: (it.quantity as any)?.toFixed ? (it.quantity as any).toFixed(4) : null,
-          unit: it.unit as any,
+          unit: it.unit as "UNIT" | "M2" | "LOT" | "HOUR" | "SHEET" | null,
           unitCost: (it.unitCost as any)?.toFixed ? (it.unitCost as any).toFixed(4) : null,
           totalCost: it.totalCost.toFixed(4),
         })),
@@ -77,6 +82,10 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     ok: true, id: quote.id, quoteNumber: quote.number,
-    finalPrice: Number(quote.finalPrice), subtotal: Number(quote.subtotal)
+    finalPrice: Number(quote.finalPrice), subtotal: Number(quote.subtotal),
+    vatAmount: quote.vatAmount ? Number(quote.vatAmount) : null,
+    priceGross: quote.priceGross ? Number(quote.priceGross) : null,
+    minOrderApplied: c.minOrderApplied,
+    minOrderReason: c.minOrderReason
   });
 }

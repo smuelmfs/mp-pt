@@ -99,6 +99,8 @@ model ConfigGlobal {
   roundingStep      Decimal? @db.Decimal(7,4)  // degrau global (ex.: 0.0500)
   lossFactor        Decimal? @db.Decimal(7,4)  // fator de perda global
   setupTimeMin      Int?
+  printingHourCost  Decimal? @db.Decimal(12,4) // custo por hora da impressão (para setup)
+  vatPercent        Decimal? @db.Decimal(7,4)  // percentual de IVA (ex.: 0.2300 = 23%)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -206,6 +208,14 @@ model Product {
 
   printingId     Int?
   printing       Printing?         @relation(fields: [printingId], references: [id])
+
+  // Dimensões do produto (para imposição automática)
+  widthMm        Int?              // largura em mm
+  heightMm       Int?              // altura em mm
+
+  // Mínimo de pedido
+  minOrderQty    Int?              // quantidade mínima
+  minOrderValue  Decimal?          @db.Decimal(12,2) // valor mínimo
 
   marginDefault  Decimal?          @db.Decimal(7,4)
   markupDefault  Decimal?          @db.Decimal(7,4)
@@ -330,7 +340,9 @@ model Quote {
   markupApplied Decimal   @db.Decimal(7,4)
   marginApplied Decimal   @db.Decimal(7,4)
   dynamicAdjust Decimal   @db.Decimal(7,4)  // somatório das dinâmicas aplicadas
-  finalPrice    Decimal   @db.Decimal(12,2)
+  finalPrice    Decimal   @db.Decimal(12,2) // preço final sem IVA
+  vatAmount     Decimal?  @db.Decimal(12,2) // valor do IVA
+  priceGross    Decimal?  @db.Decimal(12,2) // preço final com IVA
 
   breakdown     Json      // extrato detalhado
 

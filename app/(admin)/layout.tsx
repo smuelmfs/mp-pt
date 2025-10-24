@@ -9,6 +9,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <a className="underline" href="/printing">Impressões</a>
             <a className="underline" href="/finishes">Acabamentos</a>
             <a className="underline" href="/margins">Margens</a>
+            <a className="underline" href="/config">Config</a>
             <span className="ml-auto">
               <a className="underline" href="/quotes">Ir para Comercial</a>
             </span>

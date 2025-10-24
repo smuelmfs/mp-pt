@@ -22,6 +22,7 @@ export function middleware(req: NextRequest) {
       url.searchParams.set("redirect", pathname);
       return NextResponse.redirect(url);
     }
+
   }
 
   // Rotas comerciais (quotes) ficam abertas para COMMERCIAL e ADMIN
@@ -34,3 +35,4 @@ export const config = {
     "/((?!api|_next|favicon.ico|assets|static).*)",
   ],
 };
+

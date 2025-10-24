@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { roundToStep } from "@/lib/rounding";
 import { toNumber } from "@/lib/money";
+import { computeImposition } from "@/lib/imposition";
 
 export async function calcQuote(productId: number, quantity: number, params: any) {
   if (!Number.isFinite(productId) || productId <= 0) throw new Error("productId inválido");
@@ -17,6 +18,17 @@ export async function calcQuote(productId: number, quantity: number, params: any
   });
   if (!product || !cfg) throw new Error("Produto ou Config não encontrados");
 
+  // Aplicar mínimo de pedido
+  let effectiveQuantity = quantity;
+  let minOrderApplied = false;
+  let minOrderReason = "";
+
+  if (product.minOrderQty && quantity < product.minOrderQty) {
+    effectiveQuantity = product.minOrderQty;
+    minOrderApplied = true;
+    minOrderReason = `Quantidade mínima: ${product.minOrderQty} unidades`;
+  }
+
   // ===== custos detalhados por item =====
   const items: Array<{
     type: "MATERIAL" | "PRINTING" | "FINISH";
@@ -27,9 +39,49 @@ export async function calcQuote(productId: number, quantity: number, params: any
   let costMat = 0;
   for (const pm of product.materials) {
     const unitCost = toNumber(pm.material.unitCost);
-    const qtyPU = toNumber(pm.qtyPerUnit);
     const waste = toNumber(pm.wasteFactor);
-    const effectiveQty = quantity * qtyPU * (1 + waste);
+    let effectiveQty = 0;
+    let qtyPU = toNumber(pm.qtyPerUnit);
+
+    // Imposição automática se disponível
+    if (pm.variant && pm.variant.widthMm && pm.variant.heightMm && 
+        (product as any).widthMm && (product as any).heightMm && 
+        pm.material.unit === "SHEET") {
+      
+      const imposition = computeImposition({
+        productWidthMm: (product as any).widthMm,
+        productHeightMm: (product as any).heightMm,
+        sheetWidthMm: pm.variant.widthMm,
+        sheetHeightMm: pm.variant.heightMm,
+        bleedMm: 3, // sangria padrão de 3mm
+        gutterMm: 2, // folga padrão de 2mm
+      });
+
+      if (imposition.piecesPerSheet > 0) {
+        // Calcular folhas necessárias baseado na imposição
+        const sheetsNeeded = Math.ceil(effectiveQuantity / imposition.piecesPerSheet);
+        // Aplicar perda global se configurada
+        const lossFactor = toNumber(cfg.lossFactor) || 0;
+        const sheetsWithLoss = Math.ceil(sheetsNeeded * (1 + lossFactor));
+        effectiveQty = sheetsWithLoss;
+        qtyPU = sheetsWithLoss / effectiveQuantity; // qtyPerUnit calculado automaticamente
+      } else {
+        // Fallback para qtyPerUnit manual se imposição falhar
+        qtyPU = toNumber(pm.qtyPerUnit);
+        effectiveQty = effectiveQuantity * qtyPU * (1 + waste);
+        // Aplicar perda global
+        const lossFactor = toNumber(cfg.lossFactor) || 0;
+        effectiveQty = effectiveQty * (1 + lossFactor);
+      }
+    } else {
+      // Cálculo tradicional (sem imposição)
+      qtyPU = toNumber(pm.qtyPerUnit);
+      effectiveQty = effectiveQuantity * qtyPU * (1 + waste);
+      // Aplicar perda global
+      const lossFactor = toNumber(cfg.lossFactor) || 0;
+      effectiveQty = effectiveQty * (1 + lossFactor);
+    }
+
     const line = unitCost * effectiveQty;
     costMat += line;
     items.push({
@@ -45,19 +97,37 @@ export async function calcQuote(productId: number, quantity: number, params: any
 
   // Impressão
   let costPrint = 0;
-  if (product.printing) {
-    const unitPrice = toNumber(product.printing.unitPrice);
-    const yieldVal = product.printing.yield ?? 1;
-    const minFee = toNumber(product.printing.minFee);
-    const byQty = (unitPrice / yieldVal) * quantity;
-    costPrint = Math.max(byQty, minFee);
-    items.push({
-      type: "PRINTING",
-      refId: product.printingId ?? undefined,
-      name: `Impressão ${product.printing.colors ?? ""}`.trim(),
-      totalCost: costPrint,
-    });
-  }
+    if (product.printing) {
+      const unitPrice = toNumber(product.printing.unitPrice);
+      const yieldVal = product.printing.yield ?? 1;
+      const minFee = toNumber(product.printing.minFee);
+      
+      // Calcular quantidade de tiros considerando perda global
+      const baseTiros = Math.ceil(effectiveQuantity / yieldVal);
+      const lossFactor = toNumber(cfg.lossFactor) || 0;
+      const tirosWithLoss = Math.ceil(baseTiros * (1 + lossFactor));
+      
+      const byQty = unitPrice * tirosWithLoss;
+      
+      // Custo de setup se configurado
+      let setupCost = 0;
+      if (product.printing.setupMinutes && (cfg as any).printingHourCost) {
+        const setupHours = toNumber(product.printing.setupMinutes) / 60;
+        setupCost = setupHours * toNumber((cfg as any).printingHourCost);
+      }
+      
+      costPrint = Math.max(byQty + setupCost, minFee);
+      
+      items.push({
+        type: "PRINTING",
+        refId: product.printingId ?? undefined,
+        name: `Impressão ${product.printing.colors ?? ""}`.trim(),
+        quantity: tirosWithLoss,
+        unit: "UNIT", // Usar UNIT já que TIRO não existe no enum
+        unitCost: unitPrice,
+        totalCost: costPrint,
+      });
+    }
 
   // Acabamentos
   let costFinish = 0;
@@ -66,10 +136,21 @@ export async function calcQuote(productId: number, quantity: number, params: any
     const base = toNumber(f.baseCost);
     const qtyPU = toNumber(pf.qtyPerUnit) || 1;
     let line = 0;
+    let finishQuantity = effectiveQuantity * qtyPU;
     const calcType = (pf.calcTypeOverride ?? f.calcType) as string;
+    
+    // Aplicar AreaStep para acabamentos PER_M2
+    if (calcType === "PER_M2" && f.areaStepM2) {
+      const areaStep = toNumber(f.areaStepM2);
+      if (areaStep > 0) {
+        // Arredondar área para cima no degrau configurado
+        finishQuantity = Math.ceil(finishQuantity / areaStep) * areaStep;
+      }
+    }
+    
     switch (calcType) {
-      case "PER_M2":   line = base * (quantity * qtyPU); break;
-      case "PER_UNIT": line = base * (quantity * qtyPU); break;
+      case "PER_M2":   line = base * finishQuantity; break;
+      case "PER_UNIT": line = base * finishQuantity; break;
       case "PER_LOT":  line = base; break;
       case "PER_HOUR": line = base * qtyPU; break;
     }
@@ -81,7 +162,7 @@ export async function calcQuote(productId: number, quantity: number, params: any
       type: "FINISH",
       refId: pf.finishId,
       name: f.name,
-      quantity: calcType === "PER_LOT" ? 1 : quantity * qtyPU,
+      quantity: calcType === "PER_LOT" ? 1 : finishQuantity,
       unit: f.unit,
       unitCost: base,
       totalCost: line,
@@ -128,7 +209,15 @@ export async function calcQuote(productId: number, quantity: number, params: any
   else if (dynCat) dynamic = toNumber(dynCat.adjustPercent);
   else if (dynGlob) dynamic = toNumber(dynGlob.adjustPercent);
 
-  const priceBeforeMargin = subtotal * (1 + markup);
+  // Aplicar valor mínimo se configurado
+  let effectiveSubtotal = subtotal;
+  if (product.minOrderValue && subtotal < toNumber(product.minOrderValue)) {
+    effectiveSubtotal = toNumber(product.minOrderValue);
+    minOrderApplied = true;
+    minOrderReason = `Valor mínimo: €${product.minOrderValue}`;
+  }
+
+  const priceBeforeMargin = effectiveSubtotal * (1 + markup);
   let final = priceBeforeMargin * (1 + margin + dynamic);
 
   const step =
@@ -136,11 +225,21 @@ export async function calcQuote(productId: number, quantity: number, params: any
     toNumber(product.category.roundingStep) ||
     toNumber(cfg.roundingStep);
   final = roundToStep(final, step);
+  
+  // Calcular IVA se configurado
+  let vatAmount = 0;
+  let priceGross = final;
+  if (cfg.vatPercent) {
+    vatAmount = final * toNumber(cfg.vatPercent);
+    priceGross = final + vatAmount;
+  }
 
   return {
     product, quantity, params,
-    costMat, costPrint, costFinish, subtotal,
+    costMat, costPrint, costFinish, subtotal: effectiveSubtotal,
     markup, margin, dynamic, step, final,
+    vatAmount, priceGross,
+    minOrderApplied, minOrderReason,
     items,
   };
 }

@@ -220,6 +220,55 @@ export default function ProductDetail() {
           </div>
         </div>
 
+    {/* Dimensões para imposição automática */}
+    <div className="grid grid-cols-2 gap-4 border-t pt-4">
+      <div>
+        <label className="block text-sm">Largura (mm)</label>
+        <input
+          type="number"
+          className="border px-3 py-2 rounded w-full"
+          defaultValue={row.widthMm ?? ""}
+          onBlur={(e) => update({ widthMm: e.target.value ? Number(e.target.value) : null })}
+          placeholder="Ex: 90"
+        />
+      </div>
+      <div>
+        <label className="block text-sm">Altura (mm)</label>
+        <input
+          type="number"
+          className="border px-3 py-2 rounded w-full"
+          defaultValue={row.heightMm ?? ""}
+          onBlur={(e) => update({ heightMm: e.target.value ? Number(e.target.value) : null })}
+          placeholder="Ex: 50"
+        />
+      </div>
+    </div>
+
+    {/* Mínimo de pedido */}
+    <div className="grid grid-cols-2 gap-4 border-t pt-4">
+      <div>
+        <label className="block text-sm">Quantidade Mínima</label>
+        <input
+          type="number"
+          className="border px-3 py-2 rounded w-full"
+          defaultValue={row.minOrderQty ?? ""}
+          onBlur={(e) => update({ minOrderQty: e.target.value ? Number(e.target.value) : null })}
+          placeholder="Ex: 100"
+        />
+      </div>
+      <div>
+        <label className="block text-sm">Valor Mínimo (€)</label>
+        <input
+          type="number"
+          step="0.01"
+          className="border px-3 py-2 rounded w-full"
+          defaultValue={row.minOrderValue ?? ""}
+          onBlur={(e) => update({ minOrderValue: e.target.value ? Number(e.target.value) : null })}
+          placeholder="Ex: 50.00"
+        />
+      </div>
+    </div>
+
         <div>
           <label className="inline-flex items-center gap-2 text-sm">
             <input type="checkbox" defaultChecked={row.active} onChange={(e) => update({ active: e.target.checked })} />
