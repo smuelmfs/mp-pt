@@ -17,7 +17,7 @@ const CreateSchema = z.object({
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") || "").trim();
-  const where = q ? { OR: [{ name: { contains: q, mode: "insensitive" } }] } : {};
+  const where = q ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }] } : {};
 
   const rows = await prisma.finish.findMany({
     where, orderBy: { createdAt: "desc" }, take: 200,

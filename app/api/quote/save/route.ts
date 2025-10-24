@@ -1,18 +1,41 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { calcQuote } from "@/lib/calc-quote";
+import { applyChoiceOverrides, applyPriceOverrides } from "@/lib/apply-overrides";
+
+async function getChoiceLabels(choiceIds: number[]) {
+  if (!choiceIds.length) return {};
+  
+  const choices = await (prisma as any).productOptionChoice.findMany({
+    where: { id: { in: choiceIds } },
+    include: { group: true }
+  });
+  
+  return choices.reduce((acc: Record<number, { name: string; group: string }>, choice: any) => {
+    acc[choice.id] = {
+      name: choice.name,
+      group: choice.group.name
+    };
+    return acc;
+  }, {} as Record<number, { name: string; group: string }>);
+}
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const productId = Number(body.productId);
   const quantity  = Number(body.quantity ?? 1000);
   const params    = body.params ?? {};
+  const choiceIds = body.choiceIds ?? [];
 
   if (!Number.isFinite(productId) || productId <= 0) {
     return NextResponse.json({ error: "productId é obrigatório (number)" }, { status: 400 });
   }
 
-  const c = await calcQuote(productId, quantity, params);
+  // Aplicar overrides das escolhas
+  const overrides = await applyChoiceOverrides(productId, choiceIds);
+  const c = await calcQuote(productId, quantity, params, overrides);
+  const finalResult = applyPriceOverrides(c, overrides);
 
   const user = await prisma.user.upsert({
     where: { email: "demo@local" },
@@ -23,15 +46,28 @@ export async function POST(req: Request) {
   const quote = await prisma.quote.create({
     data: {
       number: `Q-${Date.now()}`, userId: user.id,
-      productId: c.product.id, quantity: c.quantity, params: c.params,
-      subtotal: c.subtotal.toFixed(2),
-      markupApplied: c.markup.toString(),
-      marginApplied: c.margin.toString(),
-      dynamicAdjust: c.dynamic.toString(),
-      finalPrice: c.final.toFixed(2),
-      breakdown: { costMat: c.costMat, costPrint: c.costPrint, costFinish: c.costFinish },
+      productId: finalResult.product.id, quantity: finalResult.quantity, 
+      params: { 
+        ...finalResult.params, 
+        choiceIds,
+        choiceLabels: await getChoiceLabels(choiceIds)
+      },
+      subtotal: finalResult.subtotal.toFixed(2),
+      markupApplied: finalResult.markup.toString(),
+      marginApplied: finalResult.margin.toString(),
+      dynamicAdjust: finalResult.dynamic.toString(),
+      finalPrice: finalResult.final.toFixed(2),
+      vatAmount: finalResult.vatAmount ? finalResult.vatAmount.toFixed(2) : null,
+      priceGross: finalResult.priceGross ? finalResult.priceGross.toFixed(2) : null,
+      breakdown: { 
+        costMat: finalResult.costMat, 
+        costPrint: finalResult.costPrint, 
+        costFinish: finalResult.costFinish,
+        minOrderApplied: finalResult.minOrderApplied,
+        minOrderReason: finalResult.minOrderReason
+      },
       items: {
-        create: c.items.map(it => ({
+        create: finalResult.items.map((it: any) => ({
           itemType: it.type, refId: it.refId, name: it.name,
           quantity: (it.quantity as any)?.toFixed ? (it.quantity as any).toFixed(4) : null,
           unit: it.unit as any,
@@ -44,6 +80,9 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     ok: true, id: quote.id, quoteNumber: quote.number,
-    finalPrice: Number(quote.finalPrice), subtotal: Number(quote.subtotal)
+    finalPrice: Number(quote.finalPrice), 
+    subtotal: Number(quote.subtotal),
+    vatAmount: quote.vatAmount ? Number(quote.vatAmount) : null,
+    priceGross: quote.priceGross ? Number(quote.priceGross) : null
   });
 }

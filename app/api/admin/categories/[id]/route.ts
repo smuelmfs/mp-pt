@@ -13,6 +13,31 @@ const UpdateSchema = z.object({
   roundingStep: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
 });
 
+export async function GET(_req: Request, ctx: { params: any }) {
+  const id = await getId(ctx);
+  if (!Number.isFinite(id)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+
+  const category = await prisma.productCategory.findUnique({
+    where: { id },
+    include: {
+      _count: {
+        select: { products: true }
+      }
+    }
+  });
+
+  if (!category) return NextResponse.json({ error: "Categoria não encontrada" }, { status: 404 });
+
+  return NextResponse.json({
+    id: category.id,
+    name: category.name,
+    roundingStep: category.roundingStep,
+    _count: {
+      products: category._count.products
+    }
+  });
+}
+
 export async function PATCH(req: Request, ctx: { params: any }) {
   const id = await getId(ctx);
   if (!Number.isFinite(id)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });

@@ -3,7 +3,7 @@ import { roundToStep } from "@/lib/rounding";
 import { toNumber } from "@/lib/money";
 import { computeImposition } from "@/lib/imposition";
 
-export async function calcQuote(productId: number, quantity: number, params: any) {
+export async function calcQuote(productId: number, quantity: number, params: any, overrides?: any) {
   if (!Number.isFinite(productId) || productId <= 0) throw new Error("productId inválido");
 
   const cfg = await prisma.configGlobal.findFirst({ where: { id: 1 } });
@@ -17,6 +17,54 @@ export async function calcQuote(productId: number, quantity: number, params: any
     },
   });
   if (!product || !cfg) throw new Error("Produto ou Config não encontrados");
+
+  // Aplicar overrides se fornecidos
+  if (overrides) {
+    // Override de variante de material
+    if (overrides.materialVariantId) {
+      const materialIndex = product.materials.findIndex((m: any) => m.isMain);
+      if (materialIndex >= 0) {
+        product.materials[materialIndex].variantId = overrides.materialVariantId;
+        // Recarregar a variante
+        const newVariant = await prisma.materialVariant.findUnique({
+          where: { id: overrides.materialVariantId },
+          include: { material: true }
+        });
+        if (newVariant) {
+          product.materials[materialIndex].variant = newVariant;
+        }
+      }
+    }
+
+    // Override de dimensões
+    if (overrides.widthOverride) {
+      (product as any).widthMm = overrides.widthOverride;
+    }
+    if (overrides.heightOverride) {
+      (product as any).heightMm = overrides.heightOverride;
+    }
+
+    // Adicionar acabamentos extras
+    if (overrides.additionalFinishes && overrides.additionalFinishes.length > 0) {
+      for (const additionalFinish of overrides.additionalFinishes) {
+        const finish = await prisma.finish.findUnique({
+          where: { id: additionalFinish.finishId }
+        });
+        if (finish) {
+          product.finishes.push({
+            id: 0, // Mock ID for in-memory object
+            productId: product.id,
+            finishId: additionalFinish.finishId,
+            calcRuleOverride: null,
+            calcTypeOverride: null,
+            qtyPerUnit: additionalFinish.qtyPerUnit,
+            costOverride: null,
+            finish: finish
+          });
+        }
+      }
+    }
+  }
 
   // Aplicar mínimo de pedido
   let effectiveQuantity = quantity;

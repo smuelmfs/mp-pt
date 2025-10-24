@@ -8,8 +8,23 @@ const CreateSchema = z.object({
 });
 
 export async function GET() {
-  const rows = await prisma.productCategory.findMany({ orderBy: { name: "asc" } });
-  return NextResponse.json(rows);
+  const rows = await prisma.productCategory.findMany({ 
+    orderBy: { name: "asc" },
+    include: {
+      _count: {
+        select: { products: true }
+      }
+    }
+  });
+  
+  return NextResponse.json(rows.map(category => ({
+    id: category.id,
+    name: category.name,
+    roundingStep: category.roundingStep,
+    _count: {
+      products: category._count.products
+    }
+  })));
 }
 
 export async function POST(req: Request) {

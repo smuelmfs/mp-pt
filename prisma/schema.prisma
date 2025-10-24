@@ -146,6 +146,7 @@ model MaterialVariant {    // variante específica (ex.: Couché 300g 66x96, pac
 
   material      Material @relation(fields: [materialId], references: [id])
   productMaterials ProductMaterial[]
+  optionChoices ProductOptionChoice[]
 
   @@index([materialId])
   @@index([isCurrent])
@@ -190,6 +191,7 @@ model Finish {             // acabamentos com regras de cálculo
   isCurrent     Boolean         @default(true)
 
   productFinishes ProductFinish[]
+  optionChoices  ProductOptionChoice[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -229,6 +231,8 @@ model Product {
   quotes         Quote[]
   marginRules    MarginRule[]
   marginRulesDynamic MarginRuleDynamic[]
+  optionGroups   ProductOptionGroup[]
+  suggestedQuantities ProductSuggestedQuantity[]
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -380,4 +384,71 @@ model CalcLog {            // auditoria do cálculo
   createdAt  DateTime @default(now())
 
   quote      Quote?   @relation(fields: [quoteId], references: [id])
+}
+
+// =========================
+// Configuração de Produtos
+// =========================
+
+model ProductOptionGroup {  // grupos de opções (ex.: Papel, Tamanho, Cantos)
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  name        String   // ex.: "Papel", "Tamanho", "Cantos"
+  kind        String   // "SELECT" | "RADIO" | "SIZE" | "SWITCH"
+  description String?  // descrição do grupo
+  order       Int      @default(0) // ordem de exibição
+  required    Boolean  @default(false) // se é obrigatório escolher
+  active      Boolean  @default(true)
+
+  product     Product  @relation(fields: [productId], references: [id])
+  choices     ProductOptionChoice[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model ProductOptionChoice {  // escolhas dentro de um grupo (ex.: Couché 300g, A4, Cantos arredondados)
+  id          Int      @id @default(autoincrement())
+  groupId     Int
+  name        String   // ex.: "Couché 300g", "A4", "Cantos arredondados"
+  description String?  // descrição da escolha
+  order       Int      @default(0) // ordem de exibição
+  active      Boolean  @default(true)
+
+  // Overrides que esta escolha pode aplicar
+  materialVariantId Int?     // trocar variante de material principal
+  finishId         Int?      // adicionar acabamento
+  finishQtyPerUnit Decimal?  @db.Decimal(12,4) // qty por unidade do acabamento
+  widthOverride    Int?      // sobrepor largura (mm)
+  heightOverride   Int?      // sobrepor altura (mm)
+  overrideAttrs    Json?     // atributos customizados (ex.: largura_mm, altura_mm)
+  priceAdjustment  Decimal?   @db.Decimal(7,4)  // ajuste de preço (+/- %)
+  priceFixed      Decimal?   @db.Decimal(12,2) // ajuste fixo de preço
+
+  group       ProductOptionGroup @relation(fields: [groupId], references: [id])
+  materialVariant MaterialVariant? @relation(fields: [materialVariantId], references: [id])
+  finish      Finish? @relation(fields: [finishId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([groupId])
+}
+
+model ProductSuggestedQuantity {  // tiragens sugeridas por produto
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  quantity    Int      // ex.: 100, 250, 500, 1000
+  label       String?  // ex.: "Pequena tiragem", "Tiragem média"
+  order       Int      @default(0) // ordem de exibição
+  active      Boolean  @default(true)
+
+  product     Product  @relation(fields: [productId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([productId])
 }

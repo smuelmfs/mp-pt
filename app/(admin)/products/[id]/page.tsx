@@ -9,6 +9,7 @@ export default function ProductDetail() {
 
   const [row, setRow] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'basic' | 'materials' | 'finishes'>('basic');
 
   // dados para selects
   const [cats, setCats] = useState<any[]>([]);
@@ -30,22 +31,34 @@ export default function ProductDetail() {
     costOverride: "",
   });
 
+  // tiragens sugeridas
+  const [suggestedQuantities, setSuggestedQuantities] = useState<any[]>([]);
+  
+  // form para tiragens
+  const [quantityForm, setQuantityForm] = useState<any>({
+    quantity: "",
+    label: "",
+    order: 0
+  });
+
   async function load() {
     setLoading(true);
-    const [prodRes, cRes, prRes, mRes, fRes] = await Promise.all([
+    const [prodRes, cRes, prRes, mRes, fRes, quantitiesRes] = await Promise.all([
       fetch(`/api/admin/products/${id}`),
       fetch(`/api/admin/categories`),
       fetch(`/api/admin/printing`),
       fetch(`/api/admin/materials?withVariants=1`), // ⚠️ carrega materiais com variantes
       fetch(`/api/admin/finishes`),
+      fetch(`/api/admin/products/${id}/suggested-quantities`),
     ]);
 
-    const [prod, categories, printings, mats, fins] = await Promise.all([
+    const [prod, categories, printings, mats, fins, quantities] = await Promise.all([
       prodRes.json(),
       cRes.json(),
       prRes.json(),
       mRes.json(),
       fRes.json(),
+      quantitiesRes.json(),
     ]);
 
     setRow(prod);
@@ -53,6 +66,7 @@ export default function ProductDetail() {
     setPrints(Array.isArray(printings) ? printings : []);
     setMaterials(Array.isArray(mats) ? mats : []);     // blindagem
     setFinishes(Array.isArray(fins) ? fins : []);      // blindagem
+    setSuggestedQuantities(Array.isArray(quantities) ? quantities : []);
     setLoading(false);
   }
 
@@ -148,137 +162,301 @@ export default function ProductDetail() {
   if (row?.error) return <main className="p-6 text-red-600">{row.error}</main>;
 
   return (
-    <main className="p-6 max-w-6xl mx-auto space-y-8">
-      <a href="/products" className="text-blue-600 underline">
-        ← Voltar
-      </a>
-      <h1 className="text-2xl font-semibold">Produto #{row.id}</h1>
-
-      {/* Básico */}
-      <section className="space-y-3">
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm">Nome</label>
-            <input
-              className="border px-3 py-2 rounded w-full"
-              defaultValue={row.name}
-              onBlur={(e) => update({ name: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm">Categoria</label>
-            <select
-              className="border px-3 py-2 rounded w-full"
-              defaultValue={row.categoryId}
-              onChange={(e) => update({ categoryId: Number(e.target.value) })}
-            >
-              {cats.map((c: any) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm">Impressão</label>
-            <select
-              className="border px-3 py-2 rounded w-full"
-              defaultValue={row.printingId ?? ""}
-              onChange={(e) => update({ printingId: e.target.value ? Number(e.target.value) : null })}
-            >
-              <option value="">-- sem impressão --</option>
-              {prints.map((p: any) => (
-                <option key={p.id} value={p.id}>
-                  {p.technology} {p.colors ?? ""}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm">Margin default</label>
-            <input
-              className="border px-3 py-2 rounded w-full"
-              defaultValue={row.marginDefault ?? ""}
-              onBlur={(e) => update({ marginDefault: e.target.value || null })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm">Markup default</label>
-            <input
-              className="border px-3 py-2 rounded w-full"
-              defaultValue={row.markupDefault ?? ""}
-              onBlur={(e) => update({ markupDefault: e.target.value || null })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm">Rounding step</label>
-            <input
-              className="border px-3 py-2 rounded w-full"
-              defaultValue={row.roundingStep ?? ""}
-              onBlur={(e) => update({ roundingStep: e.target.value || null })}
-            />
+    <main className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          {/* Breadcrumb */}
+          <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-4">
+            <a href="/products" className="hover:text-gray-900">Produtos</a>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            <span className="text-gray-900">{row.name}</span>
+          </nav>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">{row.name}</h1>
+              <p className="text-gray-600 mt-2">Configure materiais e acabamentos - o comercial escolherá entre eles</p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                row.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              }`}>
+                {row.active ? 'Ativo' : 'Inativo'}
+              </span>
+            </div>
           </div>
         </div>
+      </div>
 
-    {/* Dimensões para imposição automática */}
-    <div className="grid grid-cols-2 gap-4 border-t pt-4">
-      <div>
-        <label className="block text-sm">Largura (mm)</label>
-        <input
-          type="number"
-          className="border px-3 py-2 rounded w-full"
-          defaultValue={row.widthMm ?? ""}
-          onBlur={(e) => update({ widthMm: e.target.value ? Number(e.target.value) : null })}
-          placeholder="Ex: 90"
-        />
-      </div>
-      <div>
-        <label className="block text-sm">Altura (mm)</label>
-        <input
-          type="number"
-          className="border px-3 py-2 rounded w-full"
-          defaultValue={row.heightMm ?? ""}
-          onBlur={(e) => update({ heightMm: e.target.value ? Number(e.target.value) : null })}
-          placeholder="Ex: 50"
-        />
-      </div>
-    </div>
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
 
-    {/* Mínimo de pedido */}
-    <div className="grid grid-cols-2 gap-4 border-t pt-4">
-      <div>
-        <label className="block text-sm">Quantidade Mínima</label>
-        <input
-          type="number"
-          className="border px-3 py-2 rounded w-full"
-          defaultValue={row.minOrderQty ?? ""}
-          onBlur={(e) => update({ minOrderQty: e.target.value ? Number(e.target.value) : null })}
-          placeholder="Ex: 100"
-        />
-      </div>
-      <div>
-        <label className="block text-sm">Valor Mínimo (€)</label>
-        <input
-          type="number"
-          step="0.01"
-          className="border px-3 py-2 rounded w-full"
-          defaultValue={row.minOrderValue ?? ""}
-          onBlur={(e) => update({ minOrderValue: e.target.value ? Number(e.target.value) : null })}
-          placeholder="Ex: 50.00"
-        />
-      </div>
-    </div>
-
-        <div>
-          <label className="inline-flex items-center gap-2 text-sm">
-            <input type="checkbox" defaultChecked={row.active} onChange={(e) => update({ active: e.target.checked })} />
-            Ativo
-          </label>
+        {/* Tabs */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
+          <nav className="flex space-x-0" aria-label="Tabs">
+            <button
+              onClick={() => setActiveTab('basic')}
+              className={`flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'basic'
+                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Informações Básicas
+            </button>
+            <button
+              onClick={() => setActiveTab('materials')}
+              className={`flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'materials'
+                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              Materiais
+            </button>
+            <button
+              onClick={() => setActiveTab('finishes')}
+              className={`flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'finishes'
+                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z" />
+              </svg>
+              Acabamentos
+            </button>
+          </nav>
         </div>
-      </section>
 
-      {/* Materiais do produto */}
-      <section className="space-y-3">
+        {/* Conteúdo das tabs */}
+        {activeTab === 'basic' && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Informações Básicas</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Produto</label>
+                <input
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  defaultValue={row.name}
+                  onBlur={(e) => update({ name: e.target.value })}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  defaultValue={row.categoryId}
+                  onChange={(e) => update({ categoryId: Number(e.target.value) })}
+                >
+                  {cats.map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Impressão</label>
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  defaultValue={row.printingId ?? ""}
+                  onChange={(e) => update({ printingId: e.target.value ? Number(e.target.value) : null })}
+                >
+                  <option value="">Sem impressão específica</option>
+                  {prints.map((p: any) => (
+                    <option key={p.id} value={p.id}>
+                      {p.technology} {p.colors ?? ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Margem Padrão</label>
+                <input
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ex: 0.30 (30%)"
+                  defaultValue={row.marginDefault ?? ""}
+                  onBlur={(e) => update({ marginDefault: e.target.value || null })}
+                />
+                <p className="text-xs text-gray-500 mt-1">Deixe vazio para usar a margem da categoria</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Markup Padrão</label>
+                <input
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ex: 0.20 (20%)"
+                  defaultValue={row.markupDefault ?? ""}
+                  onBlur={(e) => update({ markupDefault: e.target.value || null })}
+                />
+                <p className="text-xs text-gray-500 mt-1">Deixe vazio para usar o markup da categoria</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Arredondamento</label>
+                <input
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ex: 0.05 (€0.05)"
+                  defaultValue={row.roundingStep ?? ""}
+                  onBlur={(e) => update({ roundingStep: e.target.value || null })}
+                />
+                <p className="text-xs text-gray-500 mt-1">Deixe vazio para usar o arredondamento da categoria</p>
+              </div>
+            </div>
+
+            {/* Dimensões para imposição automática */}
+            <div className="border-t border-gray-200 pt-6 mt-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Dimensões do Produto</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Largura (mm)</label>
+                  <input
+                    type="number"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    defaultValue={row.widthMm ?? ""}
+                    onBlur={(e) => update({ widthMm: e.target.value ? Number(e.target.value) : null })}
+                    placeholder="Ex: 90"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Para cálculo de imposição automática</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Altura (mm)</label>
+                  <input
+                    type="number"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    defaultValue={row.heightMm ?? ""}
+                    onBlur={(e) => update({ heightMm: e.target.value ? Number(e.target.value) : null })}
+                    placeholder="Ex: 50"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Para cálculo de imposição automática</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Mínimo de pedido */}
+            <div className="border-t border-gray-200 pt-6 mt-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Mínimo de Pedido</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Quantidade Mínima</label>
+                  <input
+                    type="number"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    defaultValue={row.minOrderQty ?? ""}
+                    onBlur={(e) => update({ minOrderQty: e.target.value ? Number(e.target.value) : null })}
+                    placeholder="Ex: 100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Valor Mínimo (€)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    defaultValue={row.minOrderValue ?? ""}
+                    onBlur={(e) => update({ minOrderValue: e.target.value ? Number(e.target.value) : null })}
+                    placeholder="Ex: 50.00"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Status */}
+            <div className="border-t border-gray-200 pt-6 mt-6">
+              <div className="flex items-center">
+                <input 
+                  type="checkbox" 
+                  id="active"
+                  defaultChecked={row.active} 
+                  onChange={(e) => update({ active: e.target.checked })} 
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="active" className="ml-2 block text-sm font-medium text-gray-700">
+                  Produto ativo
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Produtos inativos não aparecem para o comercial</p>
+            </div>
+
+            {/* Tiragens Sugeridas */}
+            <div className="border-t border-gray-200 pt-6 mt-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Tiragens Sugeridas</h3>
+              <p className="text-sm text-gray-600 mb-4">Configure as quantidades que aparecerão como sugestões para o comercial.</p>
+              
+              {/* Lista de tiragens */}
+              <div className="space-y-2 mb-4">
+                {suggestedQuantities.map((qty: any) => (
+                  <div key={qty.id} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                    <div className="flex items-center space-x-3">
+                      <span className="font-medium">{qty.quantity} unidades</span>
+                      {qty.label && <span className="text-sm text-gray-500">({qty.label})</span>}
+                    </div>
+                    <button 
+                      className="text-red-600 hover:text-red-800 text-sm"
+                      onClick={() => {/* TODO: implementar exclusão */}}
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Formulário para adicionar tiragem */}
+              <div className="border-t pt-4">
+                <h4 className="font-medium mb-3">Adicionar Tiragem</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Quantidade</label>
+                    <input
+                      type="number"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={quantityForm.quantity}
+                      onChange={(e) => setQuantityForm({...quantityForm, quantity: e.target.value})}
+                      placeholder="Ex: 100, 250, 500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Rótulo (opcional)</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={quantityForm.label}
+                      onChange={(e) => setQuantityForm({...quantityForm, label: e.target.value})}
+                      placeholder="Ex: Pequena tiragem"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button 
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      onClick={() => {/* TODO: implementar adição */}}
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+      {activeTab === 'materials' && (
+        <>
+          {/* Materiais do produto */}
+          <section className="space-y-3">
         <h2 className="text-lg font-semibold">Materiais</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -377,10 +555,14 @@ export default function ProductDetail() {
             </button>
           </div>
         </div>
-      </section>
+          </section>
+        </>
+      )}
 
-      {/* Acabamentos do produto */}
-      <section className="space-y-3">
+      {activeTab === 'finishes' && (
+        <>
+          {/* Acabamentos do produto */}
+          <section className="space-y-3">
         <h2 className="text-lg font-semibold">Acabamentos</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -476,7 +658,11 @@ export default function ProductDetail() {
             </button>
           </div>
         </div>
-      </section>
+          </section>
+        </>
+      )}
+
+      </div>
     </main>
   );
 }

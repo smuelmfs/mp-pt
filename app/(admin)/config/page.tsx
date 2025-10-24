@@ -35,38 +35,42 @@ export default function ConfigPage() {
     load();
   }, []);
 
-  if (loading) return <main className="p-6">Carregando…</main>;
-  if (!config) return <main className="p-6 text-red-600">Erro ao carregar configuração</main>;
+  if (loading) return <main className="min-h-screen bg-slate-50 p-6">Carregando…</main>;
+  if (!config) return <main className="min-h-screen bg-slate-50 p-6 text-red-600">Erro ao carregar configuração</main>;
 
   return (
-    <main className="p-6 max-w-4xl mx-auto space-y-8">
-      <h1 className="text-2xl font-semibold">Configuração Global</h1>
-
-      <section className="space-y-6">
-        <h2 className="text-lg font-semibold">Margens e Markup</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm">Margem Padrão (%)</label>
-            <input
-              type="number"
-              step="0.01"
-              className="border px-3 py-2 rounded w-full"
-              defaultValue={config.marginDefault ? (Number(config.marginDefault) * 100).toString() : ""}
-              onBlur={(e) => update('marginDefault', Number(e.target.value) / 100)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm">Markup Operacional (%)</label>
-            <input
-              type="number"
-              step="0.01"
-              className="border px-3 py-2 rounded w-full"
-              defaultValue={config.markupOperational ? (Number(config.markupOperational) * 100).toString() : ""}
-              onBlur={(e) => update('markupOperational', Number(e.target.value) / 100)}
-            />
-          </div>
+    <main className="min-h-screen bg-slate-50">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900">Configuração Global</h1>
+          <p className="text-slate-600 mt-2">Configure as regras e parâmetros globais do sistema</p>
         </div>
-      </section>
+
+        <section className="bg-white border border-slate-200 rounded-xl p-6 space-y-6">
+          <h2 className="text-lg font-semibold text-slate-900">Margens e Markup</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Margem Padrão (%)</label>
+              <input
+                type="number"
+                step="0.01"
+                className="border border-slate-300 px-3 py-2 rounded-lg w-full focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+                defaultValue={config.marginDefault ? (Number(config.marginDefault) * 100).toString() : ""}
+                onBlur={(e) => update('marginDefault', Number(e.target.value) / 100)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Markup Operacional (%)</label>
+              <input
+                type="number"
+                step="0.01"
+                className="border border-slate-300 px-3 py-2 rounded-lg w-full focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+                defaultValue={config.markupOperational ? (Number(config.markupOperational) * 100).toString() : ""}
+                onBlur={(e) => update('markupOperational', Number(e.target.value) / 100)}
+              />
+            </div>
+          </div>
+        </section>
 
       <section className="space-y-6">
         <h2 className="text-lg font-semibold">Arredondamento e Perdas</h2>
@@ -133,15 +137,16 @@ export default function ConfigPage() {
       />
     </div>
         </div>
-      </section>
+        </section>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-medium text-blue-900 mb-2">💡 Como funciona</h3>
-        <ul className="text-sm text-blue-800 space-y-1">
-          <li><strong>Perda Global:</strong> Percentual extra aplicado em materiais e impressão para cobrir refugos</li>
-          <li><strong>Custo por Hora:</strong> Usado para calcular custo de setup da impressão</li>
-          <li><strong>Degrau:</strong> Arredondamento final dos preços (ex: 0.05 = múltiplos de 5 centavos)</li>
-        </ul>
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <h3 className="font-medium text-slate-900 mb-2">💡 Como funciona</h3>
+          <ul className="text-sm text-slate-600 space-y-1">
+            <li><strong>Perda Global:</strong> Percentual extra aplicado em materiais e impressão para cobrir refugos</li>
+            <li><strong>Custo por Hora:</strong> Usado para calcular custo de setup da impressão</li>
+            <li><strong>Degrau:</strong> Arredondamento final dos preços (ex: 0.05 = múltiplos de 5 centavos)</li>
+          </ul>
+        </div>
       </div>
     </main>
   );

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
-async function getId(ctx: { params: any }) {
+async function getProductId(ctx: { params: any }) {
   const p = typeof ctx.params?.then === "function" ? await ctx.params : ctx.params;
   const nid = Number(p?.id);
   return Number.isFinite(nid) ? nid : NaN;
@@ -15,12 +15,12 @@ const UpdateSchema = z.object({
   marginDefault: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
   markupDefault: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
   roundingStep: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
-  attributesSchema: z.record(z.any()).nullable().optional(),
+  attributesSchema: z.record(z.string(), z.any()).nullable().optional(),
   active: z.boolean().optional(),
 });
 
 export async function GET(_req: Request, ctx: { params: any }) {
-  const id = await getId(ctx);
+  const id = await getProductId(ctx);
   if (!Number.isFinite(id)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
 
   const row = await prisma.product.findUnique({
@@ -37,7 +37,7 @@ export async function GET(_req: Request, ctx: { params: any }) {
 }
 
 export async function PATCH(req: Request, ctx: { params: any }) {
-  const id = await getId(ctx);
+  const id = await getProductId(ctx);
   if (!Number.isFinite(id)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
 
   const json = await req.json().catch(() => ({}));
@@ -52,7 +52,7 @@ export async function PATCH(req: Request, ctx: { params: any }) {
 }
 
 export async function DELETE(_req: Request, ctx: { params: any }) {
-  const id = await getId(ctx);
+  const id = await getProductId(ctx);
   if (!Number.isFinite(id)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
   const row = await prisma.product.update({ where: { id }, data: { active: false } });
   return NextResponse.json({ ok: true, id: row.id });

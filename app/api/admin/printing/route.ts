@@ -20,8 +20,8 @@ export async function GET(req: Request) {
 
   const where = q ? {
     OR: [
-      { formatLabel: { contains: q, mode: "insensitive" } },
-      { colors: { contains: q, mode: "insensitive" } },
+      { formatLabel: { contains: q, mode: "insensitive" as const } },
+      { colors: { contains: q, mode: "insensitive" as const } },
       { technology: { equals: q.toUpperCase() as any } },
     ],
   } : {};

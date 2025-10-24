@@ -9,20 +9,27 @@ const CreateSchema = z.object({
   marginDefault: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
   markupDefault: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
   roundingStep: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
-  attributesSchema: z.record(z.any()).optional(),
+  attributesSchema: z.record(z.string(), z.any()).optional(),
   active: z.boolean().optional().default(true),
 });
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") || "").trim();
+  const categoryId = searchParams.get("categoryId");
 
-  const where = q ? {
-    OR: [
+  const where: any = {};
+  
+  if (q) {
+    where.OR = [
       { name: { contains: q, mode: "insensitive" } },
       { category: { name: { contains: q, mode: "insensitive" } } },
-    ],
-  } : {};
+    ];
+  }
+  
+  if (categoryId) {
+    where.categoryId = parseInt(categoryId);
+  }
 
   const rows = await prisma.product.findMany({
     where,
