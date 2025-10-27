@@ -12,7 +12,7 @@ export async function GET(_req: Request, ctx: { params: any }) {
   if (!Number.isFinite(productId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
 
   try {
-    // Buscar o produto com materiais e acabamentos configurados
+    // Buscar o produto com materiais, acabamentos e dimensões configurados
     const product = await prisma.product.findUnique({
       where: { id: productId, active: true },
       include: {
@@ -28,6 +28,10 @@ export async function GET(_req: Request, ctx: { params: any }) {
           include: {
             finish: true
           }
+        },
+        dimensions: {
+          where: { active: true },
+          orderBy: { order: 'asc' }
         }
       }
     });
@@ -73,6 +77,58 @@ export async function GET(_req: Request, ctx: { params: any }) {
       });
     }
 
+    // Grupo de Dimensões (incluindo dimensão padrão e dimensões extras)
+    const dimensionChoices = [];
+    
+    // Adicionar dimensão padrão se existir
+    if (product.widthMm && product.heightMm) {
+      dimensionChoices.push({
+        id: 'dimension_default',
+        name: 'Dimensão Padrão',
+        description: product.dimensionDescription || `${product.widthMm}mm x ${product.heightMm}mm`,
+        dimension: {
+          id: 'default',
+          name: 'Dimensão Padrão',
+          widthMm: product.widthMm,
+          heightMm: product.heightMm,
+          description: product.dimensionDescription,
+          isDefault: true
+        }
+      });
+    }
+    
+    // Adicionar dimensões extras se existirem
+    if (product.dimensions && product.dimensions.length > 0) {
+      product.dimensions.forEach((dim: any) => {
+        dimensionChoices.push({
+          id: `dimension_${dim.id}`,
+          name: dim.name,
+          description: dim.description || `${dim.widthMm}mm x ${dim.heightMm}mm`,
+          dimension: {
+            id: dim.id,
+            name: dim.name,
+            widthMm: dim.widthMm,
+            heightMm: dim.heightMm,
+            description: dim.description,
+            isDefault: false
+          }
+        });
+      });
+    }
+    
+    // Criar grupo de dimensões se houver pelo menos uma opção
+    if (dimensionChoices.length > 0) {
+      optionGroups.push({
+        id: 'dimensions',
+        name: 'Dimensão',
+        kind: 'RADIO',
+        required: true,
+        multiSelect: false,
+        hasMultipleOptions: dimensionChoices.length > 1,
+        choices: dimensionChoices
+      });
+    }
+
     // Grupo de Acabamentos (se houver acabamentos configurados)
     if (product.finishes && product.finishes.length > 0) {
       optionGroups.push({
@@ -105,6 +161,7 @@ export async function GET(_req: Request, ctx: { params: any }) {
         category: product.category.name,
         widthMm: product.widthMm,
         heightMm: product.heightMm,
+        dimensionDescription: product.dimensionDescription,
         minOrderQty: product.minOrderQty,
         minOrderValue: product.minOrderValue
       },

@@ -125,7 +125,7 @@ export default function MaterialsPage() {
               placeholder="Buscar materiais..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+                      className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
             />
                     <button
                       onClick={load}
@@ -240,7 +240,7 @@ export default function MaterialsPage() {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                   value={form.name}
                   onChange={(e) => setForm({...form, name: e.target.value})}
                   placeholder="Ex: Papel Couché 300g"
@@ -254,7 +254,7 @@ export default function MaterialsPage() {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                   value={form.type}
                   onChange={(e) => setForm({...form, type: e.target.value})}
                   placeholder="Ex: papel, vinil, pvc"
@@ -268,7 +268,7 @@ export default function MaterialsPage() {
                     Unidade
                   </label>
                   <select
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.unit}
                     onChange={(e) => setForm({...form, unit: e.target.value as Material["unit"]})}
                   >
@@ -286,7 +286,7 @@ export default function MaterialsPage() {
                   <input
                     type="number"
                     step="0.0001"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.unitCost}
                     onChange={(e) => setForm({...form, unitCost: e.target.value})}
                     placeholder="0.0000"
@@ -300,7 +300,7 @@ export default function MaterialsPage() {
                   id="active"
                   checked={form.active}
                   onChange={(e) => setForm({...form, active: e.target.checked})}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
                 />
                 <label htmlFor="active" className="ml-2 block text-sm font-medium text-gray-700">
                   Material ativo

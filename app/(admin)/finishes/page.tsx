@@ -92,10 +92,10 @@ export default function FinishesListPage() {
   };
 
   const categoryColors = {
-    LAMINACAO: "bg-blue-100 text-blue-800",
-    VERNIZ: "bg-green-100 text-green-800",
-    CORTE: "bg-red-100 text-red-800",
-    DOBRA: "bg-yellow-100 text-yellow-800",
+    LAMINACAO: "bg-gray-100 text-gray-800",
+    VERNIZ: "bg-gray-100 text-gray-800",
+    CORTE: "bg-gray-100 text-gray-800",
+    DOBRA: "bg-gray-100 text-gray-800",
     OUTROS: "bg-gray-100 text-gray-800"
   };
 
@@ -132,18 +132,18 @@ export default function FinishesListPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Acabamentos</h1>
-              <p className="text-slate-600 mt-2">Configure os acabamentos disponíveis para os produtos</p>
+              <h1 className="text-3xl font-bold text-gray-900">Acabamentos</h1>
+              <p className="text-gray-600 mt-2">Configure os acabamentos disponíveis para os produtos</p>
             </div>
             <button
               onClick={() => setOpenCreate(true)}
-              className="inline-flex items-center px-6 py-3 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
+              className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-sm"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -168,7 +168,7 @@ export default function FinishesListPage() {
                         {categoryLabels[finish.category]}
                       </span>
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        finish.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        finish.active ? 'bg-gray-100 text-gray-800' : 'bg-gray-200 text-gray-600'
                       }`}>
                         {finish.active ? 'Ativo' : 'Inativo'}
                       </span>
@@ -212,7 +212,7 @@ export default function FinishesListPage() {
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <Link 
                     href={`/finishes/${finish.id}`}
-                    className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                    className="inline-flex items-center text-sm font-medium text-black hover:text-gray-600 transition-colors"
                   >
                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -235,7 +235,7 @@ export default function FinishesListPage() {
             </p>
             <button
               onClick={() => setOpenCreate(true)}
-              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -276,7 +276,7 @@ export default function FinishesListPage() {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                   value={form.name}
                   onChange={(e) => setForm({...form, name: e.target.value})}
                   placeholder="Ex: Laminação Fosca, Verniz UV"
@@ -289,7 +289,7 @@ export default function FinishesListPage() {
                     Categoria
                   </label>
                   <select
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.category}
                     onChange={(e) => setForm({...form, category: e.target.value as Finish["category"]})}
                   >
@@ -305,7 +305,7 @@ export default function FinishesListPage() {
                     Unidade
                   </label>
                   <select
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.unit}
                     onChange={(e) => setForm({...form, unit: e.target.value as Finish["unit"]})}
                   >
@@ -326,7 +326,7 @@ export default function FinishesListPage() {
                   <input
                     type="number"
                     step="0.0001"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.baseCost}
                     onChange={(e) => setForm({...form, baseCost: e.target.value})}
                     placeholder="0.0000"
@@ -337,7 +337,7 @@ export default function FinishesListPage() {
                     Tipo de Cálculo
                   </label>
                   <select
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.calcType}
                     onChange={(e) => setForm({...form, calcType: e.target.value as Finish["calcType"]})}
                   >
@@ -357,7 +357,7 @@ export default function FinishesListPage() {
                   <input
                     type="number"
                     step="0.01"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.minFee}
                     onChange={(e) => setForm({...form, minFee: e.target.value})}
                     placeholder="0.00"
@@ -370,7 +370,7 @@ export default function FinishesListPage() {
                   <input
                     type="number"
                     step="0.01"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.marginDefault}
                     onChange={(e) => setForm({...form, marginDefault: e.target.value})}
                     placeholder="15.00"
@@ -384,7 +384,7 @@ export default function FinishesListPage() {
                   id="active"
                   checked={form.active}
                   onChange={(e) => setForm({...form, active: e.target.checked})}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
                 />
                 <label htmlFor="active" className="ml-2 block text-sm font-medium text-gray-700">
                   Acabamento ativo
@@ -402,7 +402,7 @@ export default function FinishesListPage() {
                   Cancelar
                 </button>
                 <button 
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
                   onClick={createFinish}
                   disabled={saving}
                 >

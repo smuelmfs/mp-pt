@@ -59,15 +59,10 @@ export function Navigation() {
 
   const isCommercial = pathname.startsWith('/quotes') || 
                       pathname.startsWith('/quotes/categories') || 
-                      pathname.startsWith('/quotes/configurator');
+                      pathname.startsWith('/quotes/configurator') ||
+                      pathname === '/';
 
   const commercialNavItems = [
-    {
-      title: "Dashboard",
-      href: "/",
-      icon: LayoutDashboard,
-      description: "Visão geral do sistema"
-    },
     {
       title: "Orçamentos",
       href: "/quotes",
@@ -75,14 +70,20 @@ export function Navigation() {
       description: "Gerenciar orçamentos"
     },
     {
-      title: "Categorias",
+      title: "Produtos",
       href: "/quotes/categories",
       icon: Layers,
-      description: "Navegar por categorias"
+      description: "Explorar produtos"
     }
   ];
 
   const adminNavItems = [
+    {
+      title: "Categorias",
+      href: "/categories",
+      icon: Layers,
+      description: "Organizar categorias"
+    },
     {
       title: "Produtos",
       href: "/products",
@@ -112,12 +113,6 @@ export function Navigation() {
       href: "/margins",
       icon: TrendingUp,
       description: "Regras de margem"
-    },
-    {
-      title: "Categorias",
-      href: "/categories",
-      icon: Layers,
-      description: "Organizar categorias"
     },
     {
       title: "Configurações",

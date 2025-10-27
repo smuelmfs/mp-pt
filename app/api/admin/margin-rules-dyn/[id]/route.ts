@@ -42,3 +42,4 @@ export async function DELETE(_req: Request, ctx: { params: any }) {
   await prisma.marginRuleDynamic.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
+

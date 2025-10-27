@@ -90,12 +90,52 @@ export default function ConfiguratorPage() {
   const [loading, setLoading] = useState(true);
   const [calculating, setCalculating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  function showSuccessToast(message: string) {
+    setToast({ type: 'success', message });
+    setTimeout(() => setToast(null), 3000);
+  }
+
+  function showErrorToast(message: string) {
+    setToast({ type: 'error', message });
+    setTimeout(() => setToast(null), 3000);
+  }
 
   useEffect(() => {
     async function loadConfig() {
       try {
         const response = await fetch(`/api/catalog/products/${productId}/config`);
+        if (!response.ok) {
+          console.error('Erro ao carregar configuração:', response.statusText);
+          return;
+        }
         const data = await response.json();
+        
+        // Validar estrutura de dados
+        if (!data || typeof data !== 'object') {
+          console.error('Resposta inválida do servidor');
+          return;
+        }
+        
+        // Validar se product existe
+        if (!data.product || typeof data.product !== 'object' || !data.product.name) {
+          console.error('Dados de produto inválidos');
+          return;
+        }
+        
+        // Garantir que optionGroups existe e é um array
+        if (!Array.isArray(data.optionGroups)) {
+          data.optionGroups = [];
+        }
+        
+        // Garantir que cada grupo tem um array de choices
+        data.optionGroups.forEach((group: any) => {
+          if (!Array.isArray(group.choices)) {
+            group.choices = [];
+          }
+        });
+        
         setConfig(data);
         
         // Selecionar primeira opção apenas se não houver múltiplas opções
@@ -124,7 +164,7 @@ export default function ConfiguratorPage() {
   }, [productId]);
 
   useEffect(() => {
-    if (config) {
+    if (config && config.optionGroups) {
       // Verificar se todas as opções obrigatórias estão selecionadas
       const allRequiredSelected = config.optionGroups.every(group => {
         if (!group.required) return true;
@@ -148,7 +188,7 @@ export default function ConfiguratorPage() {
   }, [config, selectedChoices, quantity]);
 
   async function calculatePreview() {
-    if (!config) return;
+    if (!config || !config.optionGroups) return;
     
     setCalculating(true);
     try {
@@ -156,26 +196,48 @@ export default function ConfiguratorPage() {
       const choiceIds: number[] = [];
       const materialOverrides: any = {};
       const finishOverrides: any = {};
+      const dimensionOverrides: any = {};
       
       Object.entries(selectedChoices).forEach(([groupId, choiceIdOrArray]) => {
         const group = config.optionGroups.find(g => g.id === groupId);
         
+        if (!group?.choices) return;
+        
         if (groupId === 'materials' && typeof choiceIdOrArray === 'string') {
           // Para materiais (seleção única)
-          const choice = group?.choices.find(c => c.id === choiceIdOrArray);
+          const choice = group.choices.find(c => c.id === choiceIdOrArray);
           if (choice?.materialVariant) {
-            choiceIds.push(choice.materialVariant.id);
+            choiceIds.push(parseInt(choiceIdOrArray.replace('material_', '')));
             materialOverrides[choice.materialVariant.id] = {
               qtyPerUnit: choice.qtyPerUnit,
               wasteFactor: choice.wasteFactor
             };
           }
+        } else if (groupId === 'dimensions' && typeof choiceIdOrArray === 'string') {
+          // Para dimensões (seleção única) - incluindo dimensão padrão
+          const choice = group.choices.find(c => c.id === choiceIdOrArray);
+          if (choice?.dimension) {
+            if (choiceIdOrArray === 'dimension_default') {
+              // Dimensão padrão - não adiciona ao choiceIds, mas salva as dimensões
+              dimensionOverrides['default'] = {
+                widthMm: choice.dimension.widthMm,
+                heightMm: choice.dimension.heightMm
+              };
+            } else {
+              // Dimensão extra - adiciona ao choiceIds
+              choiceIds.push(parseInt(choiceIdOrArray.replace('dimension_', '')));
+              dimensionOverrides[choice.dimension.id] = {
+                widthMm: choice.dimension.widthMm,
+                heightMm: choice.dimension.heightMm
+              };
+            }
+          }
         } else if (groupId === 'finishes' && Array.isArray(choiceIdOrArray)) {
           // Para acabamentos (seleção múltipla)
           choiceIdOrArray.forEach(choiceId => {
-            const choice = group?.choices.find(c => c.id === choiceId);
+            const choice = group.choices.find(c => c.id === choiceId);
             if (choice?.finish) {
-              choiceIds.push(choice.finish.id);
+              choiceIds.push(parseInt(choiceId.replace('finish_', '')));
               finishOverrides[choice.finish.id] = {
                 qtyPerUnit: choice.finish.qtyPerUnit,
                 calcType: choice.finish.calcType,
@@ -195,7 +257,8 @@ export default function ConfiguratorPage() {
           choiceIds,
           params: {
             materialOverrides,
-            finishOverrides
+            finishOverrides,
+            dimensionOverrides
           }
         })
       });
@@ -210,7 +273,7 @@ export default function ConfiguratorPage() {
   }
 
   async function generateMatrix() {
-    if (!config) return;
+    if (!config || !config.optionGroups) return;
     
     setCalculating(true);
     try {
@@ -218,26 +281,48 @@ export default function ConfiguratorPage() {
       const choiceIds: number[] = [];
       const materialOverrides: any = {};
       const finishOverrides: any = {};
+      const dimensionOverrides: any = {};
       
       Object.entries(selectedChoices).forEach(([groupId, choiceIdOrArray]) => {
         const group = config.optionGroups.find(g => g.id === groupId);
         
+        if (!group?.choices) return;
+        
         if (groupId === 'materials' && typeof choiceIdOrArray === 'string') {
           // Para materiais (seleção única)
-          const choice = group?.choices.find(c => c.id === choiceIdOrArray);
+          const choice = group.choices.find(c => c.id === choiceIdOrArray);
           if (choice?.materialVariant) {
-            choiceIds.push(choice.materialVariant.id);
+            choiceIds.push(parseInt(choiceIdOrArray.replace('material_', '')));
             materialOverrides[choice.materialVariant.id] = {
               qtyPerUnit: choice.qtyPerUnit,
               wasteFactor: choice.wasteFactor
             };
           }
+        } else if (groupId === 'dimensions' && typeof choiceIdOrArray === 'string') {
+          // Para dimensões (seleção única) - incluindo dimensão padrão
+          const choice = group.choices.find(c => c.id === choiceIdOrArray);
+          if (choice?.dimension) {
+            if (choiceIdOrArray === 'dimension_default') {
+              // Dimensão padrão - não adiciona ao choiceIds, mas salva as dimensões
+              dimensionOverrides['default'] = {
+                widthMm: choice.dimension.widthMm,
+                heightMm: choice.dimension.heightMm
+              };
+            } else {
+              // Dimensão extra - adiciona ao choiceIds
+              choiceIds.push(parseInt(choiceIdOrArray.replace('dimension_', '')));
+              dimensionOverrides[choice.dimension.id] = {
+                widthMm: choice.dimension.widthMm,
+                heightMm: choice.dimension.heightMm
+              };
+            }
+          }
         } else if (groupId === 'finishes' && Array.isArray(choiceIdOrArray)) {
           // Para acabamentos (seleção múltipla)
           choiceIdOrArray.forEach(choiceId => {
-            const choice = group?.choices.find(c => c.id === choiceId);
+            const choice = group.choices.find(c => c.id === choiceId);
             if (choice?.finish) {
-              choiceIds.push(choice.finish.id);
+              choiceIds.push(parseInt(choiceId.replace('finish_', '')));
               finishOverrides[choice.finish.id] = {
                 qtyPerUnit: choice.finish.qtyPerUnit,
                 calcType: choice.finish.calcType,
@@ -259,7 +344,8 @@ export default function ConfiguratorPage() {
           choiceIds,
           params: {
             materialOverrides,
-            finishOverrides
+            finishOverrides,
+            dimensionOverrides
           }
         })
       });
@@ -274,7 +360,7 @@ export default function ConfiguratorPage() {
   }
 
   async function saveQuote() {
-    if (!config || !preview) return;
+    if (!config || !preview || !config.optionGroups) return;
     
     setSaving(true);
     try {
@@ -282,26 +368,48 @@ export default function ConfiguratorPage() {
       const choiceIds: number[] = [];
       const materialOverrides: any = {};
       const finishOverrides: any = {};
+      const dimensionOverrides: any = {};
       
       Object.entries(selectedChoices).forEach(([groupId, choiceIdOrArray]) => {
         const group = config.optionGroups.find(g => g.id === groupId);
         
+        if (!group?.choices) return;
+        
         if (groupId === 'materials' && typeof choiceIdOrArray === 'string') {
           // Para materiais (seleção única)
-          const choice = group?.choices.find(c => c.id === choiceIdOrArray);
+          const choice = group.choices.find(c => c.id === choiceIdOrArray);
           if (choice?.materialVariant) {
-            choiceIds.push(choice.materialVariant.id);
+            choiceIds.push(parseInt(choiceIdOrArray.replace('material_', '')));
             materialOverrides[choice.materialVariant.id] = {
               qtyPerUnit: choice.qtyPerUnit,
               wasteFactor: choice.wasteFactor
             };
           }
+        } else if (groupId === 'dimensions' && typeof choiceIdOrArray === 'string') {
+          // Para dimensões (seleção única) - incluindo dimensão padrão
+          const choice = group.choices.find(c => c.id === choiceIdOrArray);
+          if (choice?.dimension) {
+            if (choiceIdOrArray === 'dimension_default') {
+              // Dimensão padrão - não adiciona ao choiceIds, mas salva as dimensões
+              dimensionOverrides['default'] = {
+                widthMm: choice.dimension.widthMm,
+                heightMm: choice.dimension.heightMm
+              };
+            } else {
+              // Dimensão extra - adiciona ao choiceIds
+              choiceIds.push(parseInt(choiceIdOrArray.replace('dimension_', '')));
+              dimensionOverrides[choice.dimension.id] = {
+                widthMm: choice.dimension.widthMm,
+                heightMm: choice.dimension.heightMm
+              };
+            }
+          }
         } else if (groupId === 'finishes' && Array.isArray(choiceIdOrArray)) {
           // Para acabamentos (seleção múltipla)
           choiceIdOrArray.forEach(choiceId => {
-            const choice = group?.choices.find(c => c.id === choiceId);
+            const choice = group.choices.find(c => c.id === choiceId);
             if (choice?.finish) {
-              choiceIds.push(choice.finish.id);
+              choiceIds.push(parseInt(choiceId.replace('finish_', '')));
               finishOverrides[choice.finish.id] = {
                 qtyPerUnit: choice.finish.qtyPerUnit,
                 calcType: choice.finish.calcType,
@@ -321,22 +429,26 @@ export default function ConfiguratorPage() {
           choiceIds,
           params: {
             materialOverrides,
-            finishOverrides
+            finishOverrides,
+            dimensionOverrides
           }
         })
       });
       
       const data = await response.json();
       if (data.ok) {
-        alert(`Orçamento salvo: ${data.quoteNumber}`);
-        // Redirecionar para o orçamento salvo
-        window.location.href = `/quotes/${data.id}`;
+        // Mostrar toast de sucesso
+        showSuccessToast(`Orçamento ${data.quoteNumber} criado com sucesso!`);
+        // Redirecionar para o orçamento salvo após um pequeno delay
+        setTimeout(() => {
+          window.location.href = `/quotes/${data.id}`;
+        }, 1500);
       } else {
-        alert('Erro ao salvar orçamento');
+        showErrorToast('Erro ao salvar orçamento');
       }
     } catch (error) {
       console.error('Erro ao salvar orçamento:', error);
-      alert('Erro ao salvar orçamento');
+      showErrorToast('Erro ao salvar orçamento');
     } finally {
       setSaving(false);
     }
@@ -411,32 +523,32 @@ export default function ConfiguratorPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">{config.product.name}</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{config?.product?.name || 'Configurador'}</h1>
           <p className="text-gray-600 mt-2">Configure seu produto e veja o preço em tempo real</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Configurações */}
           <div className="space-y-6">
-            {config.optionGroups.map((group) => (
+            {config && config.optionGroups && config.optionGroups.length > 0 ? config.optionGroups.map((group) => (
               <div key={group.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
                   {group.name}
                   {group.required && <span className="text-red-500 ml-1">*</span>}
                   {group.id === 'finishes' && Array.isArray(selectedChoices[group.id]) && selectedChoices[group.id].length > 0 && (
-                    <span className="ml-2 text-sm text-green-600">
+                    <span className="ml-2 text-sm text-gray-600">
                       ({selectedChoices[group.id].length} selecionado{selectedChoices[group.id].length !== 1 ? 's' : ''})
                     </span>
                   )}
                 </h3>
                 
                 {group.hasMultipleOptions && !selectedChoices[group.id] && group.id !== 'finishes' && (
-                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
                     <div className="flex items-center">
-                      <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                       </svg>
-                      <span className="text-sm text-yellow-800">
+                      <span className="text-sm text-gray-800">
                         Escolha uma opção para continuar
                       </span>
                     </div>
@@ -444,7 +556,7 @@ export default function ConfiguratorPage() {
                 )}
                 
                 <div className="space-y-3">
-                  {group.choices.map((choice) => (
+                  {group.choices && group.choices.length > 0 ? group.choices.map((choice) => (
                     <label key={choice.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
                       <input
                         type={group.id === 'finishes' ? 'checkbox' : 'radio'}
@@ -455,7 +567,7 @@ export default function ConfiguratorPage() {
                             : selectedChoices[group.id] === choice.id
                         }
                         onChange={() => handleChoiceChange(group.id, choice.id)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 mt-1"
+                        className="h-4 w-4 text-black focus:ring-black border-gray-300 mt-1"
                       />
                       <div className="flex-1">
                         <div className="font-medium text-gray-900">{choice.name}</div>
@@ -463,23 +575,39 @@ export default function ConfiguratorPage() {
                           <div className="text-sm text-gray-600 mt-1">{choice.description}</div>
                         )}
                         {choice.materialVariant && (
-                          <div className="text-xs text-blue-600 mt-1">
-                            📄 Material: {choice.materialVariant.material.name} ({choice.materialVariant.material.type})
+                          <div className="text-xs text-gray-600 mt-1">
+                            Material: {choice.materialVariant.material.name} ({choice.materialVariant.material.type})
                             {choice.qtyPerUnit && ` • Qty/Un: ${choice.qtyPerUnit}`}
                           </div>
                         )}
                         {choice.finish && (
-                          <div className="text-xs text-green-600 mt-1">
-                            ✨ Acabamento: {choice.finish.name}
+                          <div className="text-xs text-gray-600 mt-1">
+                            Acabamento: {choice.finish.name}
                             {choice.finish.qtyPerUnit && ` • Qty/Un: ${choice.finish.qtyPerUnit}`}
+                          </div>
+                        )}
+                        {choice.dimension && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            Dimensões: {choice.dimension.widthMm}mm x {choice.dimension.heightMm}mm
+                            {choice.dimension.description && ` • ${choice.dimension.description}`}
                           </div>
                         )}
                       </div>
                     </label>
-                  ))}
+                  )) : (
+                    <p className="text-gray-500 text-center py-4">
+                      Nenhuma opção disponível
+                    </p>
+                  )}
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <p className="text-gray-500 text-center py-8">
+                  Não há opções de configuração disponíveis para este produto.
+                </p>
+              </div>
+            )}
 
             {/* Quantidade */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -538,13 +666,13 @@ export default function ConfiguratorPage() {
                 <button
                   onClick={generateMatrix}
                   disabled={calculating}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 disabled:opacity-50 font-medium"
                 >
                   {calculating ? 'Calculando...' : 'Gerar Grade'}
                 </button>
               </div>
               
-              {matrix.length > 0 ? (
+              {matrix && matrix.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -577,7 +705,7 @@ export default function ConfiguratorPage() {
               <button
                 onClick={saveQuote}
                 disabled={!preview || saving}
-                className="w-full px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-6 py-3 bg-black text-white rounded-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 {saving ? 'Salvando...' : 'Salvar Orçamento'}
               </button>
@@ -585,6 +713,30 @@ export default function ConfiguratorPage() {
           </div>
         </div>
       </div>
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className={`px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 ${
+            toast.type === 'success' 
+              ? 'bg-green-500 text-white' 
+              : 'bg-red-500 text-white'
+          }`}>
+            <div className="flex-shrink-0">
+              {toast.type === 'success' ? (
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+            </div>
+            <span className="font-medium">{toast.message}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

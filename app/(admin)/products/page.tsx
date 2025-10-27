@@ -159,7 +159,7 @@ export default function ProductsPage() {
                 <p className="text-gray-600 mb-6">Comece criando seu primeiro produto</p>
                 <button 
                   onClick={()=>setOpenCreate(true)} 
-                  className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="inline-flex items-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
                 >
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -203,7 +203,7 @@ export default function ProductsPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Produto *</label>
                     <input 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                       placeholder="Ex: Cartões de Visita"
                       value={form.name} 
                       onChange={(e)=>setForm((f:any)=>({...f,name:e.target.value}))}
@@ -213,7 +213,7 @@ export default function ProductsPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Categoria *</label>
                     <select 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                       value={form.categoryId} 
                       onChange={(e)=>setForm((f:any)=>({...f,categoryId:e.target.value}))}
                     >
@@ -225,7 +225,7 @@ export default function ProductsPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Impressão (opcional)</label>
                     <select 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                       value={form.printingId} 
                       onChange={(e)=>setForm((f:any)=>({...f,printingId:e.target.value}))}
                     >
@@ -242,7 +242,7 @@ export default function ProductsPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Margem Padrão</label>
                     <input 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                       placeholder="Ex: 0.30 (30%)"
                       value={form.marginDefault} 
                       onChange={(e)=>setForm((f:any)=>({...f,marginDefault:e.target.value}))}
@@ -253,7 +253,7 @@ export default function ProductsPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Markup Padrão</label>
                     <input 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                       placeholder="Ex: 0.20 (20%)"
                       value={form.markupDefault} 
                       onChange={(e)=>setForm((f:any)=>({...f,markupDefault:e.target.value}))}
@@ -264,7 +264,7 @@ export default function ProductsPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Arredondamento</label>
                     <input 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                       placeholder="Ex: 0.05 (€0.05)"
                       value={form.roundingStep} 
                       onChange={(e)=>setForm((f:any)=>({...f,roundingStep:e.target.value}))}
@@ -275,9 +275,9 @@ export default function ProductsPage() {
               </div>
 
               {/* Próximos Passos */}
-              <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">Próximos Passos</h4>
-                <p className="text-sm text-blue-700">
+              <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-900 mb-2">Próximos Passos</h4>
+                <p className="text-sm text-gray-700">
                   Após criar o produto, você poderá configurar materiais, acabamentos e opções para o comercial.
                 </p>
               </div>
@@ -293,7 +293,7 @@ export default function ProductsPage() {
                   Cancelar
                 </button>
                 <button 
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
                   onClick={createProduct}
                 >
                   Criar Produto

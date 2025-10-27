@@ -48,3 +48,4 @@ export async function POST(req: Request) {
   const row = await prisma.marginRuleDynamic.create({ data: parsed.data as any });
   return NextResponse.json(row, { status: 201 });
 }
+

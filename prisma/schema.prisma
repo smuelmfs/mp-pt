@@ -211,9 +211,10 @@ model Product {
   printingId     Int?
   printing       Printing?         @relation(fields: [printingId], references: [id])
 
-  // Dimensões do produto (para imposição automática)
-  widthMm        Int?              // largura em mm
-  heightMm       Int?              // altura em mm
+  // Dimensões padrão do produto (para imposição automática)
+  widthMm        Int?              // largura padrão em mm
+  heightMm       Int?              // altura padrão em mm
+  dimensionDescription String?      // descrição da orientação (ex: Vertical, Horizontal)
 
   // Mínimo de pedido
   minOrderQty    Int?              // quantidade mínima
@@ -228,6 +229,7 @@ model Product {
 
   materials      ProductMaterial[]
   finishes       ProductFinish[]
+  dimensions     ProductDimension[]
   quotes         Quote[]
   marginRules    MarginRule[]
   marginRulesDynamic MarginRuleDynamic[]
@@ -252,6 +254,24 @@ model ProductMaterial {
 
   @@unique([productId, materialId])
   @@index([variantId])
+}
+
+model ProductDimension {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  name        String   // ex.: "A4", "A5", "Personalizado", "Cartão de Visita"
+  widthMm     Int      // largura em mm
+  heightMm    Int      // altura em mm
+  description String?  // descrição opcional (ex: Vertical, Horizontal)
+  order       Int      @default(0) // ordem de exibição
+  active      Boolean  @default(true)
+
+  product     Product  @relation(fields: [productId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([productId])
 }
 
 model ProductFinish {

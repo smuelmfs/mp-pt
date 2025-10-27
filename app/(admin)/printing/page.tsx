@@ -83,10 +83,10 @@ export default function PrintingListPage() {
   };
 
   const technologyColors = {
-    OFFSET: "bg-blue-100 text-blue-800",
-    DIGITAL: "bg-green-100 text-green-800",
-    UV: "bg-purple-100 text-purple-800",
-    GRANDE_FORMATO: "bg-orange-100 text-orange-800"
+    OFFSET: "bg-gray-100 text-gray-800",
+    DIGITAL: "bg-gray-100 text-gray-800",
+    UV: "bg-gray-100 text-gray-800",
+    GRANDE_FORMATO: "bg-gray-100 text-gray-800"
   };
 
   if (loading) {
@@ -107,18 +107,18 @@ export default function PrintingListPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Impressões</h1>
-              <p className="text-slate-600 mt-2">Configure as tecnologias e métodos de impressão disponíveis</p>
+              <h1 className="text-3xl font-bold text-gray-900">Impressões</h1>
+              <p className="text-gray-600 mt-2">Configure as tecnologias e métodos de impressão disponíveis</p>
             </div>
             <button
               onClick={() => setOpenCreate(true)}
-              className="inline-flex items-center px-6 py-3 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
+              className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-sm"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -143,7 +143,7 @@ export default function PrintingListPage() {
                         {technologyLabels[printing.technology]}
                       </span>
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        printing.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        printing.active ? 'bg-gray-100 text-gray-800' : 'bg-gray-200 text-gray-600'
                       }`}>
                         {printing.active ? 'Ativo' : 'Inativo'}
                       </span>
@@ -191,7 +191,7 @@ export default function PrintingListPage() {
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <Link 
                     href={`/printing/${printing.id}`}
-                    className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                    className="inline-flex items-center text-sm font-medium text-black hover:text-gray-600 transition-colors"
                   >
                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -214,7 +214,7 @@ export default function PrintingListPage() {
             </p>
             <button
               onClick={() => setOpenCreate(true)}
-              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -255,7 +255,7 @@ export default function PrintingListPage() {
                     Tecnologia
                   </label>
                   <select
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.technology}
                     onChange={(e) => setForm({...form, technology: e.target.value as Printing["technology"]})}
                   >
@@ -272,7 +272,7 @@ export default function PrintingListPage() {
                   <input
                     type="number"
                     min="1"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.sides}
                     onChange={(e) => setForm({...form, sides: Number(e.target.value || 1)})}
                   />
@@ -286,7 +286,7 @@ export default function PrintingListPage() {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.formatLabel}
                     onChange={(e) => setForm({...form, formatLabel: e.target.value})}
                     placeholder="Ex: SRA3, Rolo 1,6m"
@@ -298,7 +298,7 @@ export default function PrintingListPage() {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.colors}
                     onChange={(e) => setForm({...form, colors: e.target.value})}
                     placeholder="Ex: 4x4, CMYK"
@@ -314,7 +314,7 @@ export default function PrintingListPage() {
                   <input
                     type="number"
                     step="0.0001"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.unitPrice}
                     onChange={(e) => setForm({...form, unitPrice: e.target.value})}
                     placeholder="0.0000"
@@ -327,7 +327,7 @@ export default function PrintingListPage() {
                   <input
                     type="number"
                     min="1"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.yield}
                     onChange={(e) => setForm({...form, yield: Number(e.target.value || 1)})}
                   />
@@ -342,7 +342,7 @@ export default function PrintingListPage() {
                   <input
                     type="number"
                     min="0"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.setupMinutes}
                     onChange={(e) => setForm({...form, setupMinutes: Number(e.target.value || 0)})}
                   />
@@ -354,7 +354,7 @@ export default function PrintingListPage() {
                   <input
                     type="number"
                     step="0.01"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                     value={form.minFee}
                     onChange={(e) => setForm({...form, minFee: e.target.value})}
                     placeholder="0.00"
@@ -368,7 +368,7 @@ export default function PrintingListPage() {
                   id="active"
                   checked={form.active}
                   onChange={(e) => setForm({...form, active: e.target.checked})}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
                 />
                 <label htmlFor="active" className="ml-2 block text-sm font-medium text-gray-700">
                   Impressão ativa
@@ -386,7 +386,7 @@ export default function PrintingListPage() {
                   Cancelar
                 </button>
                 <button 
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
                   onClick={createPrinting}
                   disabled={saving}
                 >
