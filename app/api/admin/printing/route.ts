@@ -12,6 +12,9 @@ const CreateSchema = z.object({
   setupMinutes: z.number().int().nonnegative().optional(),
   minFee: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   active: z.boolean().optional().default(true),
+  setupMode: z.enum(["TIME_X_RATE","FLAT"]).optional(),
+  setupFlatFee: z.string().regex(/^\d+(\.\d{1,2})?$/).nullable().optional(),
+  lossFactor: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
 });
 
 export async function GET(req: Request) {

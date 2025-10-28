@@ -11,6 +11,10 @@ async function getId(ctx: { params: any }) {
 const UpdateSchema = z.object({
   name: z.string().min(2).optional(),
   roundingStep: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
+  roundingStrategy: z.enum(["END_ONLY","PER_STEP"]).nullable().optional(),
+  pricingStrategy: z.enum(["COST_MARKUP_MARGIN","COST_MARGIN_ONLY","MARGIN_TARGET"]).nullable().optional(),
+  minPricePerPiece: z.string().regex(/^\d+(\.\d{1,2})?$/).nullable().optional(),
+  lossFactor: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
 });
 
 export async function GET(_req: Request, ctx: { params: any }) {

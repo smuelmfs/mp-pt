@@ -9,6 +9,9 @@ const CreateSchema = z.object({
   marginDefault: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
   markupDefault: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
   roundingStep: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
+  roundingStrategy: z.enum(["END_ONLY","PER_STEP"]).nullable().optional(),
+  pricingStrategy: z.enum(["COST_MARKUP_MARGIN","COST_MARGIN_ONLY","MARGIN_TARGET"]).nullable().optional(),
+  minPricePerPiece: z.string().regex(/^\d+(\.\d{1,2})?$/).nullable().optional(),
   attributesSchema: z.record(z.string(), z.any()).optional(),
   active: z.boolean().optional().default(true),
 });

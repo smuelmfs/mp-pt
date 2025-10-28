@@ -69,6 +69,11 @@ interface PreviewResult {
     name: string;
     overrides: any;
   }>;
+  meta?: {
+    sheets?: number;
+    tiros?: number;
+    area?: number;
+  };
 }
 
 interface MatrixRow {
@@ -611,19 +616,37 @@ export default function ConfiguratorPage() {
 
             {/* Quantidade */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Quantidade</h3>
-              <input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 100)}
-                min="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-gray-900">Quantidade</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                <input
+                  type="number"
+                  value={quantity}
+                  onChange={(e) => setQuantity(parseInt(e.target.value) || 100)}
+                  min="1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {config?.quantityPresets && config.quantityPresets.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {config.quantityPresets.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => setQuantity(p.quantity)}
+                        className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${quantity === p.quantity ? 'bg-black text-white border-black' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'}`}
+                        title={p.label || String(p.quantity)}
+                      >
+                        {p.label || p.quantity}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Preview e Preços */}
-          <div className="space-y-6">
+          <div className="space-y-6 lg:sticky lg:top-6 self-start">
             {/* Preview Unitário */}
             {preview ? (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -655,6 +678,54 @@ export default function ConfiguratorPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <p className="text-gray-500">Selecione as opções para ver o preço</p>
+                </div>
+              </div>
+            )}
+
+            {/* Detalhamento dos Itens */}
+            {preview && preview.breakdown && preview.breakdown.length > 0 && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Detalhamento dos Custos</h3>
+                  {preview.meta && (
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                      {typeof preview.meta.sheets === 'number' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded border border-gray-200">Folhas: {preview.meta.sheets}</span>
+                      )}
+                      {typeof preview.meta.tiros === 'number' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded border border-gray-200">Tiros: {preview.meta.tiros}</span>
+                      )}
+                      {typeof preview.meta.area === 'number' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded border border-gray-200">Área: {preview.meta.area}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2">Tipo</th>
+                        <th className="text-left py-2">Item</th>
+                        <th className="text-right py-2">Qtd</th>
+                        <th className="text-left py-2">Unidade</th>
+                        <th className="text-right py-2">Custo Unit</th>
+                        <th className="text-right py-2">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {preview.breakdown.map((it, idx) => (
+                        <tr key={idx} className="border-b">
+                          <td className="py-2 text-gray-600">{it.type}</td>
+                          <td className="py-2 font-medium">{it.name}</td>
+                          <td className="py-2 text-right">{typeof it.quantity === 'number' ? it.quantity : '-'}</td>
+                          <td className="py-2">{/* unidade opcional não vem no preview.breakdown atual */}-</td>
+                          <td className="py-2 text-right">{typeof it.unitCost === 'number' ? `€${it.unitCost.toFixed(2)}` : '-'}</td>
+                          <td className="py-2 text-right font-medium">€{it.totalCost.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}

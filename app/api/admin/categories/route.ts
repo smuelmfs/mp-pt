@@ -5,6 +5,10 @@ import { z } from "zod";
 const CreateSchema = z.object({
   name: z.string().min(2),
   roundingStep: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
+  roundingStrategy: z.enum(["END_ONLY","PER_STEP"]).nullable().optional(),
+  pricingStrategy: z.enum(["COST_MARKUP_MARGIN","COST_MARGIN_ONLY","MARGIN_TARGET"]).nullable().optional(),
+  minPricePerPiece: z.string().regex(/^\d+(\.\d{1,2})?$/).nullable().optional(),
+  lossFactor: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
 });
 
 export async function GET() {

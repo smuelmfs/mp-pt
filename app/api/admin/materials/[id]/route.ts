@@ -16,6 +16,7 @@ const UpdateSchema = z.object({
   unitCost: z.string().regex(/^\d+(\.\d{1,4})?$/).optional(),
   active: z.boolean().optional(),
   isCurrent: z.boolean().optional(),
+  lossFactor: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
 });
 
 export async function GET(_req: Request, ctx: { params: any }) {

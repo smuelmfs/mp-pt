@@ -66,6 +66,23 @@ enum MarginScope { // escopo da regra de margem
   PRODUCT
 }
 
+// Novos enums para arredondamento, estratégia de preço e setup
+enum RoundingStrategy {
+  END_ONLY     // arredonda só no final (atual)
+  PER_STEP     // arredonda por etapa/linha (planilha)
+}
+
+enum PricingStrategy {
+  COST_MARKUP_MARGIN   // subtotal*(1+markup)*(1+margin) (atual)
+  COST_MARGIN_ONLY     // subtotal*(1+margin)
+  MARGIN_TARGET        // preço = subtotal / (1 - marginTarget)
+}
+
+enum SetupMode {
+  TIME_X_RATE   // setupMinutes * printingHourCost (atual)
+  FLAT          // taxa fixa de setup
+}
+
 // =========================
 // Apoio e Configuração
 // =========================
@@ -85,6 +102,10 @@ model ProductCategory {
   id           Int      @id @default(autoincrement())
   name         String   @unique
   roundingStep Decimal? @db.Decimal(7,4) // ex.: 0.0500 (prioridade sobre global)
+  roundingStrategy RoundingStrategy?
+  pricingStrategy  PricingStrategy?
+  minPricePerPiece Decimal? @db.Decimal(12,2)
+  lossFactor       Decimal? @db.Decimal(7,4)
   products     Product[]
   marginRules  MarginRule[]
   marginRulesDynamic MarginRuleDynamic[]
@@ -98,6 +119,8 @@ model ConfigGlobal {
   markupOperational Decimal  @db.Decimal(7,4)  // 0.2000 = 20%
   roundingStep      Decimal? @db.Decimal(7,4)  // degrau global (ex.: 0.0500)
   lossFactor        Decimal? @db.Decimal(7,4)  // fator de perda global
+  roundingStrategy  RoundingStrategy?
+  pricingStrategy   PricingStrategy?
   setupTimeMin      Int?
   printingHourCost  Decimal? @db.Decimal(12,4) // custo por hora da impressão (para setup)
   vatPercent        Decimal? @db.Decimal(7,4)  // percentual de IVA (ex.: 0.2300 = 23%)
@@ -115,6 +138,7 @@ model Material {           // material genérico (papel, vinil, PVC, etc.)
   type        String   // papel, vinil, pvc, alveolar...
   unit        Unit
   unitCost    Decimal  @db.Decimal(12,4) // custo por unidade (m², un, lote, folha)
+  lossFactor  Decimal? @db.Decimal(7,4)
   active      Boolean  @default(true)
   // SCD2 simples
   validFrom   DateTime @default(now())
@@ -162,6 +186,9 @@ model Printing {           // parâmetros/custos de impressão
   yield        Int?          // rendimento por formato
   setupMinutes Int?          // tempo de acerto
   minFee       Decimal?      @db.Decimal(12,2) // valor mínimo
+  setupMode    SetupMode?
+  setupFlatFee Decimal?      @db.Decimal(12,2)
+  lossFactor   Decimal?      @db.Decimal(7,4)
   active       Boolean       @default(true)
   validFrom    DateTime      @default(now())
   validTo      DateTime?
@@ -184,6 +211,8 @@ model Finish {             // acabamentos com regras de cálculo
   calcType      FinishCalcType  @default(PER_UNIT)
   minFee        Decimal?        @db.Decimal(12,2)
   areaStepM2    Decimal?        @db.Decimal(12,4)
+  minPerPiece   Decimal?        @db.Decimal(12,2)
+  lossFactor    Decimal?        @db.Decimal(7,4)
   active        Boolean         @default(true)
   // SCD2 opcional
   validFrom     DateTime        @default(now())
@@ -223,6 +252,9 @@ model Product {
   marginDefault  Decimal?          @db.Decimal(7,4)
   markupDefault  Decimal?          @db.Decimal(7,4)
   roundingStep   Decimal?          @db.Decimal(7,4) // prioridade sobre categoria e global
+  roundingStrategy RoundingStrategy?
+  pricingStrategy  PricingStrategy?
+  minPricePerPiece Decimal?        @db.Decimal(12,2)
   active         Boolean           @default(true)
 
   attributesSchema Json?
@@ -235,6 +267,7 @@ model Product {
   marginRulesDynamic MarginRuleDynamic[]
   optionGroups   ProductOptionGroup[]
   suggestedQuantities ProductSuggestedQuantity[]
+  supplierPrices SupplierPrice[]
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -246,6 +279,7 @@ model ProductMaterial {
   materialId   Int
   qtyPerUnit   Decimal  @db.Decimal(12,4) // consumo por unidade
   wasteFactor  Decimal? @db.Decimal(7,4)  // perda adicional
+  lossFactor   Decimal? @db.Decimal(7,4)
   variantId    Int?                 // se quiser amarrar a uma variante específica
 
   product      Product  @relation(fields: [productId], references: [id])
@@ -254,6 +288,23 @@ model ProductMaterial {
 
   @@unique([productId, materialId])
   @@index([variantId])
+}
+
+// Custos de fornecedor (Produtos Publicitários)
+model SupplierPrice {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  name      String
+  unit      Unit
+  cost      Decimal  @db.Decimal(12,4)
+  notes     String?
+
+  product   Product  @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
 }
 
 model ProductDimension {

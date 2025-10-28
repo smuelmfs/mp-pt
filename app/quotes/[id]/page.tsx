@@ -206,6 +206,11 @@ export default function QuoteDetailPage() {
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
               Margens e Ajustes Aplicados
+              {row?.product?.roundingStrategy === 'PER_STEP' && (
+                <Badge variant="secondary" className="ml-2">
+                  Arredondamento por etapa
+                </Badge>
+              )}
             </CardTitle>
             <CardDescription>
               Detalhamento dos cálculos aplicados ao orçamento

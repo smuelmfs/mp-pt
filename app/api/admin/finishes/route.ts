@@ -12,6 +12,8 @@ const CreateSchema = z.object({
   minFee: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   areaStepM2: z.string().regex(/^\d+(\.\d{1,4})?$/).optional(),
   active: z.boolean().optional().default(true),
+  minPerPiece: z.string().regex(/^\d+(\.\d{1,2})?$/).nullable().optional(),
+  lossFactor: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
 });
 
 export async function GET(req: Request) {

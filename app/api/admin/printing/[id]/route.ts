@@ -18,6 +18,9 @@ const UpdateSchema = z.object({
   setupMinutes: z.number().int().optional(),
   minFee: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   active: z.boolean().optional(),
+  setupMode: z.enum(["TIME_X_RATE","FLAT"]).optional(),
+  setupFlatFee: z.string().regex(/^\d+(\.\d{1,2})?$/).nullable().optional(),
+  lossFactor: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
 });
 
 export async function GET(_req: Request, ctx: { params: any }) {

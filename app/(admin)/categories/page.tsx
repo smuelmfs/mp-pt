@@ -20,7 +20,11 @@ export default function CategoriesPage() {
 
   const [formData, setFormData] = useState({
     name: "",
-    roundingStep: 0.05
+    roundingStep: 0.05,
+    roundingStrategy: "",
+    pricingStrategy: "",
+    minPricePerPiece: "",
+    lossFactor: ""
   });
 
   async function load() {
@@ -55,7 +59,7 @@ export default function CategoriesPage() {
 
       if (res.ok) {
         setOpenCreate(false);
-        setFormData({ name: "", roundingStep: 0.05 });
+        setFormData({ name: "", roundingStep: 0.05, roundingStrategy: "", pricingStrategy: "", minPricePerPiece: "", lossFactor: "" });
         load();
       } else {
         const error = await res.json();
@@ -82,7 +86,7 @@ export default function CategoriesPage() {
 
       if (res.ok) {
         setEditing(null);
-        setFormData({ name: "", roundingStep: 0.05 });
+        setFormData({ name: "", roundingStep: 0.05, roundingStrategy: "", pricingStrategy: "", minPricePerPiece: "", lossFactor: "" });
         load();
       } else {
         const error = await res.json();
@@ -118,7 +122,11 @@ export default function CategoriesPage() {
     setEditing(category);
     setFormData({
       name: category.name,
-      roundingStep: Number(category.roundingStep)
+      roundingStep: Number(category.roundingStep),
+      roundingStrategy: "",
+      pricingStrategy: "",
+      minPricePerPiece: "",
+      lossFactor: ""
     });
   }
 
@@ -323,6 +331,72 @@ export default function CategoriesPage() {
                   placeholder="0.05"
                 />
                 <p className="text-xs text-gray-500 mt-1">Valor para arredondar preços (ex: 0.05 = €0.05)</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Estratégia de Arredondamento
+                </label>
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  value={formData.roundingStrategy}
+                  onChange={(e) => setFormData({...formData, roundingStrategy: e.target.value})}
+                >
+                  <option value="">Usar configuração global</option>
+                  <option value="END_ONLY">Apenas no final</option>
+                  <option value="PER_STEP">Por etapa</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">END_ONLY: arredonda só o preço final | PER_STEP: arredonda cada linha</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Estratégia de Precificação
+                </label>
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  value={formData.pricingStrategy}
+                  onChange={(e) => setFormData({...formData, pricingStrategy: e.target.value})}
+                >
+                  <option value="">Usar configuração global</option>
+                  <option value="COST_MARKUP_MARGIN">Custo × Markup × Margem</option>
+                  <option value="COST_MARGIN_ONLY">Custo × Margem</option>
+                  <option value="MARGIN_TARGET">Margem Alvo</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Como calcular o preço final</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Preço Mínimo por Peça (€)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  value={formData.minPricePerPiece}
+                  onChange={(e) => setFormData({...formData, minPricePerPiece: e.target.value})}
+                  placeholder="0.50"
+                />
+                <p className="text-xs text-gray-500 mt-1">Preço mínimo por unidade (além do mínimo por lote)</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Fator de Perda (%)
+                </label>
+                <input
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  max="1"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  value={formData.lossFactor}
+                  onChange={(e) => setFormData({...formData, lossFactor: e.target.value})}
+                  placeholder="0.01"
+                />
+                <p className="text-xs text-gray-500 mt-1">Fator de perda padrão para esta categoria (ex: 0.01 = 1%)</p>
               </div>
             </div>
 

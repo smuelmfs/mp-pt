@@ -1,4 +1,4 @@
-import { PrismaClient, Unit, PrintingTech, FinishCategory, FinishCalcType, MarginScope } from "@prisma/client";
+import { PrismaClient, Unit, PrintingTech, FinishCategory, FinishCalcType, MarginScope, RoundingStrategy, PricingStrategy, SetupMode } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
@@ -17,7 +17,9 @@ async function main() {
       lossFactor: "0.03",
       printingHourCost: "60.00",
       vatPercent: "0.23",
-      setupTimeMin: 15
+      setupTimeMin: 15,
+      roundingStrategy: RoundingStrategy.PER_STEP,
+      pricingStrategy: PricingStrategy.COST_MARKUP_MARGIN,
     },
   });
 
@@ -26,7 +28,7 @@ async function main() {
   const categoria = await prisma.productCategory.upsert({
     where: { name: "Papelaria" },
     update: {},
-    create: { name: "Papelaria", roundingStep: "0.05" },
+    create: { name: "Papelaria", roundingStep: "0.05", roundingStrategy: RoundingStrategy.PER_STEP, pricingStrategy: PricingStrategy.COST_MARKUP_MARGIN },
   });
 
   // 3. Material base e variantes
@@ -92,6 +94,24 @@ async function main() {
       yield: 250,
       setupMinutes: 15,
       minFee: "15.00",
+      setupMode: SetupMode.TIME_X_RATE,
+      lossFactor: "0.03",
+    },
+  });
+
+  // Setup flat para testes
+  await prisma.printing.create({
+    data: {
+      technology: PrintingTech.DIGITAL,
+      formatLabel: "A4",
+      colors: "4x0",
+      sides: 1,
+      unitPrice: "0.1500",
+      yield: 200,
+      minFee: "12.00",
+      setupMode: SetupMode.FLAT,
+      setupFlatFee: "12.00",
+      lossFactor: "0.02",
     },
   });
 
@@ -107,6 +127,8 @@ async function main() {
       calcType: FinishCalcType.PER_M2,
       minFee: "5.00",
       areaStepM2: "0.10",
+      minPerPiece: "0.02",
+      lossFactor: "0.01",
     },
   });
 
@@ -134,6 +156,8 @@ async function main() {
       marginDefault: "0.30",
       markupDefault: "0.20",
       roundingStep: "0.05",
+      roundingStrategy: RoundingStrategy.PER_STEP,
+      pricingStrategy: PricingStrategy.COST_MARKUP_MARGIN,
       minOrderQty: 100,
       minOrderValue: "50.00",
       attributesSchema: { largura_mm: 90, altura_mm: 50 },
@@ -142,6 +166,7 @@ async function main() {
           materialId: papel.id,
           qtyPerUnit: "0.0200", // 1 folha ~50 cartões
           wasteFactor: "0.02",
+          lossFactor: "0.01",
         }],
       },
       finishes: {
@@ -152,6 +177,28 @@ async function main() {
         }],
       },
     },
+  });
+
+  // Exemplo de SupplierPrice para Publicitários (produto fictício)
+  const produtoPub = await prisma.product.create({
+    data: {
+      name: "Estrutura Publicitária X-Banner",
+      categoryId: categoria.id,
+      marginDefault: "0.30",
+      markupDefault: "0.20",
+      roundingStep: "0.05",
+      roundingStrategy: RoundingStrategy.PER_STEP,
+      pricingStrategy: PricingStrategy.COST_MARKUP_MARGIN,
+    }
+  });
+  await prisma.supplierPrice.create({
+    data: {
+      productId: produtoPub.id,
+      name: "Leiripantone",
+      unit: Unit.UNIT,
+      cost: "35.0000",
+      notes: "Fornecedor padrão",
+    }
   });
 
   // 7. Regras de margem

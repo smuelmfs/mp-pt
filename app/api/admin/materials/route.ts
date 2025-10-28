@@ -8,6 +8,7 @@ const CreateSchema = z.object({
   unit: z.enum(["UNIT","M2","LOT","HOUR","SHEET"]),
   unitCost: z.string().regex(/^\d+(\.\d{1,4})?$/), // "12.3456"
   active: z.boolean().optional().default(true),
+  lossFactor: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
 });
 
 export async function GET(req: Request) {

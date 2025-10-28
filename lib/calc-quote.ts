@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { roundToStep } from "@/lib/rounding";
+import { roundToStep, roundMoney2, ceilInt } from "@/lib/rounding";
 import { toNumber } from "@/lib/money";
 import { computeImposition } from "@/lib/imposition";
 
@@ -14,9 +14,41 @@ export async function calcQuote(productId: number, quantity: number, params: any
       printing: true,
       materials: { include: { material: true, variant: true } },
       finishes: { include: { finish: true } },
+      supplierPrices: true,
     },
   });
   if (!product || !cfg) throw new Error("Produto ou Config não encontrados");
+
+  // Preferências (prioridade: Produto > Categoria > Global)
+  const prefs = {
+    step:
+      toNumber((product as any).roundingStep) ||
+      toNumber((product as any).category?.roundingStep) ||
+      toNumber((cfg as any).roundingStep) ||
+      0,
+    roundingStrategy:
+      ((product as any).roundingStrategy || (product as any).category?.roundingStrategy || (cfg as any).roundingStrategy || "END_ONLY") as
+        | "END_ONLY"
+        | "PER_STEP",
+    pricingStrategy:
+      ((product as any).pricingStrategy || (product as any).category?.pricingStrategy || (cfg as any).pricingStrategy || "COST_MARKUP_MARGIN") as
+        | "COST_MARKUP_MARGIN"
+        | "COST_MARGIN_ONLY"
+        | "MARGIN_TARGET",
+    minPricePerPiece:
+      toNumber((product as any).minPricePerPiece) ||
+      toNumber((product as any).category?.minPricePerPiece) ||
+      0,
+    categoryLoss: toNumber((product as any).category?.lossFactor) || 0,
+  };
+
+  const isPerStep = prefs.roundingStrategy === "PER_STEP";
+  const roundLine = (v: number) => (isPerStep ? roundMoney2(v) : v);
+
+  function firstDefined<T>(...vals: (T | null | undefined)[]): T | undefined {
+    for (const v of vals) if (v !== undefined && v !== null) return v as T;
+    return undefined;
+  }
 
   // Aplicar overrides se fornecidos
   if (overrides) {
@@ -79,7 +111,7 @@ export async function calcQuote(productId: number, quantity: number, params: any
 
   // ===== custos detalhados por item =====
   const items: Array<{
-    type: "MATERIAL" | "PRINTING" | "FINISH";
+    type: "MATERIAL" | "PRINTING" | "FINISH" | "OTHER";
     refId?: number; name: string; quantity?: number; unit?: string; unitCost?: number; totalCost: number;
   }> = [];
 
@@ -88,6 +120,16 @@ export async function calcQuote(productId: number, quantity: number, params: any
   for (const pm of product.materials) {
     const unitCost = toNumber(pm.material.unitCost);
     const waste = toNumber(pm.wasteFactor);
+    const matLoss =
+      toNumber(
+        (firstDefined(
+          (pm as any).lossFactor,
+          (pm.material as any).lossFactor,
+          prefs.categoryLoss,
+          (cfg as any).lossFactor,
+          0
+        ) as unknown) as number
+      ) || 0;
     let effectiveQty = 0;
     let qtyPU = toNumber(pm.qtyPerUnit);
 
@@ -107,30 +149,31 @@ export async function calcQuote(productId: number, quantity: number, params: any
 
       if (imposition.piecesPerSheet > 0) {
         // Calcular folhas necessárias baseado na imposição
-        const sheetsNeeded = Math.ceil(effectiveQuantity / imposition.piecesPerSheet);
-        // Aplicar perda global se configurada
-        const lossFactor = toNumber(cfg.lossFactor) || 0;
-        const sheetsWithLoss = Math.ceil(sheetsNeeded * (1 + lossFactor));
+        const sheetsNeeded = ceilInt(effectiveQuantity / imposition.piecesPerSheet);
+        // Aplicar perda por escopo
+        const sheetsWithLoss = ceilInt(sheetsNeeded * (1 + matLoss));
         effectiveQty = sheetsWithLoss;
         qtyPU = sheetsWithLoss / effectiveQuantity; // qtyPerUnit calculado automaticamente
       } else {
         // Fallback para qtyPerUnit manual se imposição falhar
         qtyPU = toNumber(pm.qtyPerUnit);
         effectiveQty = effectiveQuantity * qtyPU * (1 + waste);
-        // Aplicar perda global
-        const lossFactor = toNumber(cfg.lossFactor) || 0;
-        effectiveQty = effectiveQty * (1 + lossFactor);
+        // Aplicar perda por escopo
+        effectiveQty = effectiveQty * (1 + matLoss);
       }
     } else {
       // Cálculo tradicional (sem imposição)
       qtyPU = toNumber(pm.qtyPerUnit);
       effectiveQty = effectiveQuantity * qtyPU * (1 + waste);
-      // Aplicar perda global
-      const lossFactor = toNumber(cfg.lossFactor) || 0;
-      effectiveQty = effectiveQty * (1 + lossFactor);
+      // Aplicar perda por escopo
+      effectiveQty = effectiveQty * (1 + matLoss);
     }
 
-    const line = unitCost * effectiveQty;
+    // Quantidade física quando folha
+    if (pm.material.unit === "SHEET") effectiveQty = ceilInt(effectiveQty);
+
+    let line = unitCost * effectiveQty;
+    line = roundLine(line);
     costMat += line;
     items.push({
       type: "MATERIAL",
@@ -150,21 +193,26 @@ export async function calcQuote(productId: number, quantity: number, params: any
       const yieldVal = product.printing.yield ?? 1;
       const minFee = toNumber(product.printing.minFee);
       
-      // Calcular quantidade de tiros considerando perda global
-      const baseTiros = Math.ceil(effectiveQuantity / yieldVal);
-      const lossFactor = toNumber(cfg.lossFactor) || 0;
-      const tirosWithLoss = Math.ceil(baseTiros * (1 + lossFactor));
+      // Calcular quantidade de tiros considerando perda por impressão
+      const printLoss = toNumber((firstDefined((product.printing as any).lossFactor, prefs.categoryLoss, (cfg as any).lossFactor, 0) as unknown) as number) || 0;
+      const baseTiros = ceilInt(effectiveQuantity / yieldVal);
+      const tirosWithLoss = ceilInt(baseTiros * (1 + printLoss));
       
       const byQty = unitPrice * tirosWithLoss;
       
-      // Custo de setup se configurado
+      // Custo de setup conforme modo
       let setupCost = 0;
-      if (product.printing.setupMinutes && (cfg as any).printingHourCost) {
-        const setupHours = toNumber(product.printing.setupMinutes) / 60;
-        setupCost = setupHours * toNumber((cfg as any).printingHourCost);
+      const setupMode = (product.printing as any).setupMode as "TIME_X_RATE" | "FLAT" | undefined;
+      if (setupMode === "FLAT") {
+        setupCost = toNumber((product.printing as any).setupFlatFee || 0);
+      } else {
+        const minutes = toNumber((product.printing as any).setupMinutes || (cfg as any).setupTimeMin || 0);
+        const hourCost = toNumber((cfg as any).printingHourCost || 0);
+        setupCost = (minutes / 60) * hourCost;
       }
       
       costPrint = Math.max(byQty + setupCost, minFee);
+      costPrint = roundLine(costPrint);
       
       items.push({
         type: "PRINTING",
@@ -187,15 +235,21 @@ export async function calcQuote(productId: number, quantity: number, params: any
     let finishQuantity = effectiveQuantity * qtyPU;
     const calcType = (pf.calcTypeOverride ?? f.calcType) as string;
     
+    // Aplicar perdas específicas de acabamento
+    const finishLoss = toNumber((firstDefined((f as any).lossFactor, prefs.categoryLoss, (cfg as any).lossFactor, 0) as unknown) as number) || 0;
+
     // Aplicar AreaStep para acabamentos PER_M2
     if (calcType === "PER_M2" && f.areaStepM2) {
       const areaStep = toNumber(f.areaStepM2);
       if (areaStep > 0) {
         // Arredondar área para cima no degrau configurado
-        finishQuantity = Math.ceil(finishQuantity / areaStep) * areaStep;
+        finishQuantity = ceilInt(finishQuantity / areaStep) * areaStep;
       }
     }
     
+    // Perdas
+    finishQuantity = ceilInt(finishQuantity * (1 + finishLoss));
+
     switch (calcType) {
       case "PER_M2":   line = base * finishQuantity; break;
       case "PER_UNIT": line = base * finishQuantity; break;
@@ -204,6 +258,12 @@ export async function calcQuote(productId: number, quantity: number, params: any
     }
     const minFee = toNumber(f.minFee);
     if (minFee) line = Math.max(line, minFee);
+    // mínimo por peça
+    if ((f as any).minPerPiece) {
+      line = Math.max(line, effectiveQuantity * toNumber((f as any).minPerPiece));
+    }
+
+    line = roundLine(line);
     costFinish += line;
 
     items.push({
@@ -218,6 +278,41 @@ export async function calcQuote(productId: number, quantity: number, params: any
   }
 
   const subtotal = costMat + costPrint + costFinish;
+  
+  // Custos de fornecedor (Produtos Publicitários)
+  let costSupplier = 0;
+  if (product.supplierPrices && product.supplierPrices.length > 0) {
+    const widthMm = product.widthMm || (product.attributesSchema as any)?.largura_mm || 0;
+    const heightMm = product.heightMm || (product.attributesSchema as any)?.altura_mm || 0;
+    const areaM2PerUnit = widthMm && heightMm ? (Number(widthMm) * Number(heightMm)) / 1_000_000 : 0;
+    for (const sp of product.supplierPrices) {
+      const unit = sp.unit;
+      const unitCost = toNumber(sp.cost);
+      let qty = 1;
+      switch (unit) {
+        case "UNIT":
+          qty = effectiveQuantity;
+          break;
+        case "M2":
+          qty = areaM2PerUnit > 0 ? areaM2PerUnit * effectiveQuantity : effectiveQuantity;
+          break;
+        case "LOT":
+        default:
+          qty = 1;
+      }
+      const line = roundLine(unitCost * qty);
+      costSupplier += line;
+      items.push({
+        type: "OTHER",
+        refId: sp.id,
+        name: `Fornecedor: ${sp.name}`,
+        quantity: qty,
+        unit,
+        unitCost,
+        totalCost: line,
+      });
+    }
+  }
 
   // Markup / margem fixa (prioridade Produto > Categoria > Global)
   const markup = toNumber(product.markupDefault ?? cfg.markupOperational);
@@ -265,13 +360,25 @@ export async function calcQuote(productId: number, quantity: number, params: any
     minOrderReason = `Valor mínimo: €${product.minOrderValue}`;
   }
 
-  const priceBeforeMargin = effectiveSubtotal * (1 + markup);
-  let final = priceBeforeMargin * (1 + margin + dynamic);
+  let final = 0;
+  switch (prefs.pricingStrategy) {
+    case "COST_MARGIN_ONLY":
+      final = (effectiveSubtotal + costSupplier) * (1 + margin + dynamic);
+      break;
+    case "MARGIN_TARGET":
+      final = (effectiveSubtotal + costSupplier) / Math.max(1 - (margin + dynamic), 0.0001);
+      break;
+    default:
+      // COST_MARKUP_MARGIN
+      final = (effectiveSubtotal + costSupplier) * (1 + markup) * (1 + margin + dynamic);
+  }
 
-  const step =
-    toNumber(product.roundingStep) ||
-    toNumber(product.category.roundingStep) ||
-    toNumber(cfg.roundingStep);
+  // mínimo por peça (produto/categoria)
+  if (prefs.minPricePerPiece) {
+    final = Math.max(final, effectiveQuantity * prefs.minPricePerPiece);
+  }
+
+  const step = prefs.step;
   final = roundToStep(final, step);
   
   // Calcular IVA se configurado
@@ -284,7 +391,7 @@ export async function calcQuote(productId: number, quantity: number, params: any
 
   return {
     product, quantity, params,
-    costMat, costPrint, costFinish, subtotal: effectiveSubtotal,
+    costMat, costPrint, costFinish, subtotal: effectiveSubtotal + costSupplier,
     markup, margin, dynamic, step, final,
     vatAmount, priceGross,
     minOrderApplied, minOrderReason,

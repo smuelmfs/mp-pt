@@ -9,7 +9,8 @@ export default function ProductsPage() {
   const [prints, setPrints] = useState<any[]>([]);
   const [openCreate, setOpenCreate] = useState(false);
   const [form, setForm] = useState<any>({
-    name: "", categoryId: "", printingId: "", marginDefault: "", markupDefault: "", roundingStep: ""
+    name: "", categoryId: "", printingId: "", marginDefault: "", markupDefault: "", roundingStep: "",
+    roundingStrategy: "", pricingStrategy: "", minPricePerPiece: ""
   });
 
   async function load() {
@@ -33,13 +34,16 @@ export default function ProductsPage() {
       marginDefault: form.marginDefault || null,
       markupDefault: form.markupDefault || null,
       roundingStep: form.roundingStep || null,
+      roundingStrategy: form.roundingStrategy || null,
+      pricingStrategy: form.pricingStrategy || null,
+      minPricePerPiece: form.minPricePerPiece || null,
     };
     const res = await fetch("/api/admin/products", {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body)
     });
     if (res.ok) {
       setOpenCreate(false);
-      setForm({ name: "", categoryId: "", printingId: "", marginDefault: "", markupDefault: "", roundingStep: "" });
+      setForm({ name: "", categoryId: "", printingId: "", marginDefault: "", markupDefault: "", roundingStep: "", roundingStrategy: "", pricingStrategy: "", minPricePerPiece: "" });
       load();
     } else {
       const j = await res.json(); alert("Erro: " + (j.error?.message || "Falha ao criar"));
@@ -270,6 +274,46 @@ export default function ProductsPage() {
                       onChange={(e)=>setForm((f:any)=>({...f,roundingStep:e.target.value}))}
                     />
                     <p className="text-xs text-gray-500 mt-1">Deixe vazio para usar o arredondamento da categoria</p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Estratégia de Arredondamento</label>
+                    <select 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                      value={form.roundingStrategy} 
+                      onChange={(e)=>setForm((f:any)=>({...f,roundingStrategy:e.target.value}))}
+                    >
+                      <option value="">Usar categoria/global</option>
+                      <option value="END_ONLY">Apenas no final</option>
+                      <option value="PER_STEP">Por etapa</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">END_ONLY: arredonda só o preço final | PER_STEP: arredonda cada linha</p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Estratégia de Precificação</label>
+                    <select 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                      value={form.pricingStrategy} 
+                      onChange={(e)=>setForm((f:any)=>({...f,pricingStrategy:e.target.value}))}
+                    >
+                      <option value="">Usar categoria/global</option>
+                      <option value="COST_MARKUP_MARGIN">Custo × Markup × Margem</option>
+                      <option value="COST_MARGIN_ONLY">Custo × Margem</option>
+                      <option value="MARGIN_TARGET">Margem Alvo</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Como calcular o preço final</p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Preço Mínimo por Peça</label>
+                    <input 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                      placeholder="Ex: 0.50 (€0.50)"
+                      value={form.minPricePerPiece} 
+                      onChange={(e)=>setForm((f:any)=>({...f,minPricePerPiece:e.target.value}))}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Preço mínimo por unidade (além do mínimo por lote)</p>
                   </div>
                 </div>
               </div>
