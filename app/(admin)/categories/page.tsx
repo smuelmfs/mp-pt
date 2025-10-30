@@ -132,7 +132,7 @@ export default function CategoriesPage() {
 
   function cancelEdit() {
     setEditing(null);
-    setFormData({ name: "", roundingStep: 0.05 });
+    setFormData({ name: "", roundingStep: 0.05, roundingStrategy: "", pricingStrategy: "", minPricePerPiece: "", lossFactor: "" });
   }
 
   const filteredCategories = categories.filter(category =>
