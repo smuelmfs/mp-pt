@@ -1,0 +1,161 @@
+================================================================================
+           DOCUMENTAÇÃO CONSOLIDADA — ADMINISTRAÇÃO → COMERCIAL
+================================================================================
+
+1) VISÃO GERAL
+- Administração define catálogo (categorias, produtos, materiais, impressões, acabamentos) e regras de preço (estratégias, arredondamento, perdas, mínimos).
+- Comercial usa essas definições para configurar produtos, precificar com o motor e gerar orçamentos.
+- Prioridade de preferências: Product > Category > Global > default.
+
+2) CONFIGURAÇÃO GLOBAL (ConfigGlobal)
+- Campos relevantes (todos opcionais):
+  roundingStrategy: END_ONLY | PER_STEP
+  pricingStrategy: COST_MARKUP_MARGIN | COST_MARGIN_ONLY | MARGIN_TARGET
+  roundingStep: número (ex.: 0.05)
+  lossFactor: número (perda padrão)
+  printingHourCost: número
+  vatPercent: número (IVA)
+  setupTimeMin: número (fallback de setup)
+- Uso: defaults quando categoria/produto não definem.
+
+3) CATEGORIAS (ProductCategory)
+- Campos: name, roundingStep?, roundingStrategy?, pricingStrategy?, minPricePerPiece?, lossFactor?
+- Exemplo de criação:
+  POST /api/admin/categories
+  {
+    "name": "Papelaria",
+    "roundingStep": "0.05",
+    "roundingStrategy": "PER_STEP",
+    "pricingStrategy": "COST_MARKUP_MARGIN",
+    "minPricePerPiece": "0.10",
+    "lossFactor": "0.02"
+  }
+
+4) PRODUTOS (Product)
+- Campos principais: name, categoryId, printingId?, roundingStep?, roundingStrategy?, pricingStrategy?, minPricePerPiece?, marginDefault?, markupDefault?, active?
+- Associações: materiais via ProductMaterial, acabamentos via ProductFinish, SupplierPrice (custos adicionais).
+- Busca no Admin: por texto (nome/categoria), ID direto, categoria e status.
+- Exemplo de criação:
+  POST /api/admin/products
+  {
+    "name": "Cartões 9x5",
+    "categoryId": 1,
+    "printingId": 3,
+    "marginDefault": "0.30",
+    "markupDefault": "0.20",
+    "roundingStep": "0.05",
+    "roundingStrategy": "PER_STEP",
+    "pricingStrategy": "COST_MARKUP_MARGIN",
+    "minPricePerPiece": "0.02",
+    "active": true
+  }
+- Exemplo de listagem com filtros:
+  GET /api/admin/products?q=cartoes&categoryId=1&productId=12&active=true
+
+5) MATERIAIS (Material, ProductMaterial)
+- Material: name, type, unit (UNIT|M2|LOT|HOUR|SHEET), unitCost, lossFactor?, active?
+- Exemplo de criação:
+  POST /api/admin/materials
+  {
+    "name": "Papel Couchê 300g",
+    "type": "papel",
+    "unit": "SHEET",
+    "unitCost": "0.1200",
+    "lossFactor": "0.01"
+  }
+- ProductMaterial (associação no nível do produto): consumption/unidade (quando aplicável) e lossFactor override.
+
+6) IMPRESSÕES (Printing)
+- Campos: technology (OFFSET|DIGITAL|UV|GRANDE_FORMATO), formatLabel?, colors?, sides?, unitPrice, yield?, setupMinutes?, minFee?, active?, setupMode? (TIME_X_RATE|FLAT), setupFlatFee?, lossFactor?
+- Exemplo de criação:
+  POST /api/admin/printing
+  {
+    "technology": "DIGITAL",
+    "formatLabel": "SRA3",
+    "colors": "4x4",
+    "sides": 2,
+    "unitPrice": "0.0150",
+    "yield": 100,
+    "setupMinutes": 15,
+    "minFee": "5.00",
+    "setupMode": "TIME_X_RATE",
+    "lossFactor": "0.03"
+  }
+- Alternativa FLAT:
+  {
+    "technology": "OFFSET",
+    "colors": "4x0",
+    "unitPrice": "0.0100",
+    "setupMode": "FLAT",
+    "setupFlatFee": "12.00"
+  }
+
+7) ACABAMENTOS (Finish)
+- Campos: name, category (LAMINACAO|VERNIZ|CORTE|DOBRA|OUTROS), unit (UNIT|M2|LOT|HOUR|SHEET), baseCost, calcType (PER_UNIT|PER_M2|PER_LOT|PER_HOUR), minFee?, areaStepM2?, active?, minPerPiece?, lossFactor?
+- Exemplo de criação:
+  POST /api/admin/finishes
+  {
+    "name": "Laminação Fosca 2F",
+    "category": "LAMINACAO",
+    "unit": "M2",
+    "baseCost": "1.5000",
+    "calcType": "PER_M2",
+    "minFee": "4.00",
+    "areaStepM2": "0.10",
+    "minPerPiece": "0.02",
+    "lossFactor": "0.02"
+  }
+
+8) SUPPLIERPRICE (Custos de Fornecedor)
+- Modelo: productId, name, unit (UNIT|LOT|M2), cost, notes?
+- Uso: linha de custo adicional somada ao subtotal de produção.
+- Exemplo:
+  (via prisma/seed ou endpoint específico, se houver)
+  {
+    "productId": 10,
+    "name": "Fornecedor X (Kit Publicitário)",
+    "unit": "UNIT",
+    "cost": "35.0000",
+    "notes": "Preço de tabela"
+  }
+
+9) ENGINE DE CÁLCULO (Resumo)
+- Preferências: Product > Category > Global.
+- Rounding: PER_STEP (roundMoney2 por linha) ou END_ONLY (apenas final).
+- Perdas por escopo: Material/Impressão/Acabamento aplicadas antes da multiplicação.
+- Setup de impressão: TIME_X_RATE (minutos × custo/hora) ou FLAT (taxa fixa); aplica minFee.
+- Estratégias:
+  - COST_MARKUP_MARGIN: subtotal × (1+markup) × (1+margin)
+  - COST_MARGIN_ONLY: subtotal × (1+margin)
+  - MARGIN_TARGET: preço = subtotal / (1 − margin)
+- Mínimos: minPerPiece (acabamento e/ou produto/categoria), minFee por lote, minPricePerPiece aplicado ao total líquido.
+- IVA: aplica sobre o líquido e usa roundMoney2.
+- Saídas: subtotalProduction, subtotal, net, vat, gross, breakdown (materiais, impressão, acabamentos, supplier).
+
+10) COMERCIAL — CATÁLOGO E CONFIGURADOR
+- Catálogo (/quotes/categories):
+  - Abas por categoria e “Todos”.
+  - Filtros dinâmicos: “Todos” → todos os tipos/categorias; categoria X → apenas tipos/categorias usados naquela categoria.
+- Configurador (/quotes/configurator/[id]):
+  - Layout em duas colunas, presets de quantidade, resumo sticky.
+  - Badge “Arredondamento por etapa” quando PER_STEP.
+  - “Detalhamento dos Custos” (materiais, impressão, acabamentos, supplier).
+  - Quantidades, dimensões (quando aplicável), acabamentos opcionais e variantes conforme o admin definiu.
+
+11) EXEMPLOS DE PAYLOADS (Resumo Rápido)
+- Category (POST): name, roundingStep?, roundingStrategy?, pricingStrategy?, minPricePerPiece?, lossFactor?
+- Product (POST): name, categoryId, printingId?, marginDefault?, markupDefault?, roundingStep?, roundingStrategy?, pricingStrategy?, minPricePerPiece?, active?
+- Material (POST): name, type, unit, unitCost, lossFactor?
+- Printing (POST): technology, unitPrice, yield?, setupMode?, setupMinutes?/setupFlatFee?, minFee?, lossFactor?
+- Finish (POST): name, category, unit, baseCost, calcType, minFee?, areaStepM2?, minPerPiece?, lossFactor?
+
+12) BOAS PRÁTICAS
+- Configure defaults globais (IVA, custo/hora, step) antes do catálogo.
+- Modele categorias com perdas/mínimos/estratégias típicas.
+- No produto, só faça override do que realmente diverge da categoria.
+- Associe materiais/acabamentos relevantes; use lossFactor local quando preciso.
+- Em impressão, escolha setupMode corretamente (TIME_X_RATE vs FLAT) e minFee coerente.
+- Para produtos publicitários, inclua SupplierPrice para compor os custos.
+- No comercial, valide o badge PER_STEP e o breakdown com os valores arredondados.
+
+FIM

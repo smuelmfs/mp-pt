@@ -20,19 +20,35 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") || "").trim();
   const categoryId = searchParams.get("categoryId");
+  const productId = searchParams.get("productId");
+  const printingId = searchParams.get("printingId");
+  const active = searchParams.get("active");
 
   const where: any = {};
   
   if (q) {
-    where.OR = [
+    const maybeId = parseInt(q, 10);
+    const or: any[] = [
       { name: { contains: q, mode: "insensitive" } },
       { category: { name: { contains: q, mode: "insensitive" } } },
     ];
+    if (!Number.isNaN(maybeId)) {
+      or.push({ id: maybeId });
+    }
+    where.OR = or;
   }
   
   if (categoryId) {
     where.categoryId = parseInt(categoryId);
   }
+  if (productId) {
+    where.id = parseInt(productId);
+  }
+  if (printingId) {
+    where.printingId = parseInt(printingId);
+  }
+  if (active === "true") where.active = true;
+  if (active === "false") where.active = false;
 
   const rows = await prisma.product.findMany({
     where,

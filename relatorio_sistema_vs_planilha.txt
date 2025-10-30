@@ -1,0 +1,259 @@
+1) Sumário executivo
+
+- Stack: Next.js (App Router), TypeScript, Prisma (PostgreSQL), Tailwind UI components, Zod para validação em APIs admin, API Routes REST sob `app/api/*`.
+- Principais módulos:
+  - UI (admin e comercial) em `app/(admin)/*` e `app/quotes/*` + `app/quotes/configurator/[id]`.
+  - Engine de cálculo: `lib/calc-quote.ts` (coração) com utilitários `lib/imposition.ts`, `lib/rounding.ts`, `lib/money.ts`, além de aplicação de overrides `lib/apply-overrides.ts`.
+  - Persistência: Prisma (`prisma/schema.prisma`, `lib/prisma.ts`).
+  - APIs: `app/api/*` incluindo `quote`, `quotes/save`, `admin/*` (CRUDs), `products`, `catalog/products`.
+- Escopo atual: Implementa cálculo para produtos baseados em materiais (papel/folha, etc.), impressão com setup/mínimo, acabamentos por unidade/m²/lote/hora, regras de margem fixa e dinâmica, mínimos por produto e arredondamento por degrau. Suporta opções de produto que alteram materiais/dimensões/acabamentos e ajustes de preço.
+- Feito: Modelos completos, CRUDs admin para Materiais, Variantes, Impressão, Acabamentos, Produtos e regras de margem; endpoint de simulação `POST /api/quote` e de salvamento `POST /api/quote/save` com extrato; cálculo de imposição para papel folha; IVA opcional.
+- Pendente: Cobertura completa de todas as abas específicas da planilha (p.ex. cálculo dedicado para Grande Formato, Vinil, UV, PVC, Alveolar) como presets de produto e/ou regras especializadas; UI comercial completa de extrato detalhado por item e impressão/export; validações de unidade em formulários na UI; testes de ouro automatizados.
+
+Ambientes e variáveis de ambiente:
+- Ambientes: desenvolvimento e produção. Prisma usa `DATABASE_URL` (PostgreSQL). `NODE_ENV` controla cache do Prisma (`lib/prisma.ts`).
+- Variáveis: `DATABASE_URL`, `NODE_ENV`. (Chaves: apenas nomes, sem valores.)
+
+Fonte da verdade para cálculos:
+- Engine: `lib/calc-quote.ts` coordena materiais, impressão e acabamentos, aplica perdas, mínimos, markup, margem fixa e dinâmica, arredondamento e IVA. Imposição: `lib/imposition.ts`. Arredondamento: `lib/rounding.ts`. Conversão numérica: `lib/money.ts`.
+
+2) Mapa de conformidade (planilha → sistema)
+
+Para cada aba, mapeamento de rotas/componentes/modelos/serviços e status:
+
+- IMPRESSÃO
+  - UI/Admin: `app/(admin)/printing/*`
+  - APIs: `POST/GET /api/admin/printing`, `GET/PATCH/DELETE /api/admin/printing/[id]`
+  - Modelos: `Printing`
+  - Engine: uso em `lib/calc-quote.ts` (unitPrice, yield, setupMinutes, minFee)
+  - Status: implementado (cálculo por tiro/folha com setup e mínimo)
+  - Observações: cálculo usa rendimento (yield) e perda global; unidade de tiro tratada como UNIT.
+
+- PAPEL (Materiais/Variantes)
+  - UI/Admin: `app/(admin)/materials/*`
+  - APIs: `POST/GET /api/admin/materials`, `GET/PATCH/DELETE /api/admin/materials/[id]`, `admin/material-variants`
+  - Modelos: `Material`, `MaterialVariant`, `ProductMaterial`
+  - Engine: imposição automática via `lib/imposition.ts`; custo por folha; perda global e por item (wasteFactor)
+  - Status: implementado (folha SRA3 ou variante 66x96 etc.)
+  - Observações: qty por unidade pode ser derivado de imposição; suporte a `unit=SHEET` e outros.
+
+- ACABAMENTO
+  - UI/Admin: `app/(admin)/finishes/*`
+  - APIs: `POST/GET /api/admin/finishes`, `GET/PATCH/DELETE /api/admin/finishes/[id]`
+  - Modelos: `Finish`, `ProductFinish`
+  - Engine: tipos PER_UNIT, PER_M2, PER_LOT, PER_HOUR; `minFee`, `areaStepM2`
+  - Status: implementado (com degrau de área e mínimos)
+
+- CARTÕES DE VISITA
+  - UI/Comercial: `app/quotes/configurator/[id]` (com presets e opções); Admin: `app/(admin)/products/*`
+  - APIs: produtos `GET /api/products`, simulação `POST /api/quote`, salvar `POST /api/quote/save`
+  - Modelos: `Product`, `ProductMaterial`, `ProductFinish`, `ProductOptionGroup`, `ProductOptionChoice`, `ProductSuggestedQuantity`
+  - Engine: soma material + impressão + acabamentos, mínimos, margens, arredondamento
+  - Status: implementado (seed inclui produto Cartões de Visita 9x5)
+
+- IMPRESSÕES SINGULARES / CÁLCULO CATALOGOS / ENVELOPES / PASTAS / FLEX / CARTOES PVC / ALVEOLAR / VINIL / IMPRESSÃO UV / PRODUTOS PUBLICITÁRIOS
+  - UI/Admin: `app/(admin)/products/*` (podem ser modelados como produtos)
+  - APIs: CRUDs existentes + `POST /api/quote`
+  - Modelos: `Product` + respectivos materiais/impressão/acabamentos/fornecedor
+  - Engine: fórmula genérica já cobre PER_M2 (grande formato/vinil/UV), PER_UNIT, PER_LOT, PER_HOUR; PVC pode usar PER_HOUR + materiais; publicitários podem usar materiais com `type` custom e margem por categoria
+  - Status: parcial (necessário cadastrar produtos e parâmetros específicos; fórmulas base cobertas)
+  - Observações: necessidade de presets e validações específicas por categoria.
+
+3) Arquitetura & estrutura de pastas
+
+- Módulos:
+  - UI: `app/(admin)/*`, `app/quotes/*`, componentes em `components/ui/*`.
+  - Engine: `lib/calc-quote.ts`, `lib/imposition.ts`, `lib/rounding.ts`, `lib/money.ts`, `lib/apply-overrides.ts`.
+  - Infra/API: `app/api/*` (REST), `lib/prisma.ts`.
+  - Persistência: `prisma/schema.prisma`, seeds/migrations em `prisma/*`.
+  - Testes: `tests/` (infra presente, casos a adicionar).
+- Fluxo de dados: entrada do usuário (produto, quantidade, choices) → `applyChoiceOverrides` → `calcQuote` coleta produto+config → normalização numérica → imposição (se folha) → custos materiais/impressão/acabamentos → subtotal → mínimos (qty/valor) → markup → margem fixa → dinâmica → arredondamento por degrau → IVA opcional → extrato e itens.
+
+4) Domínio/Modelo de dados (detalhado)
+
+Entidades principais (campos chave e relações):
+- User: `id, name, email, role, quotes[]`.
+- ConfigGlobal: `marginDefault, markupOperational, roundingStep, lossFactor, printingHourCost, vatPercent`.
+- ProductCategory: `name, roundingStep, products[], marginRules[], marginRulesDynamic[]`.
+- Material: `name, type, unit, unitCost, variants[] (SCD2 simples com isCurrent)`.
+- MaterialVariant: `label, gramagem, widthMm, heightMm, sheetsPerPack, packPrice, unitPrice, material`.
+- Printing: `technology, formatLabel, colors, sides, unitPrice, yield, setupMinutes, minFee`.
+- Finish: `name, category, unit, baseCost, marginDefault, calcType, minFee, areaStepM2`.
+- Product: `name, categoryId, printingId?, widthMm, heightMm, minOrderQty, minOrderValue, marginDefault, markupDefault, roundingStep, attributesSchema, relations a materials/finishes/dimensions/options/suggestedQuantities`.
+- ProductMaterial: `productId, materialId, qtyPerUnit, wasteFactor, variantId?`.
+- ProductFinish: `productId, finishId, calcRuleOverride?, calcTypeOverride?, qtyPerUnit?, costOverride?`.
+- MarginRule/MarginRuleDynamic: regras fixas e dinâmicas com escopos e condições.
+- Quote/QuoteItem/CalcLog: snapshot de cálculo, extrato itemizado e auditoria.
+
+Prisma schema: ver `prisma/schema.prisma` para definição completa e tipos Decimals mapeados.
+
+5) Motor de cálculo (por aba)
+
+Convenções: valores monetários em euros; unidades internas conforme `Unit` (UNIT, M2, LOT, HOUR, SHEET). Arredondamento final por degrau; IVAs opcionais.
+
+- IMPRESSÃO (OFFSET/DIGITAL/UV/GRANDE_FORMATO)
+  Pseudo-código:
+  - `baseTiros = ceil(qty / yield)`
+  - `tirosWithLoss = ceil(baseTiros * (1 + lossFactor_global))`
+  - `byQty = unitPrice * tirosWithLoss`
+  - `setupCost = (printing.setupMinutes/60) * printingHourCost` (se ambos presentes)
+  - `costPrint = max(byQty + setupCost, minFee)`
+  Exemplo: qty=1000, yield=250, loss=3%, unitPrice=0.2000, setup=15min, hour=60, minFee=15 → baseTiros=4 → tirosWithLoss=ceil(4*1.03)=5 → byQty=1.0 → setup=15 → cost= max(16,15)=16.
+
+- PAPEL (folha)
+  Pseudo-código:
+  - Se `unit=SHEET` e há `variant.widthMm/heightMm` e `product.widthMm/heightMm`, usar imposição:
+    - `piecesPerSheet = computeImposition(...)`
+    - `sheetsNeeded = ceil(effectiveQuantity / piecesPerSheet)`
+    - `sheetsWithLoss = ceil(sheetsNeeded * (1 + lossFactor_global))`
+    - `effectiveQty = sheetsWithLoss`
+    - `qtyPerUnit = sheetsWithLoss / effectiveQuantity`
+  - Caso contrário: `effectiveQty = qty * qtyPerUnit * (1 + wasteFactor) * (1 + lossFactor_global)`
+  - `line = unitCost * effectiveQty`
+  Exemplo: qty=1000, unitCost=0.0400, piecesPerSheet=50, loss=3% → sheets=20 → sheetsWithLoss=21 → cost=0.04*21=0.84.
+
+- ACABAMENTO
+  Pseudo-código:
+  - `finishQuantity = qty * (qtyPerUnit || 1)`
+  - Se PER_M2 com `areaStepM2`: `finishQuantity = ceil(finishQuantity / step) * step`
+  - Custo: PER_M2 → `base*finishQuantity`; PER_UNIT → `base*finishQuantity`; PER_LOT → `base`; PER_HOUR → `base*qtyPerUnit`
+  - `line = max(line, minFee || 0)`
+  Exemplo: laminação: base=2.0000 €/m², área/card=0.0045 m², qty=1000, step=0.10 → area=4.5 → stepUp=4.6 → line=max(2*4.6,5)=9.20.
+
+- PRODUTOS COMPOSTOS (Cartões, Catálogos, Pastas, Envelopes)
+  - `subtotal = costMat + costPrint + costFinish`
+  - Mínimos: `qty < minOrderQty` ajusta `effectiveQuantity`; `subtotal < minOrderValue` eleva `effectiveSubtotal`.
+  - `priceBeforeMargin = effectiveSubtotal * (1 + markup)`
+  - Margem final: `final = priceBeforeMargin * (1 + margin + dynamic)`
+  - Arredondamento: `final = roundToStep(final, step)` (prioridade: produto > categoria > global)
+  - IVA: opcional via `cfg.vatPercent`.
+
+- GRANDE FORMATO / ALVEOLAR / VINIL / UV (por área)
+  - Usar `Finish` ou `Material` com `unit=M2` e `calcType=PER_M2` + `minFee` e `areaStepM2` se aplicável.
+  - Área = (largura x altura) em m² como `qtyPerUnit` por peça; perdas via `lossFactor` e `areaStepM2`.
+
+- CARTÕES PVC
+  - Modelar insumos como `PER_HOUR` (capacidade/hora) e/ou `PER_UNIT` para consumíveis; custo = tempo*(custo hora) + consumíveis; mínimo por lote via `minFee`.
+
+- Margem/Lucro/Markup
+  - Markup aplicado antes da margem: `priceBeforeMargin = subtotal * (1 + markup)`.
+  - Margem fixa escolhida por prioridade: Produto > Categoria > Global (regras em `MarginRule`).
+  - Ajuste dinâmico (`MarginRuleDynamic`) por prioridade, condições (minSubtotal, minQuantity). Apenas uma é aplicada por escopo, com prioridade Prod > Cat > Global.
+  - Final: `final = roundToStep( subtotal*(1+markup)*(1+margin+dynamic), step )`.
+
+- Extrato final
+  - Itens: materiais/impressão/acabamentos com `quantity, unit, unitCost, totalCost`.
+  - Campos de saída: `costMat, costPrint, costFinish, subtotal, markup, margin, dynamic, final, vatAmount, priceGross, minOrder flags`.
+
+6) UI/Fluxos (Admin x Comercial)
+
+- Admin:
+  - Páginas: `app/(admin)/materials`, `.../printing`, `.../finishes`, `.../products`, `.../margins`, `.../categories`, `.../config`.
+  - Ações: CRUDs (create/list/get/update/delete lógico), ativar/desativar, configurar margens por categoria/produto, presets de quantidade, grupos/opções de produto.
+- Comercial:
+  - Páginas: `app/quotes`, `app/quotes/categories`, `app/quotes/[id]`, `app/quotes/configurator/[id]`.
+  - Ações: selecionar produto, opções (choices), inserir quantidade e dimensões, simular `POST /api/quote`, salvar `POST /api/quote/save`.
+  - Validações (APIs): Zod nos admin; na UI, normalização de unidades e estados (carregando/erros) a implementar conforme componentes existentes.
+
+7) Casos de teste de ouro (exemplos numéricos)
+
+1) Cartões de Visita 100 un, sem laminação
+- Entradas: produto=ID do seed, qty=100, papel 66x96 300g (unitCost=0.0400), impressão OFFSET 4x4 (unitPrice=0.2000, yield=250, setup=15m, minFee=15), sem acabamentos.
+- Cálculo:
+  - Imposição: peças/folha=50 → sheets=2 → perda 3% → sheets=ceil(2*1.03)=3 → material=3*0.0400=0.12
+  - Impressão: baseTiros=ceil(100/250)=1 → tirosWithLoss=ceil(1*1.03)=2 → byQty=0.4 → setup=15 → costPrint=max(15.4,15)=15.40
+  - Acabamentos: 0
+  - Subtotal=15.52 → Markup 20%: 18.624 → Margem 30%: 24.2112 → Arredondamento step=0.05: 24.20 → IVA 23%: 29.77
+- Resultado: custo=15.52, lucro aplicado 30% (após markup), preço final=24.20 (s/ IVA), bruto=29.77.
+
+2) Cartões de Visita 1000 un, sem laminação
+- Imposição: sheets=20 → perda→21 → material=0.84
+- Impressão: baseTiros=4 → loss→5 → byQty=1.00 → setup=15 → cost=16.00
+- Subtotal=16.84 → +20% = 20.208 → +30% = 26.2704 → arredonda 26.25 → IVA=6.04 → bruto=32.29
+
+3) Cartões de Visita 1000 un, com laminação 2 faces (area/card=0.0045 m², step=0.10, base=2.0000, min=5)
+- Área: 1000*0.0045=4.5 → stepUp=4.6 → custo laminação=9.20
+- Subtotal base: material 0.84 + impressão 16.00 + acabamento 9.20 = 26.04 → +20% = 31.248 → +30% = 40.6224 → arredonda 40.60 → IVA=9.34 → bruto=49.94
+
+4) Catálogo A4 48p (exemplo conceitual)
+- Entradas: materiais papel interno/capa, impressão 4x4, lombada/dobra (PER_UNIT), laminação capa (PER_M2), qty=500.
+- Resultado esperado: usar mesma sequência; validar mínimos e degraus.
+
+5) Grande Formato (banner 1.2m x 2.0m, qty=2)
+- Área un = 2.4 m² → com perdas 3%: 2.472 m²/un (se modelado como qtyPerUnit) → total 4.944 m² → base 15 €/m² → custo=74.16 → minFee se aplicável.
+- Subtotal→markup→margem→arredondamento.
+
+6) Vinil adesivo (0.5m x 3m, qty=10, preço mínimo por peça=10€)
+- Área un = 1.5 m² → custo base 8 €/m² → custo total 120 → mínimo por peça: 10*10=100 → custo=120 (já maior) → sequência de preços.
+
+7) Cartões PVC (capacidade 200 un/h, custo/h 30€; consumível 0.05€/un)
+- Tempo= qty/200 h → custo hora = tempo*30 → consumível = 0.05*qty → subtotal = soma → mínimos por lote se houver → markup/margem.
+
+8) Produto Publicitário com fornecedor e % lucro
+- Material base `type="publicitario"` com custo unitário, acabamento PER_LOT (montagem) 20€, qty=50 → subtotal → margem categoria preferencial.
+
+8) API/Serviços (contratos exatos)
+
+- POST `/api/quote`
+  - Payload:
+    { "productId": number, "quantity": number, "params": object }
+  - Resposta:
+    { productId, quantity, params, costMat, costPrint, costFinish, subtotal, markup, margin, dynamic, step, finalPrice }
+
+- POST `/api/quote/save`
+  - Payload:
+    { "productId": number, "quantity": number, "params": object, "choiceIds": number[] }
+  - Resposta:
+    { ok: true, id, quoteNumber, finalPrice, subtotal, vatAmount?, priceGross? }
+  - Persistidos: `Quote`, `QuoteItem[]`, breakdown com minOrder flags.
+
+- GET `/api/products`
+  - Resposta: `[ { id, name } ]`
+
+- Admin Materiais
+  - GET `/api/admin/materials?q&withVariants`
+  - POST `/api/admin/materials` { name, type, unit, unitCost, active? }
+  - GET/PATCH/DELETE `/api/admin/materials/[id]`
+
+- Admin Impressão
+  - GET `/api/admin/printing?q`
+  - POST `/api/admin/printing` { technology, unitPrice, yield?, setupMinutes?, minFee?, ... }
+  - GET/PATCH/DELETE `/api/admin/printing/[id]`
+
+- Admin Acabamentos
+  - GET `/api/admin/finishes?q`
+  - POST `/api/admin/finishes` { name, category, unit, baseCost, calcType, minFee?, areaStepM2? }
+  - GET/PATCH/DELETE `/api/admin/finishes/[id]`
+
+9) Regras transversais
+
+- Unidades internas: `Unit` em Prisma; normalização numérica via `toNumber`.
+- Arredondamentos: `roundToStep` no preço final; degrau por prioridade produto > categoria > global.
+- Fatores de perda: global (`ConfigGlobal.lossFactor`) aplicado a materiais (folhas) e impressão (tiros). Pode haver `wasteFactor` por material.
+- Mínimos: por quantidade (`Product.minOrderQty`) e por valor (`Product.minOrderValue`); impressão/acabamentos têm `minFee` próprios.
+- Cache: Prisma Client com cache leve em dev; catálogos acessados via endpoints; invalidar via updates.
+- Permissões: `Role { ADMIN, COMMERCIAL }` definido; middleware/autorização a definir para as rotas (não implementado no código fornecido).
+
+10) Sementes & migrações
+
+- Seed: `prisma/seed.ts` popula `ConfigGlobal`, `ProductCategory`, `Material` + 3 variantes, `Printing`, `Finish` (Laminação, Cantos), `Product` Cartões de Visita 9x5, `MarginRule` global, `MarginRuleDynamic` por produto, grupos de opções (Papel, Tamanho, Cantos) e quantidades sugeridas.
+- Migrações: presentes em `prisma/migrations/*`, incluindo campos de dimensão e overrides; mudanças que afetam cálculo: adição de `printingHourCost`, `lossFactor`, `roundingStep`, `minFee`, `areaStepM2`, `marginDefault/markupDefault` em entidades relevantes, `ProductDimension` e sugeridas.
+
+11) Divergências & pendências
+
+- A planilha tem abas específicas (Catálogos, Pastas, Envelopes, PVC, Alveolar, UV, Vinil, Produtos Publicitários). O sistema possui fórmula genérica que cobre as unidades e degraus, porém faltam presets/dimensões e validações específicas por produto e possíveis regras exclusivas por aba.
+- Tolerâncias e arredondamentos intermediários podem divergir (planilha pode arredondar por etapa; hoje arredondamos no final por degrau). Ajustar se necessário por categoria/produto.
+- RBAC/middleware não implementado para separar admin/comercial nas rotas.
+- UI comercial de extrato detalhado e export não incluída ainda.
+
+12) Roadmap curto (2 semanas)
+
+- Cadastrar produtos e presets para: Grande Formato, Vinil, UV, PVC, Alveolar, Envelopes, Pastas, Catálogos.
+  - Aceite: simulações reproduzem valores referência da planilha (±0.01) nas 8 baterias de testes.
+- Implementar arredondamento por etapa (opcional por categoria/produto):
+  - Aceite: diferença zero contra planilha em casos que arredondam por etapa.
+- UI comercial: extrato itemizado e export (PDF):
+  - Aceite: mostra itens com quantidades/unidades/custos igual aos do endpoint save.
+- RBAC e middleware para admin/comercial:
+  - Aceite: rotas admin bloqueadas para COMMERCIAL.
+- Golden tests automatizados em `tests/`: criar 8 cenários acima com fixtures e asserts 1:1.

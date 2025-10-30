@@ -7,6 +7,9 @@ export default function ProductsPage() {
   const [rows, setRows] = useState<any[]>([]);
   const [cats, setCats] = useState<any[]>([]);
   const [prints, setPrints] = useState<any[]>([]);
+  const [productId, setProductId] = useState<string>("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [activeFilter, setActiveFilter] = useState<string>("");
   const [openCreate, setOpenCreate] = useState(false);
   const [form, setForm] = useState<any>({
     name: "", categoryId: "", printingId: "", marginDefault: "", markupDefault: "", roundingStep: "",
@@ -14,8 +17,14 @@ export default function ProductsPage() {
   });
 
   async function load() {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (productId) params.set("productId", productId);
+    if (categoryFilter) params.set("categoryId", categoryFilter);
+    if (activeFilter) params.set("active", activeFilter);
+
     const [pRes, cRes, prRes] = await Promise.all([
-      fetch(`/api/admin/products?q=${encodeURIComponent(q)}`),
+      fetch(`/api/admin/products?${params.toString()}`),
       fetch(`/api/admin/categories`),
       fetch(`/api/admin/printing`), // lista já existe (GET sem [id]) no teu projeto
     ]);
@@ -77,13 +86,13 @@ export default function ProductsPage() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-8">
-          <div className="flex items-end gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-slate-700 mb-2">Buscar produtos</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Busca (nome, categoria ou ID)</label>
               <div className="relative">
                 <input 
                   className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
-                  placeholder="Digite o nome do produto ou categoria..."
+                  placeholder="Ex: cartões, etiquetas ou 123"
                   value={q} 
                   onChange={(e)=>setQ(e.target.value)} 
                 />
@@ -92,11 +101,56 @@ export default function ProductsPage() {
                 </svg>
               </div>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">ID do Produto</label>
+              <input 
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+                placeholder="Ex: 101"
+                value={productId}
+                onChange={(e)=>setProductId(e.target.value.replace(/[^0-9]/g, ""))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Categoria</label>
+              <select 
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+                value={categoryFilter}
+                onChange={(e)=>setCategoryFilter(e.target.value)}
+              >
+                <option value="">Todas</option>
+                {cats.map((c:any)=> <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+
+            {/* Impressão filter removed as requested */}
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
+              <select 
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+                value={activeFilter}
+                onChange={(e)=>setActiveFilter(e.target.value)}
+              >
+                <option value="">Todos</option>
+                <option value="true">Ativo</option>
+                <option value="false">Inativo</option>
+              </select>
+            </div>
+          </div>
+          <div className="mt-4 flex gap-3">
             <button 
               onClick={load} 
-              className="px-6 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+              className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
             >
               Filtrar
+            </button>
+            <button
+              onClick={()=>{ setQ(""); setProductId(""); setCategoryFilter(""); setActiveFilter(""); load(); }}
+              className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              Limpar
             </button>
           </div>
         </div>
