@@ -22,28 +22,134 @@ export async function calcQuote(productId: number, quantity: number, params: any
   });
   if (!product || !cfg) throw new Error("Produto ou Config não encontrados");
 
-  // Preferências (prioridade: Produto > Categoria > Global)
+  // Cliente (opt-in): overrides.customerId tem precedência sobre params.customerId
+  const customerId: number | null =
+    (overrides?.customerId ?? (params?.customerId ?? null)) ?? null;
+  const customer = customerId
+    ? await prisma.customer.findUnique({ where: { id: customerId }, include: { group: true } })
+    : null;
+
+  // Otimização N+1: carregar todos os preços/overrides do cliente de uma vez
+  const now = new Date();
+  const customerPricing = customerId
+    ? await Promise.all([
+        prisma.materialCustomerPrice.findMany({
+          where: {
+            customerId: customerId,
+            isCurrent: true,
+            OR: [{ validFrom: null }, { validFrom: { lte: now } }],
+            AND: [{ OR: [{ validTo: null }, { validTo: { gte: now } }] }],
+          },
+          orderBy: [{ priority: "asc" }],
+        }),
+        prisma.printingCustomerPrice.findMany({
+          where: {
+            customerId: customerId,
+            isCurrent: true,
+            OR: [{ validFrom: null }, { validFrom: { lte: now } }],
+            AND: [{ OR: [{ validTo: null }, { validTo: { gte: now } }] }],
+          },
+          orderBy: [{ priority: "asc" }],
+        }),
+        prisma.finishCustomerPrice.findMany({
+          where: {
+            customerId: customerId,
+            isCurrent: true,
+            OR: [{ validFrom: null }, { validFrom: { lte: now } }],
+            AND: [{ OR: [{ validTo: null }, { validTo: { gte: now } }] }],
+          },
+          orderBy: [{ priority: "asc" }],
+        }),
+        prisma.productCustomerOverride.findMany({
+          where: {
+            customerId: customerId,
+            isCurrent: true,
+            OR: [{ validFrom: null }, { validFrom: { lte: now } }],
+            AND: [{ OR: [{ validTo: null }, { validTo: { gte: now } }] }],
+          },
+          orderBy: [{ priority: "asc" }],
+        }),
+      ]).then(([materials, printings, finishes, products]) => ({ materials, printings, finishes, products }))
+    : null;
+
+  const sourcingMode = (overrides?.sourcingMode ?? (product as any).sourcingMode ?? "INTERNAL") as
+    | "INTERNAL"
+    | "SUPPLIER"
+    | "HYBRID";
+
+  // Helpers de resolução de preços/overrides por cliente (sem queries em loop)
+  function resolveMaterialUnitCost(materialId: number, baseUnitCost: number) {
+    if (!customerPricing) return baseUnitCost;
+    const rec = customerPricing.materials.find((r: any) => r.materialId === materialId);
+    return rec ? toNumber(rec.unitCost) : baseUnitCost;
+  }
+
+  function resolvePrintingUnitPrice(printing: any, baseUnitPrice: number, opts: { sides?: number | null }) {
+    if (!customerPricing || !printing?.id) return baseUnitPrice;
+    const candidates = customerPricing.printings.filter((r: any) => r.printingId === printing.id);
+    const sides = opts?.sides ?? null;
+    const best = candidates.find((r: any) => r.sides == null || r.sides === sides) ?? candidates[0];
+    return best ? toNumber(best.unitPrice) : baseUnitPrice;
+  }
+
+  function resolveFinishPricing(finish: any, pf: any, base: { baseCost: number; minFee?: number | null; areaStepM2?: number | null }) {
+    if (!customerPricing || !finish?.id) return base;
+    const rec = customerPricing.finishes.find((r: any) => r.finishId === finish.id);
+    if (!rec) return base;
+    return {
+      baseCost: toNumber((rec as any).baseCost ?? base.baseCost),
+      minFee: (rec as any).minFee != null ? toNumber((rec as any).minFee) : base.minFee ?? null,
+      areaStepM2: (rec as any).areaStepM2 != null ? toNumber((rec as any).areaStepM2) : base.areaStepM2 ?? null,
+    };
+  }
+
+  function resolveProductPrefs(product: any, category: any, cfgLocal: any) {
+    // Base defaults: Product > Category > Global
+    let roundingStep = firstDefined(product.roundingStep, category?.roundingStep, cfgLocal.roundingStep, 0) as any;
+    let roundingStrategy = (product.roundingStrategy || category?.roundingStrategy || cfgLocal.roundingStrategy || "END_ONLY") as
+      | "END_ONLY" | "PER_STEP";
+    let pricingStrategy = (product.pricingStrategy || category?.pricingStrategy || cfgLocal.pricingStrategy || "COST_MARKUP_MARGIN") as
+      | "COST_MARKUP_MARGIN" | "COST_MARGIN_ONLY" | "MARGIN_TARGET";
+    let minPricePerPiece = firstDefined(product.minPricePerPiece, category?.minPricePerPiece, 0) as any;
+    let marginDefault = product.marginDefault as any;
+    let markupDefault = product.markupDefault as any;
+    let minOrderQty = product.minOrderQty as any;
+    let minOrderValue = product.minOrderValue as any;
+
+    if (customerPricing) {
+      const pco = customerPricing.products.find((r: any) => r.productId === product.id);
+      if (pco) {
+        if ((pco as any).roundingStep != null) roundingStep = (pco as any).roundingStep;
+        if ((pco as any).roundingStrategy != null) roundingStrategy = (pco as any).roundingStrategy as any;
+        if ((pco as any).minPricePerPiece != null) minPricePerPiece = (pco as any).minPricePerPiece;
+        if ((pco as any).marginDefault != null) marginDefault = (pco as any).marginDefault;
+        if ((pco as any).markupDefault != null) markupDefault = (pco as any).markupDefault;
+        if ((pco as any).minOrderQty != null) minOrderQty = (pco as any).minOrderQty as any;
+        if ((pco as any).minOrderValue != null) minOrderValue = (pco as any).minOrderValue as any;
+      }
+    }
+
+    return {
+      roundingStep: toNumber(roundingStep) || 0,
+      roundingStrategy: roundingStrategy as "END_ONLY" | "PER_STEP",
+      pricingStrategy: pricingStrategy as "COST_MARKUP_MARGIN" | "COST_MARGIN_ONLY" | "MARGIN_TARGET",
+      minPricePerPiece: toNumber(minPricePerPiece) || 0,
+      marginDefault: marginDefault != null ? toNumber(marginDefault) : undefined,
+      markupDefault: markupDefault != null ? toNumber(markupDefault) : undefined,
+      minOrderQty: minOrderQty != null ? Number(minOrderQty) : undefined,
+      minOrderValue: minOrderValue != null ? toNumber(minOrderValue) : undefined,
+    };
+  }
+
+  // Preferências resolvidas (prioridade: ProductCustomerOverride > Produto > Categoria > Global)
+  const prefResolved = resolveProductPrefs(product, (product as any).category, cfg);
   const prefs = {
-    step:
-      toNumber((product as any).roundingStep) ||
-      toNumber((product as any).category?.roundingStep) ||
-      toNumber((cfg as any).roundingStep) ||
-      0,
-    roundingStrategy:
-      ((product as any).roundingStrategy || (product as any).category?.roundingStrategy || (cfg as any).roundingStrategy || "END_ONLY") as
-        | "END_ONLY"
-        | "PER_STEP",
-    pricingStrategy:
-      ((product as any).pricingStrategy || (product as any).category?.pricingStrategy || (cfg as any).pricingStrategy || "COST_MARKUP_MARGIN") as
-        | "COST_MARKUP_MARGIN"
-        | "COST_MARGIN_ONLY"
-        | "MARGIN_TARGET",
-    minPricePerPiece:
-      toNumber((product as any).minPricePerPiece) ||
-      toNumber((product as any).category?.minPricePerPiece) ||
-      0,
+    step: prefResolved.roundingStep,
+    roundingStrategy: prefResolved.roundingStrategy,
+    pricingStrategy: prefResolved.pricingStrategy,
+    minPricePerPiece: prefResolved.minPricePerPiece,
     categoryLoss: toNumber((product as any).category?.lossFactor) || 0,
-  };
+  } as const;
 
   const isPerStep = prefs.roundingStrategy === "PER_STEP";
   const roundLine = (v: number) => (isPerStep ? roundMoney2(v) : v);
@@ -68,20 +174,37 @@ export async function calcQuote(productId: number, quantity: number, params: any
     if (overrides.widthOverride) (product as any).widthMm = overrides.widthOverride;
     if (overrides.heightOverride) (product as any).heightMm = overrides.heightOverride;
 
-    // Adicionar acabamentos extras
-    if (overrides.additionalFinishes && overrides.additionalFinishes.length > 0) {
-      for (const additionalFinish of overrides.additionalFinishes) {
-        const finish = await prisma.finish.findUnique({ where: { id: additionalFinish.finishId } });
+    // Overrides de acabamentos (antes do loop):
+    // 1) desabilitar todos
+    if (overrides.disableProductFinishes) {
+      (product as any).finishes = [];
+    }
+    // 2) incluir somente os IDs especificados
+    if (overrides.includeFinishIds && Array.isArray(overrides.includeFinishIds) && (product as any).finishes?.length) {
+      const includeSet = new Set<number>(overrides.includeFinishIds);
+      (product as any).finishes = (product as any).finishes.filter((pf: any) => includeSet.has(pf.finishId));
+    }
+    // 3) adicionais agregados por finishId somando qtyPerUnit
+    if (overrides.additionalFinishes && Array.isArray(overrides.additionalFinishes) && overrides.additionalFinishes.length > 0) {
+      const agg = new Map<number, number>();
+      for (const add of overrides.additionalFinishes) {
+        const fid = Number(add.finishId);
+        const qty = Number(add.qtyPerUnit ?? 1);
+        if (!Number.isFinite(fid)) continue;
+        agg.set(fid, (agg.get(fid) || 0) + (Number.isFinite(qty) ? qty : 0));
+      }
+      for (const [finishId, qtyPerUnit] of agg.entries()) {
+        const finish = await prisma.finish.findUnique({ where: { id: finishId } });
         if (finish) {
-          product.finishes.push({
+          (product as any).finishes.push({
             id: 0,
             productId: product.id,
-            finishId: additionalFinish.finishId,
+            finishId,
             calcRuleOverride: null,
             calcTypeOverride: null,
-            qtyPerUnit: additionalFinish.qtyPerUnit,
+            qtyPerUnit,
             costOverride: null,
-            finish
+            finish,
           } as any);
         }
       }
@@ -93,10 +216,11 @@ export async function calcQuote(productId: number, quantity: number, params: any
   let minOrderApplied = false;
   let minOrderReason = "";
 
-  if (product.minOrderQty && quantity < product.minOrderQty) {
-    effectiveQuantity = product.minOrderQty;
+  const minOrderQtyResolved = (prefResolved.minOrderQty ?? product.minOrderQty) as number | undefined;
+  if (minOrderQtyResolved && quantity < minOrderQtyResolved) {
+    effectiveQuantity = minOrderQtyResolved;
     minOrderApplied = true;
-    minOrderReason = `Quantidade mínima: ${product.minOrderQty} unidades`;
+    minOrderReason = `Quantidade mínima: ${minOrderQtyResolved} unidades`;
   }
 
   // Área por unidade (para M2) — inferida de dimensões ou params
@@ -115,7 +239,8 @@ export async function calcQuote(productId: number, quantity: number, params: any
   // =========================
   let costMat = 0;
   for (const pm of product.materials) {
-    const unitCost = toNumber(pm.material.unitCost);
+    let unitCostBase = toNumber(pm.material.unitCost);
+    unitCostBase = resolveMaterialUnitCost(pm.materialId, unitCostBase);
     const waste = toNumber(pm.wasteFactor);
     const matLoss = toNumber(
       firstDefined((pm as any).lossFactor, (pm.material as any).lossFactor, prefs.categoryLoss, (cfg as any).lossFactor, 0) as number
@@ -139,8 +264,9 @@ export async function calcQuote(productId: number, quantity: number, params: any
       });
 
       if (imposition.piecesPerSheet > 0) {
-        const sheetsNeeded = effectiveQuantity / imposition.piecesPerSheet;
-        const sheetsWithLoss = ceilInt(sheetsNeeded * (1 + matLoss)); // perda antes do ceil físico
+        // baseSheets = ceil(qty / piecesPerSheet)
+        const baseSheets = ceilInt(effectiveQuantity / imposition.piecesPerSheet);
+        const sheetsWithLoss = ceilInt(baseSheets * (1 + matLoss));
         effectiveQty = sheetsWithLoss;
         qtyPU = sheetsWithLoss / effectiveQuantity;
       } else {
@@ -156,7 +282,7 @@ export async function calcQuote(productId: number, quantity: number, params: any
       if (pm.material.unit === "SHEET") effectiveQty = ceilInt(effectiveQty);
     }
 
-    let line = unitCost * effectiveQty;
+    let line = unitCostBase * effectiveQty;
     line = roundLine(line);
     costMat += line;
     items.push({
@@ -165,7 +291,7 @@ export async function calcQuote(productId: number, quantity: number, params: any
       name: pm.material.name,
       quantity: effectiveQty,
       unit: pm.material.unit,
-      unitCost,
+      unitCost: unitCostBase,
       totalCost: line,
     });
   }
@@ -175,7 +301,8 @@ export async function calcQuote(productId: number, quantity: number, params: any
   // =========================
   let costPrint = 0;
   if (product.printing) {
-    const unitPrice = toNumber(product.printing.unitPrice);
+    let unitPriceBase = toNumber(product.printing.unitPrice);
+    unitPriceBase = resolvePrintingUnitPrice((product as any).printing, unitPriceBase, { sides: (product as any).printing?.sides ?? null });
     const yieldVal = product.printing.yield ?? 1;
     const minFee = toNumber(product.printing.minFee);
 
@@ -183,10 +310,12 @@ export async function calcQuote(productId: number, quantity: number, params: any
       firstDefined((product.printing as any).lossFactor, prefs.categoryLoss, (cfg as any).lossFactor, 0) as number
     ) || 0;
 
-    const baseTiros = effectiveQuantity / yieldVal;
-    const tirosWithLoss = ceilInt(baseTiros * (1 + printLoss));
+    // baseTiros = ceil(qty / yield)
+    const baseTiros = ceilInt(effectiveQuantity / yieldVal);
+    // se baseTiros >= 2 aplica perda, senão usa baseTiros
+    const tirosWithLoss = baseTiros >= 2 ? ceilInt(baseTiros * (1 + printLoss)) : baseTiros;
 
-    const byQty = unitPrice * tirosWithLoss;
+    const byQty = unitPriceBase * tirosWithLoss;
 
     // Custo de setup
     let setupCost = 0;
@@ -208,7 +337,7 @@ export async function calcQuote(productId: number, quantity: number, params: any
       name: `Impressão ${product.printing.colors ?? ""}`.trim(),
       quantity: tirosWithLoss,
       unit: "UNIT",
-      unitCost: unitPrice,
+      unitCost: unitPriceBase,
       totalCost: costPrint,
     });
   }
@@ -219,7 +348,13 @@ export async function calcQuote(productId: number, quantity: number, params: any
   let costFinish = 0;
   for (const pf of product.finishes) {
     const f = pf.finish;
-    const base = toNumber(pf.costOverride ?? f.baseCost);
+    const base0 = toNumber(pf.costOverride ?? f.baseCost);
+    const baseResolved = resolveFinishPricing(f, pf, {
+      baseCost: base0,
+      minFee: (f as any).minFee != null ? toNumber((f as any).minFee) : null,
+      areaStepM2: (f as any).areaStepM2 != null ? toNumber((f as any).areaStepM2) : null,
+    });
+    const base = baseResolved.baseCost;
     const qtyPU = toNumber(pf.qtyPerUnit) || 1;
     const calcType = (pf.calcTypeOverride ?? f.calcType) as string;
 
@@ -232,9 +367,9 @@ export async function calcQuote(productId: number, quantity: number, params: any
     switch (calcType) {
       case "PER_M2": {
         let q = (areaM2PerUnit * effectiveQuantity) * qtyPU;
-        if (f.areaStepM2) {
-          const step = toNumber(f.areaStepM2);
-          if (step > 0) q = ceilInt(q / step) * step; // step de área
+        if (baseResolved.areaStepM2) {
+          const step = toNumber(baseResolved.areaStepM2 as any);
+          if (step > 0) q = Math.ceil(q / step) * step; // step de área
         }
         finishQuantity = q * (1 + finishLoss); // perda em m² não precisa ceil
         break;
@@ -244,7 +379,8 @@ export async function calcQuote(productId: number, quantity: number, params: any
         break;
       }
       case "PER_HOUR": {
-        finishQuantity = qtyPU; // horas por pedido (se precisar escalar por qty, ajustar para qtyPU*effectiveQuantity)
+        // Ajuste: PER_HOUR escala por quantidade (horas por unidade)
+        finishQuantity = (effectiveQuantity * qtyPU) * (1 + finishLoss);
         break;
       }
       default: { // PER_UNIT
@@ -265,7 +401,7 @@ export async function calcQuote(productId: number, quantity: number, params: any
         break;
     }
 
-    const minFee = toNumber(f.minFee);
+    const minFee = baseResolved.minFee != null ? toNumber(baseResolved.minFee) : toNumber((f as any).minFee);
     if (minFee) line = Math.max(line, minFee);
     if ((f as any).minPerPiece) {
       line = Math.max(line, effectiveQuantity * toNumber((f as any).minPerPiece));
@@ -290,34 +426,63 @@ export async function calcQuote(productId: number, quantity: number, params: any
   // =========================
   const productionSubtotal = costMat + costPrint + costFinish;
 
-  // Custos de fornecedor (Produtos Publicitários)
+  // Custos de fornecedor com escolha do melhor candidato
   let costSupplier = 0;
+  let chosenSupplierName: string | undefined;
   if (product.supplierPrices && product.supplierPrices.length > 0) {
-    for (const sp of product.supplierPrices) {
-      const unit = sp.unit;
+    const now = new Date();
+    const candidates = (product.supplierPrices as any[]).filter((sp: any) => {
+      if (overrides?.supplierId && sp.supplierId && sp.supplierId !== overrides.supplierId) return false;
+      if (sp.isCurrent === false) return false;
+      if (sp.validFrom && new Date(sp.validFrom) > now) return false;
+      if (sp.validTo && new Date(sp.validTo) < now) return false;
+      return true;
+    });
+
+    let best: { total: number; sp: any; qty: number } | null = null;
+    for (const sp of candidates) {
       const unitCost = toNumber(sp.cost);
       let qty = 1;
-      switch (unit) {
+      switch (sp.unit) {
         case "UNIT": qty = effectiveQuantity; break;
         case "M2":   qty = areaM2PerUnit > 0 ? areaM2PerUnit * effectiveQuantity : effectiveQuantity; break;
         case "LOT":
         default:     qty = 1;
       }
-      const line = roundLine(unitCost * qty);
-      costSupplier += line;
+      const minQty = sp.minQty ? toNumber(sp.minQty) : 0;
+      if (minQty > 0 && qty < minQty) qty = minQty;
+      const total = isPerStep ? roundMoney2(unitCost * qty) : (unitCost * qty);
+      if (!best || total < best.total) best = { total, sp, qty };
+    }
+
+    if (best) {
+      costSupplier = isPerStep ? roundMoney2(best.total) : best.total;
+      chosenSupplierName = best.sp.name || undefined;
       items.push({
         type: "OTHER",
-        refId: sp.id,
-        name: `Fornecedor: ${sp.name}`,
-        quantity: qty,
-        unit,
-        unitCost,
-        totalCost: line,
+        refId: best.sp.id,
+        name: `Fornecedor: ${chosenSupplierName ?? "N/D"}`,
+        quantity: best.qty,
+        unit: best.sp.unit,
+        unitCost: toNumber(best.sp.cost),
+        totalCost: costSupplier,
       });
     }
   }
 
-  const totalCostBeforeMargin = productionSubtotal + costSupplier;
+  let totalCostBeforeMargin = 0;
+  switch (sourcingMode) {
+    case "SUPPLIER":
+      totalCostBeforeMargin = costSupplier;
+      break;
+    case "HYBRID":
+      totalCostBeforeMargin = productionSubtotal + costSupplier;
+      break;
+    case "INTERNAL":
+    default:
+      totalCostBeforeMargin = productionSubtotal;
+      break;
+  }
 
   // =========================
   // Regras de margem dinâmica — usar total antes da margem
@@ -334,28 +499,39 @@ export async function calcQuote(productId: number, quantity: number, params: any
     });
   }
   let dynamic = 0;
+  // Ordem de prioridade: CUSTOMER > CUSTOMER_GROUP > PRODUCT > CATEGORY > GLOBAL
+  const dynCustomer = customerId ? await bestDynamic({ scope: "CUSTOMER", /* customerId in breakdown filter via overrides */ }) : null;
+  const dynGroup = customer?.groupId ? await bestDynamic({ scope: "CUSTOMER_GROUP" /* filter by group via applies elsewhere */ }) : null;
   const dynProd = await bestDynamic({ scope: "PRODUCT", productId: product.id });
   const dynCat  = await bestDynamic({ scope: "CATEGORY", categoryId: product.categoryId });
   const dynGlob = await bestDynamic({ scope: "GLOBAL" });
-  if (dynProd) dynamic = toNumber(dynProd.adjustPercent);
-  else if (dynCat) dynamic = toNumber(dynCat.adjustPercent);
-  else if (dynGlob) dynamic = toNumber(dynGlob.adjustPercent);
+  if (dynCustomer) dynamic = toNumber((dynCustomer as any).adjustPercent);
+  else if (dynGroup) dynamic = toNumber((dynGroup as any).adjustPercent);
+  else if (dynProd) dynamic = toNumber((dynProd as any).adjustPercent);
+  else if (dynCat) dynamic = toNumber((dynCat as any).adjustPercent);
+  else if (dynGlob) dynamic = toNumber((dynGlob as any).adjustPercent);
 
   // =========================
   // Mínimo por valor — aplica no total antes da margem
   // =========================
   let effectiveSubtotal = totalCostBeforeMargin;
-  if (product.minOrderValue && totalCostBeforeMargin < toNumber(product.minOrderValue)) {
-    effectiveSubtotal = toNumber(product.minOrderValue);
+  const productMinOrderValue = (product.minOrderValue != null ? toNumber(product.minOrderValue as any) : undefined) as number | undefined;
+  const minOrderValueResolved = firstDefined(prefResolved.minOrderValue, productMinOrderValue) as any;
+  if (minOrderValueResolved && totalCostBeforeMargin < toNumber(minOrderValueResolved)) {
+    effectiveSubtotal = toNumber(minOrderValueResolved);
     minOrderApplied = true;
-    minOrderReason = `Valor mínimo: €${product.minOrderValue}`;
+    minOrderReason = `Valor mínimo: €${minOrderValueResolved}`;
   }
 
   // =========================
-  // Markup / Margem fixa (prioridade Produto > Categoria > Global)
+  // Markup / Margem fixa (prioridade Produto > Categoria > Global) — prefs resolvidos podem fornecer margin/markup
   // =========================
-  const markup = toNumber(product.markupDefault ?? cfg.markupOperational);
-  let margin = toNumber(product.marginDefault ?? cfg.marginDefault);
+  const productMarkupDefault = (product.markupDefault != null ? toNumber(product.markupDefault as any) : undefined) as number | undefined;
+  const cfgMarkupOperational = (cfg.markupOperational != null ? toNumber(cfg.markupOperational as any) : undefined) as number | undefined;
+  const markup = toNumber(firstDefined(prefResolved.markupDefault, productMarkupDefault, cfgMarkupOperational) as any);
+  const productMarginDefault = (product.marginDefault != null ? toNumber(product.marginDefault as any) : undefined) as number | undefined;
+  const cfgMarginDefault = (cfg.marginDefault != null ? toNumber(cfg.marginDefault as any) : undefined) as number | undefined;
+  let margin = toNumber(firstDefined(prefResolved.marginDefault, productMarginDefault, cfgMarginDefault) as any);
   if (product.marginDefault == null) {
     const catRule = await prisma.marginRule.findFirst({
       where: { scope: "CATEGORY", categoryId: product.categoryId, active: true },
@@ -386,11 +562,17 @@ export async function calcQuote(productId: number, quantity: number, params: any
       final = effectiveSubtotal * (1 + markup) * (1 + margin + dynamic);
   }
 
-  if (prefs.minPricePerPiece) {
-    final = Math.max(final, effectiveQuantity * prefs.minPricePerPiece);
+  const floorPerPiece = prefs.minPricePerPiece ? (effectiveQuantity * prefs.minPricePerPiece) : 0;
+  let rounded = roundToStep(final, prefs.step);
+  if (prefs.minPricePerPiece && rounded < floorPerPiece) {
+    if (prefs.step && prefs.step > 0) {
+      const stepped = Math.ceil(floorPerPiece / prefs.step) * prefs.step;
+      rounded = roundMoney2(stepped);
+    } else {
+      rounded = roundMoney2(floorPerPiece);
+    }
   }
-
-  final = roundToStep(final, prefs.step);
+  final = rounded;
 
   let vatAmount = 0;
   let priceGross = final;

@@ -55,7 +55,8 @@ export function Navigation() {
                   pathname.startsWith('/finishes') || 
                   pathname.startsWith('/margins') || 
                   pathname.startsWith('/config') ||
-                  pathname.startsWith('/categories');
+                  pathname.startsWith('/categories') ||
+                  pathname.startsWith('/customers');
 
   const isCommercial = pathname.startsWith('/quotes') || 
                       pathname.startsWith('/quotes/categories') || 
@@ -83,6 +84,12 @@ export function Navigation() {
       href: "/categories",
       icon: Layers,
       description: "Organizar categorias"
+    },
+    {
+      title: "Clientes",
+      href: "/customers",
+      icon: User,
+      description: "Gerenciar clientes e preços por cliente"
     },
     {
       title: "Produtos",

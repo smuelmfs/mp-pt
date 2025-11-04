@@ -96,6 +96,8 @@ export default function ConfiguratorPage() {
   const [calculating, setCalculating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [customerId, setCustomerId] = useState<string>("");
+  const [sourcingMode, setSourcingMode] = useState<"INTERNAL" | "SUPPLIER" | "HYBRID">("INTERNAL");
 
   function showSuccessToast(message: string) {
     setToast({ type: 'success', message });
@@ -192,6 +194,15 @@ export default function ConfiguratorPage() {
     }
   }, [config, selectedChoices, quantity]);
 
+  // Recalcular quando cliente ou sourcing mudarem, sem alterar o tamanho do array do effect acima
+  useEffect(() => {
+    if (!config || !config.optionGroups) return;
+    const hasSelections = Object.keys(selectedChoices).length > 0;
+    if (hasSelections) {
+      calculatePreview();
+    }
+  }, [customerId, sourcingMode]);
+
   async function calculatePreview() {
     if (!config || !config.optionGroups) return;
     
@@ -264,6 +275,10 @@ export default function ConfiguratorPage() {
             materialOverrides,
             finishOverrides,
             dimensionOverrides
+          },
+          overrides: {
+            customerId: customerId ? Number(customerId) : undefined,
+            sourcingMode
           }
         })
       });
@@ -337,7 +352,7 @@ export default function ConfiguratorPage() {
           });
         }
       });
-
+      
       const quantities = config.quantityPresets ? config.quantityPresets.map(p => p.quantity) : [100, 250, 500, 1000];
       
       const response = await fetch('/api/quotes/preview-matrix', {
@@ -351,6 +366,10 @@ export default function ConfiguratorPage() {
             materialOverrides,
             finishOverrides,
             dimensionOverrides
+          },
+          overrides: {
+            customerId: customerId ? Number(customerId) : undefined,
+            sourcingMode
           }
         })
       });

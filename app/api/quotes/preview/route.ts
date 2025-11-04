@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { productId, quantity, choiceIds = [], params = {} } = body;
+    const { productId, quantity, choiceIds = [], params = {}, overrides: incomingOverrides = {} } = body;
 
     if (!productId || !quantity) {
       return NextResponse.json({ error: 'productId e quantity são obrigatórios' }, { status: 400 });
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Aplicar overrides baseados nas escolhas
-    const overrides: any = {};
+    const overrides: any = { ...(incomingOverrides || {}) };
     
     // Aplicar variante de material se selecionada
     const materialChoice = choices.find(c => c.materialVariantId);

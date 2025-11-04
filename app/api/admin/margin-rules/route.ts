@@ -3,9 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const CreateSchema = z.object({
-  scope: z.enum(["GLOBAL","CATEGORY","PRODUCT"]),
+  scope: z.enum(["GLOBAL","CATEGORY","PRODUCT","CUSTOMER","CUSTOMER_GROUP"]),
   categoryId: z.number().int().positive().optional(),
   productId: z.number().int().positive().optional(),
+  customerId: z.number().int().positive().optional(),
+  customerGroupId: z.number().int().positive().optional(),
   margin: z.string().regex(/^\-?\d+(\.\d{1,4})?$/), // "0.3000"
   startsAt: z.string().datetime().nullable().optional(),
   endsAt: z.string().datetime().nullable().optional(),
@@ -14,14 +16,18 @@ const CreateSchema = z.object({
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const scope = searchParams.get("scope") as "GLOBAL"|"CATEGORY"|"PRODUCT" | null;
+  const scope = searchParams.get("scope") as "GLOBAL"|"CATEGORY"|"PRODUCT"|"CUSTOMER"|"CUSTOMER_GROUP" | null;
   const productId = searchParams.get("productId");
   const categoryId = searchParams.get("categoryId");
+  const customerId = searchParams.get("customerId");
+  const customerGroupId = searchParams.get("customerGroupId");
 
   const where: any = {};
   if (scope) where.scope = scope;
   if (productId) where.productId = Number(productId);
   if (categoryId) where.categoryId = Number(categoryId);
+  if (customerId) where.customerId = Number(customerId);
+  if (customerGroupId) where.customerGroupId = Number(customerGroupId);
 
   const rows = await prisma.marginRule.findMany({
     where,
@@ -35,6 +41,8 @@ export async function POST(req: Request) {
   const json = await req.json().catch(() => ({}));
   if (json.categoryId) json.categoryId = Number(json.categoryId);
   if (json.productId) json.productId = Number(json.productId);
+  if (json.customerId) json.customerId = Number(json.customerId);
+  if (json.customerGroupId) json.customerGroupId = Number(json.customerGroupId);
 
   const parsed = CreateSchema.safeParse(json);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });

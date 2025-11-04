@@ -7,6 +7,7 @@ const ADMIN_PATHS = [
   "/finishes",
   "/products",
   "/margins",
+  "/customers",
   // se tiver outras de admin, adicione aqui
 ];
 

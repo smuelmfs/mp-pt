@@ -1,0 +1,768 @@
+{
+  "printings": [
+    {
+      "technology": "DIGITAL",
+      "formatLabel": "PVC_CARD",
+      "colors": "CMYK",
+      "sides": 1,
+      "unitPrice": "0.2900",
+      "setupMode": "FLAT",
+      "setupFlatFee": "0.00",
+      "minFee": "0.00",
+      "lossFactor": "0.0300",
+      "active": true
+    },
+    {
+      "technology": "DIGITAL",
+      "formatLabel": "PVC_CARD",
+      "colors": "CMYK",
+      "sides": 2,
+      "unitPrice": "0.2900",
+      "setupMode": "FLAT",
+      "setupFlatFee": "0.00",
+      "minFee": "0.00",
+      "lossFactor": "0.0300",
+      "active": true
+    },
+    {
+      "technology": "DIGITAL",
+      "formatLabel": "PVC_CARD",
+      "colors": "K",
+      "sides": 1,
+      "unitPrice": "0.0125",
+      "setupMode": "FLAT",
+      "setupFlatFee": "0.00",
+      "minFee": "0.00",
+      "lossFactor": "0.0300",
+      "active": true
+    },
+    {
+      "technology": "DIGITAL",
+      "formatLabel": "PVC_CARD",
+      "colors": "K",
+      "sides": 2,
+      "unitPrice": "0.0125",
+      "setupMode": "FLAT",
+      "setupFlatFee": "0.00",
+      "minFee": "0.00",
+      "lossFactor": "0.0300",
+      "active": true
+    }
+  ],
+  "materials": [
+    {
+      "name": "BRANCO SIMPLES",
+      "type": "pvc",
+      "unit": "UNIT",
+      "unitCost": "0.0900",
+      "active": true
+    },
+    {
+      "name": "BRANCO BANDA MAGNETICA",
+      "type": "pvc",
+      "unit": "UNIT",
+      "unitCost": "0.0000",
+      "active": false
+    },
+    {
+      "name": "BRANCO CHIP",
+      "type": "pvc",
+      "unit": "UNIT",
+      "unitCost": "0.0000",
+      "active": false
+    },
+    {
+      "name": "TRANSPARENTE",
+      "type": "pvc",
+      "unit": "UNIT",
+      "unitCost": "0.0000",
+      "active": false
+    },
+    {
+      "name": "CAÇAURQ",
+      "type": "pvc",
+      "unit": "UNIT",
+      "unitCost": "64.0000",
+      "active": true
+    },
+    {
+      "name": "NOF",
+      "type": "pvc",
+      "unit": "UNIT",
+      "unitCost": "100.0000",
+      "active": true
+    },
+    {
+      "name": "Celia Bras",
+      "type": "pvc",
+      "unit": "UNIT",
+      "unitCost": "25.0000",
+      "active": true
+    },
+    {
+      "name": "fet",
+      "type": "pvc",
+      "unit": "UNIT",
+      "unitCost": "87.0000",
+      "active": true
+    }
+  ],
+  "products": [
+    {
+      "name": "Cartão PVC BRANCO SIMPLES — 4/0",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": true,
+      "materials": [
+        {
+          "name": "BRANCO SIMPLES",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "0.0900",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 1,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    },
+    {
+      "name": "Cartão PVC BRANCO SIMPLES — 4/4",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": true,
+      "materials": [
+        {
+          "name": "BRANCO SIMPLES",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "0.0900",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 2,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    },
+    {
+      "name": "Cartão PVC BRANCO BANDA MAGNETICA — 4/0",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": false,
+      "materials": [
+        {
+          "name": "BRANCO BANDA MAGNETICA",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "0.0000",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 1,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    },
+    {
+      "name": "Cartão PVC BRANCO BANDA MAGNETICA — 4/4",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": false,
+      "materials": [
+        {
+          "name": "BRANCO BANDA MAGNETICA",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "0.0000",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 2,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    },
+    {
+      "name": "Cartão PVC BRANCO CHIP — 4/0",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": false,
+      "materials": [
+        {
+          "name": "BRANCO CHIP",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "0.0000",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 1,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    },
+    {
+      "name": "Cartão PVC BRANCO CHIP — 4/4",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": false,
+      "materials": [
+        {
+          "name": "BRANCO CHIP",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "0.0000",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 2,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    },
+    {
+      "name": "Cartão PVC TRANSPARENTE — 4/0",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": false,
+      "materials": [
+        {
+          "name": "TRANSPARENTE",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "0.0000",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 1,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    },
+    {
+      "name": "Cartão PVC TRANSPARENTE — 4/4",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": false,
+      "materials": [
+        {
+          "name": "TRANSPARENTE",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "0.0000",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 2,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    },
+    {
+      "name": "Cartão PVC CAÇAURQ — 4/0",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": true,
+      "materials": [
+        {
+          "name": "CAÇAURQ",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "64.0000",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 1,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    },
+    {
+      "name": "Cartão PVC CAÇAURQ — 4/4",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": true,
+      "materials": [
+        {
+          "name": "CAÇAURQ",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "64.0000",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 2,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    },
+    {
+      "name": "Cartão PVC NOF — 4/0",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": true,
+      "materials": [
+        {
+          "name": "NOF",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "100.0000",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 1,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    },
+    {
+      "name": "Cartão PVC NOF — 4/4",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": true,
+      "materials": [
+        {
+          "name": "NOF",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "100.0000",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 2,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    },
+    {
+      "name": "Cartão PVC Celia Bras — 4/0",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": true,
+      "materials": [
+        {
+          "name": "Celia Bras",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "25.0000",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 1,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    },
+    {
+      "name": "Cartão PVC Celia Bras — 4/4",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": true,
+      "materials": [
+        {
+          "name": "Celia Bras",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "25.0000",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 2,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    },
+    {
+      "name": "Cartão PVC fet — 4/0",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": true,
+      "materials": [
+        {
+          "name": "fet",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "87.0000",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 1,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    },
+    {
+      "name": "Cartão PVC fet — 4/4",
+      "widthMm": 85,
+      "heightMm": 54,
+      "roundingStep": "0.0500",
+      "roundingStrategy": "PER_STEP",
+      "pricingStrategy": "COST_MARKUP_MARGIN",
+      "markupDefault": "0.2000",
+      "marginDefault": "0.3000",
+      "minOrderQty": 1,
+      "minOrderValue": null,
+      "finishes": [],
+      "suggested": [
+        25,
+        64,
+        87,
+        100
+      ],
+      "active": true,
+      "materials": [
+        {
+          "name": "fet",
+          "type": "pvc",
+          "unit": "UNIT",
+          "unitCost": "87.0000",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "printing": {
+        "technology": "DIGITAL",
+        "formatLabel": "PVC_CARD",
+        "colors": "CMYK",
+        "sides": 2,
+        "unitPrice": "0.2900",
+        "setupMode": "FLAT",
+        "setupFlatFee": "0.00",
+        "minFee": "0.00",
+        "lossFactor": "0.0300",
+        "active": true
+      }
+    }
+  ]
+}

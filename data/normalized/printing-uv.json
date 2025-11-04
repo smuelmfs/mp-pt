@@ -1,0 +1,15 @@
+[
+  {
+    "technology": "UV",
+    "formatLabel": "PLANO_M2",
+    "colors": null,
+    "sides": 1,
+    "unitPrice": "25.0000",
+    "yield": null,
+    "setupMode": "FLAT",
+    "setupFlatFee": "0.00",
+    "minFee": "0.00",
+    "lossFactor": "0.0300",
+    "active": true
+  }
+]

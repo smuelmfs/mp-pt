@@ -461,6 +461,18 @@ export default function ProductDetail() {
                 </select>
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Sourcing Mode</label>
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  defaultValue={row.sourcingMode ?? "INTERNAL"}
+                  onChange={(e) => update({ sourcingMode: e.target.value })}
+                >
+                  <option value="INTERNAL">INTERNAL</option>
+                  <option value="SUPPLIER">SUPPLIER</option>
+                  <option value="HYBRID">HYBRID</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Margem Padrão</label>
                 <input
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -491,6 +503,40 @@ export default function ProductDetail() {
                   onBlur={(e) => update({ roundingStep: e.target.value || null })}
                 />
                 <p className="text-xs text-gray-500 mt-1">Deixe vazio para usar o arredondamento da categoria</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Estratégia de Arredondamento</label>
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  defaultValue={row.roundingStrategy ?? "END_ONLY"}
+                  onChange={(e) => update({ roundingStrategy: e.target.value })}
+                >
+                  <option value="END_ONLY">END_ONLY (só no final)</option>
+                  <option value="PER_STEP">PER_STEP (por linha/etapa)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Estratégia de Preço</label>
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  defaultValue={row.pricingStrategy ?? "COST_MARKUP_MARGIN"}
+                  onChange={(e) => update({ pricingStrategy: e.target.value })}
+                >
+                  <option value="COST_MARKUP_MARGIN">COST_MARKUP_MARGIN</option>
+                  <option value="COST_MARGIN_ONLY">COST_MARGIN_ONLY</option>
+                  <option value="MARGIN_TARGET">MARGIN_TARGET</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Preço Mínimo por Peça (€)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ex: 0.10"
+                  defaultValue={row.minPricePerPiece ?? ""}
+                  onBlur={(e) => update({ minPricePerPiece: e.target.value ? Number(e.target.value) : null })}
+                />
               </div>
             </div>
 
