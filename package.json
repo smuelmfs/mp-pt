@@ -54,7 +54,13 @@
     "test:products:cards-pvc": "jest tests/tests_products_cards_pvc.spec.ts --runInBand",
     "import:alveolar:normalize": "tsx scripts/make-normalized-products-alveolar.ts",
     "import:alveolar": "tsx scripts/import-products-alveolar.ts",
-    "test:alveolar": "jest tests/tests_products_alveolar.spec.ts --runInBand"
+    "test:alveolar": "jest tests/tests_products_alveolar.spec.ts --runInBand",
+    "seed:categories": "tsx prisma/seed.categories.ts",
+    "seed:materials:alveolar": "tsx prisma/seed.materials.alveolar.ts",
+    "seed:materials:vinil": "tsx prisma/seed.materials.vinil.ts",
+    "seed:materials:vinil:fix": "tsx prisma/seed.materials.vinil.fix.ts",
+    "patch:vinil:s5889b": "tsx prisma/patch.vinil.s5889b.ts",
+    "seed:materials:rigidos": "tsx prisma/seed.materials.rigidos.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
