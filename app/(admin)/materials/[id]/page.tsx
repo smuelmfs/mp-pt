@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
@@ -13,6 +13,7 @@ export default function MaterialDetail() {
   const [formData, setFormData] = useState<any>({});
   const [hasChanges, setHasChanges] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
 
   // formulário de variante
   const [vf, setVf] = useState<any>({
@@ -42,10 +43,53 @@ export default function MaterialDetail() {
   async function saveChanges() {
     setSaving(true);
     try {
+      const payload: any = { ...formData };
+      // resolver supplierName em supplierId (criar se necessário)
+      const typedName: string | undefined = (payload as any).supplierName;
+      if (typedName && !payload.hasOwnProperty('supplierId')) {
+        const existing = suppliers.find((s:any)=> String(s.name).toLowerCase() === String(typedName).toLowerCase());
+        if (existing) {
+          payload.supplierId = existing.id;
+        } else {
+          const supRes = await fetch('/api/admin/suppliers', {
+            method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: typedName })
+          });
+          if (supRes.ok) {
+            const sup = await supRes.json();
+            payload.supplierId = sup?.id ?? null;
+          }
+        }
+        delete payload.supplierName;
+      }
+
+      // Calcula supplierUnitCost automaticamente se fornecido custo do rolo
+      const rollCost = payload.supplierRollCost ? Number(String(payload.supplierRollCost).replace(',', '.')) : null;
+      if (rollCost && rollCost > 0) {
+        if (payload.unit === "M2" && payload.supplierRollWidth && payload.supplierRollLength) {
+          const w = Number(String(payload.supplierRollWidth).replace(',', '.'));
+          const l = Number(String(payload.supplierRollLength).replace(',', '.'));
+          if (w > 0 && l > 0) {
+            payload.supplierUnitCost = (rollCost / (w * l)).toFixed(4);
+          }
+        } else if (payload.unit === "SHEET" && payload.supplierRollQuantity) {
+          const qty = Number(payload.supplierRollQuantity);
+          if (qty > 0) {
+            payload.supplierUnitCost = (rollCost / qty).toFixed(4);
+          }
+        } else if (payload.unit === "UNIT") {
+          payload.supplierUnitCost = rollCost.toFixed(4);
+        }
+      }
+      // Remove campos auxiliares antes de enviar
+      delete payload.supplierRollCost;
+      delete payload.supplierRollWidth;
+      delete payload.supplierRollLength;
+      delete payload.supplierRollQuantity;
+
       await fetch(`/api/admin/materials/${id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       setHasChanges(false);
       load();
@@ -61,6 +105,54 @@ export default function MaterialDetail() {
     if (Number.isFinite(id)) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    fetch("/api/admin/suppliers?activeOnly=1")
+      .then(r => r.json())
+      .then(setSuppliers)
+      .catch(() => setSuppliers([]));
+  }, []);
+
+  // Calcula o resumo de custos (deve estar antes de qualquer return condicional)
+  const costSummary = useMemo(() => {
+    if (!row) return null;
+    
+    // Calcula o custo do fornecedor se houver campos de rolo preenchidos
+    let calculatedSupplierCost: string | null = null;
+    const rollCost = formData.supplierRollCost ? Number(String(formData.supplierRollCost).replace(',', '.')) : null;
+    if (rollCost && rollCost > 0) {
+      if (row.unit === "M2" && formData.supplierRollWidth && formData.supplierRollLength) {
+        const w = Number(String(formData.supplierRollWidth).replace(',', '.'));
+        const l = Number(String(formData.supplierRollLength).replace(',', '.'));
+        if (w > 0 && l > 0) {
+          calculatedSupplierCost = (rollCost / (w * l)).toFixed(4);
+        }
+      } else if (row.unit === "SHEET" && formData.supplierRollQuantity) {
+        const qty = Number(formData.supplierRollQuantity);
+        if (qty > 0) {
+          calculatedSupplierCost = (rollCost / qty).toFixed(4);
+        }
+      } else if (row.unit === "UNIT") {
+        calculatedSupplierCost = rollCost.toFixed(4);
+      }
+    }
+    
+    const finalSupplierCost = calculatedSupplierCost || (formData.supplierUnitCost ? String(formData.supplierUnitCost) : (row.supplierUnitCost ? String(row.supplierUnitCost) : null));
+    const unitCostValue = Number(formData.unitCost || row.unitCost || 0);
+    const supplierCostValue = finalSupplierCost ? Number(finalSupplierCost) : 0;
+    const totalCost = unitCostValue + supplierCostValue;
+    
+    if (!unitCostValue && !supplierCostValue) return null;
+    
+    const unitLabel = row.unit === "M2" ? "m²" : row.unit === "SHEET" ? "folha" : row.unit === "UNIT" ? "unidade" : row.unit.toLowerCase();
+    
+    return {
+      unitCostValue,
+      supplierCostValue,
+      totalCost,
+      unitLabel,
+    };
+  }, [formData, row]);
 
   // Mantém função patch para compatibilidade
   async function patch(patch: any) {
@@ -230,11 +322,94 @@ export default function MaterialDetail() {
                 <option value="SHEET">Folha</option>
               </select>
             </div>
+
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Fornecedor</label>
+                <input
+                  list="supplier-suggestions-edit"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  defaultValue={row?.supplier?.name || ""}
+                  onBlur={(e)=> patch({ supplierName: e.target.value })}
+                  placeholder="Digite para procurar ou criar"
+                />
+                <datalist id="supplier-suggestions-edit">
+                  {suppliers.map((s:any)=> (
+                    <option key={s.id} value={s.name} />
+                  ))}
+                </datalist>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Custo do Fornecedor (€)</label>
+                <input
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  defaultValue={row.supplierUnitCost != null ? String(row.supplierUnitCost) : ""}
+                  onBlur={(e) => patch({ supplierUnitCost: e.target.value || null })}
+                  placeholder="0.0000"
+                />
+                <p className="text-xs text-gray-500 mt-1">Ou use cálculo automático abaixo</p>
+              </div>
+            </div>
+
+            {/* Cálculo Automático na Edição */}
+            <div className="md:col-span-3 border-t border-gray-200 pt-4">
+              <p className="text-sm font-medium text-gray-700 mb-3">Cálculo Automático do Custo do Fornecedor (opcional)</p>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Custo do Rolo/Pack (€)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                    defaultValue=""
+                    onBlur={(e) => patch({ supplierRollCost: e.target.value || null })}
+                    placeholder="Ex: 19.12"
+                  />
+                </div>
+                {row.unit === "M2" && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Largura (m)</label>
+                      <input
+                        type="number"
+                        step="0.001"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                        defaultValue=""
+                        onBlur={(e) => patch({ supplierRollWidth: e.target.value || null })}
+                        placeholder="Ex: 0.615"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Comprimento (m)</label>
+                      <input
+                        type="number"
+                        step="0.001"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                        defaultValue=""
+                        onBlur={(e) => patch({ supplierRollLength: e.target.value || null })}
+                        placeholder="Ex: 5.0"
+                      />
+                    </div>
+                  </>
+                )}
+                {row.unit === "SHEET" && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade no Pack</label>
+                    <input
+                      type="number"
+                      step="1"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                      defaultValue=""
+                      onBlur={(e) => patch({ supplierRollQuantity: e.target.value || null })}
+                      placeholder="Ex: 500"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Custo Unitário (€)
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Custo Unitário (€)</label>
               <input
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
                 defaultValue={row.unitCost}
@@ -411,6 +586,76 @@ export default function MaterialDetail() {
             </div>
           </div>
         </div>
+
+        {/* Resumo de Custos */}
+        {costSummary && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Resumo de Custos</h2>
+            <div className="space-y-3">
+              {costSummary.unitCostValue > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Custo Unitário:</span>
+                  <span className="font-semibold text-gray-900">
+                    €{costSummary.unitCostValue.toFixed(4)} / {costSummary.unitLabel}
+                  </span>
+                </div>
+              )}
+              {costSummary.supplierCostValue > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Custo do Fornecedor:</span>
+                  <span className="font-semibold text-gray-900">
+                    €{costSummary.supplierCostValue.toFixed(4)} / {costSummary.unitLabel}
+                  </span>
+                </div>
+              )}
+              {(costSummary.unitCostValue > 0 || costSummary.supplierCostValue > 0) && (
+                <div className="flex items-center justify-between text-sm pt-3 border-t border-gray-200">
+                  <span className="text-gray-700 font-medium">Total:</span>
+                  <span className="font-bold text-gray-900 text-base">
+                    €{costSummary.totalCost.toFixed(4)} / {costSummary.unitLabel}
+                  </span>
+                </div>
+              )}
+              {variants.length > 0 && (
+                <div className="pt-4 border-t border-gray-200 mt-4">
+                  <p className="text-sm font-medium text-gray-700 mb-3">Variantes ({variants.length}):</p>
+                  <div className="space-y-2">
+                    {variants.map((v: any) => {
+                      const variantUnitCost = v.unitPrice ? Number(v.unitPrice) : (v.packPrice && v.sheetsPerPack ? Number(v.packPrice) / Number(v.sheetsPerPack) : 0);
+                      const variantTotal = variantUnitCost + costSummary.supplierCostValue;
+                      return (
+                        <div key={v.id} className="bg-gray-50 rounded-lg p-3">
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <span className="font-medium text-gray-700">{v.label}</span>
+                            {v.gramagem && <span className="text-gray-500">{v.gramagem}g</span>}
+                          </div>
+                          {variantUnitCost > 0 && (
+                            <div className="flex items-center justify-between text-xs text-gray-600">
+                              <span>Custo Variante:</span>
+                              <span>€{variantUnitCost.toFixed(4)} / {costSummary.unitLabel}</span>
+                            </div>
+                          )}
+                          {costSummary.supplierCostValue > 0 && (
+                            <div className="flex items-center justify-between text-xs text-gray-600">
+                              <span>Custo Fornecedor:</span>
+                              <span>€{costSummary.supplierCostValue.toFixed(4)} / {costSummary.unitLabel}</span>
+                            </div>
+                          )}
+                          {(variantUnitCost > 0 || costSummary.supplierCostValue > 0) && (
+                            <div className="flex items-center justify-between text-xs pt-2 mt-2 border-t border-gray-200">
+                              <span className="font-medium text-gray-700">Total Variante:</span>
+                              <span className="font-semibold text-gray-900">€{variantTotal.toFixed(4)} / {costSummary.unitLabel}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

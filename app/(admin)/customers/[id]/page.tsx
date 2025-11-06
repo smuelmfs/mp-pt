@@ -342,7 +342,7 @@ export default function CustomerDetailPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {printingList.map((p:any)=>(
-                        <SelectItem key={p.id} value={String(p.id)}>{p.technology} {p.colors??""}</SelectItem>
+                        <SelectItem key={p.id} value={String(p.id)}>{p.formatLabel || `${p.technology} ${p.colors??""}`}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -358,14 +358,14 @@ export default function CustomerDetailPage() {
                     <tbody>
                       {prnPrices.map((r:any)=>{
                         const label = printingList.find((p:any)=>p.id===r.printingId);
-                        const name = label ? `${label.technology} ${label.colors??""}` : r.printingId;
+                        const name = label ? (label.formatLabel || `${label.technology} ${label.colors??""}`) : r.printingId;
                         const isEditing = prnEditId === r.id;
                         return (
                           <tr key={r.id} className="border-b hover:bg-gray-50">
                             <td className="p-2">{isEditing ? (
                               <select className="w-full px-2 py-1 border rounded" value={prnEditForm.printingId} onChange={e=>setPrnEditForm({...prnEditForm, printingId: e.target.value})}>
                                 <option value="">(manter)</option>
-                                {printingList.map((p:any)=>(<option key={p.id} value={p.id}>{p.technology} {p.colors??""}</option>))}
+                                {printingList.map((p:any)=>(<option key={p.id} value={p.id}>{p.formatLabel || `${p.technology} ${p.colors??""}`}</option>))}
                               </select>
                             ) : name}</td>
                             <td className="p-2">{isEditing ? (<input className="w-full px-2 py-1 border rounded" value={prnEditForm.sides} onChange={e=>setPrnEditForm({...prnEditForm,sides:e.target.value})} placeholder={r.sides??''} />) : (r.sides??"-")}</td>

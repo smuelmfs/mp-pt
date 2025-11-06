@@ -1,0 +1,66 @@
+{
+  "materials": [
+    {
+      "customer": "TECOFIX",
+      "material": "Base Roll Up Weddt",
+      "unitCost": 15.54
+    },
+    {
+      "customer": "TECOFIX",
+      "material": "Estrutua Weddt Bandeira Gota 2,2m Suporte - 15,61 € Boia - 5,08 € Pé",
+      "unitCost": 44.75
+    },
+    {
+      "customer": "RODRIGUES & GONÇALVES",
+      "material": "Balcaão WEDDT 100,42 €",
+      "unitCost": 100.42
+    },
+    {
+      "customer": "ISCF",
+      "material": "Dimatur",
+      "unitCost": 16.91
+    },
+    {
+      "customer": "Abbott",
+      "material": "Dimatur",
+      "unitCost": 16.91
+    }
+  ],
+  "printings": [
+    {
+      "customer": "TECOFIX",
+      "printing": "Tela 85x200 Leiripantone",
+      "unitCost": 35
+    },
+    {
+      "customer": "TECOFIX",
+      "printing": "Impressão e Acabamento Publifast",
+      "unitCost": 32.39
+    },
+    {
+      "customer": "RODRIGUES & GONÇALVES",
+      "printing": "Impressão NHM",
+      "unitCost": 45
+    },
+    {
+      "customer": "WMG",
+      "printing": "Impressão NHM Peça 1 - 12 € Peça 2",
+      "unitCost": 72
+    },
+    {
+      "customer": "ISCF",
+      "printing": "Tela rollup 85x200 Leiripantone",
+      "unitCost": 35
+    },
+    {
+      "customer": "ISCF",
+      "printing": "Tela / lona 85x200 NHM",
+      "unitCost": 30
+    },
+    {
+      "customer": "Abbott",
+      "printing": "Tela / lona 85x200 NHM",
+      "unitCost": 30
+    }
+  ]
+}

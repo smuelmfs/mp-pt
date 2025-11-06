@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 type Material = {
@@ -9,39 +9,118 @@ type Material = {
   type: string;
   unit: "UNIT" | "M2" | "LOT" | "HOUR" | "SHEET";
   unitCost: string;
+  supplierUnitCost?: string | null;
   active: boolean;
+  supplier?: { id: number; name: string } | null;
 };
 
 export default function MaterialsPage() {
   const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [rows, setRows] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [openCreate, setOpenCreate] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<string>("");
+  const [unitFilter, setUnitFilter] = useState<Material["unit"] | "">("");
+  const [activeFilter, setActiveFilter] = useState<"all"|"active"|"inactive">("all");
+  const [supplierFilter, setSupplierFilter] = useState<string>("");
+  const [sortKey, setSortKey] = useState<"name"|"unitCost"|"type">("name");
+  const [sortDir, setSortDir] = useState<"asc"|"desc">("asc");
 
+  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [form, setForm] = useState({
     name: "",
     type: "",
     unit: "UNIT" as Material["unit"],
     unitCost: "0.0000",
+    supplierUnitCost: "",
     active: true,
+    supplierId: "",
+    supplierName: "",
+    // Campos para cálculo automático
+    supplierRollCost: "",
+    supplierRollWidth: "",
+    supplierRollLength: "",
+    supplierRollQuantity: "",
   });
 
   async function load() {
     setLoading(true);
-    const res = await fetch(`/api/admin/materials?q=${encodeURIComponent(q)}`);
+    const params = new URLSearchParams();
+    if (debouncedQ) params.append("q", debouncedQ);
+    if (supplierFilter) params.append("supplierId", supplierFilter);
+    const res = await fetch(`/api/admin/materials?${params.toString()}`);
     const json = await res.json();
     setRows(Array.isArray(json) ? json : []);
     setLoading(false);
   }
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  useEffect(()=>{
+    const t = setTimeout(()=> setDebouncedQ(q.trim()), 300);
+    return ()=> clearTimeout(t);
+  }, [q]);
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [debouncedQ, supplierFilter]);
+
+  useEffect(() => {
+    fetch("/api/admin/suppliers?activeOnly=1")
+      .then(r => r.json())
+      .then(setSuppliers)
+      .catch(() => setSuppliers([]));
+  }, []);
 
   async function createMaterial() {
     if (!form.name.trim()) return alert("Informe o nome.");
     if (!form.unitCost) return alert("Informe o custo unitário.");
     setSaving(true);
-    const res = await fetch("/api/admin/materials", {
+    try {
+      // resolve supplierId: usa selecionado; se vazio e houver supplierName, cria/reativa supplier e usa o id
+      let supplierIdToUse: number | null = null;
+      if (form.supplierId) {
+        supplierIdToUse = Number(form.supplierId);
+      } else if (form.supplierName && form.supplierName.trim()) {
+        const supRes = await fetch("/api/admin/suppliers", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name: form.supplierName.trim() })
+        });
+        if (supRes.ok) {
+          const sup = await supRes.json();
+          supplierIdToUse = sup?.id || null;
+        } else {
+          const j = await supRes.json().catch(()=>({}));
+          alert("Erro ao criar fornecedor: " + (j.error || "tente novamente"));
+          setSaving(false);
+          return;
+        }
+      }
+
+      // Calcula supplierUnitCost automaticamente se fornecido custo do rolo
+      let calculatedSupplierUnitCost: string | null = null;
+      if (form.supplierRollCost && form.supplierRollCost.trim()) {
+        const rollCost = Number(form.supplierRollCost.replace(',', '.'));
+        if (form.unit === "M2" && form.supplierRollWidth && form.supplierRollLength) {
+          const width = Number(form.supplierRollWidth.replace(',', '.'));
+          const length = Number(form.supplierRollLength.replace(',', '.'));
+          if (width > 0 && length > 0) {
+            const areaM2 = width * length;
+            calculatedSupplierUnitCost = (rollCost / areaM2).toFixed(4);
+          }
+        } else if (form.unit === "SHEET" && form.supplierRollQuantity) {
+          const qty = Number(form.supplierRollQuantity);
+          if (qty > 0) {
+            calculatedSupplierUnitCost = (rollCost / qty).toFixed(4);
+          }
+        } else if (form.unit === "UNIT") {
+          calculatedSupplierUnitCost = rollCost.toFixed(4);
+        }
+      }
+
+      // Usa o calculado se houver, senão usa o informado diretamente
+      const finalSupplierUnitCost = calculatedSupplierUnitCost || (form.supplierUnitCost ? form.supplierUnitCost : null);
+
+      const res = await fetch("/api/admin/materials", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -49,17 +128,27 @@ export default function MaterialsPage() {
         type: form.type.trim() || "outro",
         unit: form.unit,
         unitCost: form.unitCost,
+        supplierUnitCost: finalSupplierUnitCost,
         active: form.active,
+          supplierId: supplierIdToUse,
       }),
-    });
-    setSaving(false);
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      return alert("Erro ao criar: " + (j.error?.message || "verifique os campos"));
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        alert("Erro ao criar: " + (j.error?.message || "verifique os campos"));
+        setSaving(false);
+        return;
+      }
+      // refresh list and suppliers cache so the new supplier appears
+      await Promise.all([
+        load(),
+        fetch("/api/admin/suppliers?activeOnly=1").then(r=>r.json()).then(setSuppliers).catch(()=>{})
+      ]);
+      setOpenCreate(false);
+      setForm({ name: "", type: "", unit: "UNIT", unitCost: "0.0000", supplierUnitCost: "", active: true, supplierId: "", supplierName: "", supplierRollCost: "", supplierRollWidth: "", supplierRollLength: "", supplierRollQuantity: "" });
+    } finally {
+      setSaving(false);
     }
-    setOpenCreate(false);
-    setForm({ name: "", type: "", unit: "UNIT", unitCost: "0.0000", active: true });
-    load();
   }
 
   const unitLabels = {
@@ -69,6 +158,32 @@ export default function MaterialsPage() {
     HOUR: "Hora",
     SHEET: "Folha"
   };
+
+  const filteredSorted = useMemo(()=>{
+    let list = rows.slice();
+    if (typeFilter) list = list.filter(r=> (r.type||"").toLowerCase().includes(typeFilter.toLowerCase()));
+    if (unitFilter) list = list.filter(r=> r.unit===unitFilter);
+    if (activeFilter!=="all") list = list.filter(r=> activeFilter==="active" ? r.active : !r.active);
+    list.sort((a,b)=>{
+      let va:any; let vb:any;
+      if (sortKey==="name") { va=a.name.toLowerCase(); vb=b.name.toLowerCase(); }
+      else if (sortKey==="type") { va=(a.type||"").toLowerCase(); vb=(b.type||"").toLowerCase(); }
+      else { va=parseFloat(String(a.unitCost)); vb=parseFloat(String(b.unitCost)); }
+      const cmp = va<vb? -1 : va>vb? 1 : 0;
+      return sortDir==="asc"? cmp : -cmp;
+    });
+    return list;
+  }, [rows, typeFilter, unitFilter, activeFilter, sortKey, sortDir]);
+
+  function highlight(text: string, term: string) {
+    if (!term) return text;
+    const i = text.toLowerCase().indexOf(term.toLowerCase());
+    if (i===-1) return text;
+    const before = text.slice(0,i);
+    const match = text.slice(i, i+term.length);
+    const after = text.slice(i+term.length);
+    return (<>{before}<mark className="bg-yellow-100 rounded px-0.5">{match}</mark>{after}</>);
+  }
 
   if (loading) {
     return (
@@ -112,7 +227,7 @@ export default function MaterialsPage() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Search */}
+        {/* Search & Filters */}
         <div className="bg-white border border-slate-200 rounded-lg p-6 mb-8">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -127,24 +242,53 @@ export default function MaterialsPage() {
               onChange={(e) => setQ(e.target.value)}
                       className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
             />
-                    <button
-                      onClick={load}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
-                    >
-              Buscar
-            </button>
+            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-2">
+              {q && (
+                <button onClick={()=>setQ("")} className="px-3 py-2 text-slate-600 hover:text-slate-900">Limpar</button>
+              )}
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-5 gap-3">
+            <input className="px-3 py-2 border rounded" placeholder="Filtrar por tipo (ex.: vinil, papel)" value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} />
+            <select className="px-3 py-2 border rounded" value={unitFilter} onChange={e=>setUnitFilter(e.target.value as any)}>
+              <option value="">Todas unidades</option>
+              <option value="UNIT">Unidade</option>
+              <option value="M2">Metro Quadrado</option>
+              <option value="LOT">Lote</option>
+              <option value="HOUR">Hora</option>
+              <option value="SHEET">Folha</option>
+            </select>
+            <select className="px-3 py-2 border rounded" value={supplierFilter} onChange={e=>setSupplierFilter(e.target.value)}>
+              <option value="">Todos fornecedores</option>
+              {suppliers.map(s => (
+                <option key={s.id} value={String(s.id)}>{s.name}</option>
+              ))}
+            </select>
+            <select className="px-3 py-2 border rounded" value={activeFilter} onChange={e=>setActiveFilter(e.target.value as any)}>
+              <option value="all">Todos</option>
+              <option value="active">Ativos</option>
+              <option value="inactive">Inativos</option>
+            </select>
+            <div className="flex gap-2">
+              <select className="flex-1 px-3 py-2 border rounded" value={sortKey} onChange={e=>setSortKey(e.target.value as any)}>
+                <option value="name">Ordenar por Nome</option>
+                <option value="type">Ordenar por Tipo</option>
+                <option value="unitCost">Ordenar por Custo</option>
+              </select>
+              <button className="px-3 py-2 border rounded" onClick={()=>setSortDir(d=> d==="asc"?"desc":"asc")}>{sortDir==="asc"?"↑":"↓"}</button>
+            </div>
           </div>
         </div>
 
         {/* Materials Grid */}
-        {rows.length > 0 ? (
+        {filteredSorted.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {rows.map((material) => (
+            {filteredSorted.map((material) => (
               <div key={material.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-1">{material.name}</h3>
-                    <p className="text-sm text-slate-600 capitalize">{material.type}</p>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-1">{highlight(material.name, debouncedQ)}</h3>
+                    <p className="text-sm text-slate-600 capitalize">{highlight(material.type||"", typeFilter)}</p>
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -160,13 +304,27 @@ export default function MaterialsPage() {
                     <span className="text-sm text-slate-600">Custo Unitário</span>
                     <span className="font-semibold text-slate-900">€{Number(material.unitCost).toFixed(4)}</span>
                   </div>
+                  {material.supplierUnitCost && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-600">Custo do Fornecedor</span>
+                      <span className="font-semibold text-slate-700">€{Number(material.supplierUnitCost).toFixed(4)}</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-600">Unidade</span>
                     <span className="text-sm font-medium text-slate-900">{unitLabels[material.unit]}</span>
                   </div>
+                  {material.supplier && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-600">Fornecedor</span>
+                      <span className="text-sm font-medium text-slate-700 bg-slate-100 px-2 py-1 rounded">
+                        {material.supplier.name}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-slate-200">
+                <div className="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between">
                   <Link 
                     href={`/materials/${material.id}`}
                     className="inline-flex items-center text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
@@ -177,6 +335,7 @@ export default function MaterialsPage() {
                     </svg>
                     Ver Detalhes
                   </Link>
+                  <span className="text-xs text-slate-500">ID {material.id}</span>
                 </div>
               </div>
             ))}
@@ -262,6 +421,106 @@ export default function MaterialsPage() {
                 <p className="text-xs text-gray-500 mt-1">Categoria do material</p>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fornecedor (opcional)
+                  </label>
+                  <input
+                    list="supplier-suggestions"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                    value={form.supplierName}
+                    onChange={(e)=> setForm({ ...form, supplierName: e.target.value, supplierId: "" })}
+                    placeholder="Digite para procurar ou criar"
+                  />
+                  <datalist id="supplier-suggestions">
+                    {suppliers.map((s:any)=> (
+                      <option key={s.id} value={s.name} />
+                    ))}
+                  </datalist>
+                  <p className="text-xs text-gray-500 mt-1">Se já existir, selecione; se não, crio automaticamente</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Custo do Fornecedor (opcional)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                    value={form.supplierUnitCost}
+                    onChange={(e) => setForm({...form, supplierUnitCost: e.target.value})}
+                    placeholder="0.0000"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Valor por unidade (ou deixe vazio e use cálculo automático abaixo)</p>
+                </div>
+              </div>
+
+              {/* Cálculo Automático do Custo do Fornecedor */}
+              <div className="border-t border-gray-200 pt-4">
+                <p className="text-sm font-medium text-gray-700 mb-3">Cálculo Automático (opcional)</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Custo do Rolo/Pack (€)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                      value={form.supplierRollCost}
+                      onChange={(e) => setForm({...form, supplierRollCost: e.target.value})}
+                      placeholder="Ex: 19.12"
+                    />
+                  </div>
+                  {form.unit === "M2" && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Largura do Rolo (m)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.001"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                          value={form.supplierRollWidth}
+                          onChange={(e) => setForm({...form, supplierRollWidth: e.target.value})}
+                          placeholder="Ex: 0.615"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Comprimento do Rolo (m)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.001"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                          value={form.supplierRollLength}
+                          onChange={(e) => setForm({...form, supplierRollLength: e.target.value})}
+                          placeholder="Ex: 5.0"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {form.unit === "SHEET" && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Quantidade de Folhas no Pack
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                        value={form.supplierRollQuantity}
+                        onChange={(e) => setForm({...form, supplierRollQuantity: e.target.value})}
+                        placeholder="Ex: 500"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -294,6 +553,8 @@ export default function MaterialsPage() {
                 </div>
               </div>
 
+              
+
               <div className="flex items-center">
                 <input
                   type="checkbox"
@@ -307,6 +568,70 @@ export default function MaterialsPage() {
                 </label>
               </div>
             </div>
+
+            {/* Resumo de Custos */}
+            {(() => {
+              // Calcula o custo do fornecedor se houver campos de rolo preenchidos
+              let calculatedSupplierCost: string | null = null;
+              if (form.supplierRollCost && form.supplierRollCost.trim()) {
+                const rollCost = Number(form.supplierRollCost.replace(',', '.'));
+                if (!isNaN(rollCost) && rollCost > 0) {
+                  if (form.unit === "M2" && form.supplierRollWidth && form.supplierRollLength) {
+                    const w = Number(form.supplierRollWidth.replace(',', '.'));
+                    const l = Number(form.supplierRollLength.replace(',', '.'));
+                    if (!isNaN(w) && !isNaN(l) && w > 0 && l > 0) {
+                      calculatedSupplierCost = (rollCost / (w * l)).toFixed(4);
+                    }
+                  } else if (form.unit === "SHEET" && form.supplierRollQuantity) {
+                    const qty = Number(form.supplierRollQuantity);
+                    if (!isNaN(qty) && qty > 0) {
+                      calculatedSupplierCost = (rollCost / qty).toFixed(4);
+                    }
+                  } else if (form.unit === "UNIT") {
+                    calculatedSupplierCost = rollCost.toFixed(4);
+                  }
+                }
+              }
+              const finalSupplierCost = calculatedSupplierCost || form.supplierUnitCost;
+              
+              if (!form.unitCost && !finalSupplierCost) return null;
+              
+              const unitCostValue = Number(form.unitCost || 0);
+              const supplierCostValue = finalSupplierCost ? Number(finalSupplierCost) : 0;
+              const totalCost = unitCostValue + supplierCostValue;
+              
+              return (
+                <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-700">Resumo de Custos</p>
+                    {form.unitCost && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Custo Unitário:</span>
+                        <span className="font-semibold text-gray-900">
+                          €{unitCostValue.toFixed(4)} / {form.unit === "M2" ? "m²" : form.unit === "SHEET" ? "folha" : form.unit === "UNIT" ? "unidade" : form.unit.toLowerCase()}
+                        </span>
+                      </div>
+                    )}
+                    {finalSupplierCost && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Custo do Fornecedor:</span>
+                        <span className="font-semibold text-gray-900">
+                          €{supplierCostValue.toFixed(4)} / {form.unit === "M2" ? "m²" : form.unit === "SHEET" ? "folha" : form.unit === "UNIT" ? "unidade" : form.unit.toLowerCase()}
+                        </span>
+                      </div>
+                    )}
+                    {(form.unitCost || finalSupplierCost) && (
+                      <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-200">
+                        <span className="text-gray-700 font-medium">Total:</span>
+                        <span className="font-bold text-gray-900 text-base">
+                          €{totalCost.toFixed(4)} / {form.unit === "M2" ? "m²" : form.unit === "SHEET" ? "folha" : form.unit === "UNIT" ? "unidade" : form.unit.toLowerCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Footer */}
             <div className="border-t border-gray-200 px-6 py-4">

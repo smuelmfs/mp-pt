@@ -56,7 +56,8 @@ export function Navigation() {
                   pathname.startsWith('/margins') || 
                   pathname.startsWith('/config') ||
                   pathname.startsWith('/categories') ||
-                  pathname.startsWith('/customers');
+                  pathname.startsWith('/customers') ||
+                  pathname.startsWith('/suppliers');
 
   const isCommercial = pathname.startsWith('/quotes') || 
                       pathname.startsWith('/quotes/categories') || 
@@ -79,6 +80,12 @@ export function Navigation() {
   ];
 
   const adminNavItems = [
+    {
+      title: "Fornecedores",
+      href: "/suppliers",
+      icon: Building2,
+      description: "Gerenciar fornecedores"
+    },
     {
       title: "Categorias",
       href: "/categories",
