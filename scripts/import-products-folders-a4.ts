@@ -12,7 +12,7 @@ const eqDec4 = (a: any, b: any) => {
 };
 
 export async function runImportProductsFoldersA4() {
-  const dataPath = path.resolve(process.cwd(), "data/normalized/products.folders.a4.json");
+  const dataPath = path.resolve(process.cwd(), "data/normalized/products.folders-a4.json");
   const data = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
 
   const summary = {
@@ -186,14 +186,19 @@ export async function runImportProductsFoldersA4() {
     }
 
     // Suggested quantities
-    const exists = await prisma.productSuggestedQuantity.findFirst({
-      where: { productId: product.id, quantity: item.quantity },
-    });
-    if (!exists) {
-      await prisma.productSuggestedQuantity.create({
-        data: { productId: product.id, quantity: item.quantity, active: true },
-      });
-      summary.suggestedCreated++;
+    if (item.suggestedQuantities && Array.isArray(item.suggestedQuantities)) {
+      for (let idx = 0; idx < item.suggestedQuantities.length; idx++) {
+        const qty = item.suggestedQuantities[idx];
+        const exists = await prisma.productSuggestedQuantity.findFirst({
+          where: { productId: product.id, quantity: qty },
+        });
+        if (!exists) {
+          await prisma.productSuggestedQuantity.create({
+            data: { productId: product.id, quantity: qty, order: idx },
+          });
+          summary.suggestedCreated++;
+        }
+      }
     }
   }
 

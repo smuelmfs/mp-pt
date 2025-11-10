@@ -151,7 +151,7 @@ export async function runImportProductsFlex() {
             data: {
               productId: product.id,
               materialId: material.id,
-              qtyPerUnit,
+              qtyPerUnit: qtyPerUnit || "1.0000",
               wasteFactor: "0.0000",
             },
           });
@@ -194,7 +194,7 @@ export async function runImportProductsFlex() {
             data: {
               productId: product.id,
               finishId: finish.id,
-              qtyPerUnit,
+              qtyPerUnit: qtyPerUnit || "1.0000",
             },
           });
           summary.linksPFCreated++;
@@ -203,7 +203,7 @@ export async function runImportProductsFlex() {
           if (!eqDec4(pfLink.qtyPerUnit, qtyPerUnit)) {
             await prisma.productFinish.update({
               where: { productId_finishId: { productId: product.id, finishId: finish.id } },
-              data: { qtyPerUnit },
+              data: { qtyPerUnit: qtyPerUnit || "1.0000" },
             });
           }
         }

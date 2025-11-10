@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 type Printing = {
   id: number;
@@ -17,10 +18,16 @@ type Printing = {
 };
 
 export default function PrintingListPage() {
+  const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [rows, setRows] = useState<Printing[]>([]);
   const [loading, setLoading] = useState(true);
   const [openCreate, setOpenCreate] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [technologyFilter, setTechnologyFilter] = useState<string>("");
+  const [activeFilter, setActiveFilter] = useState<"all"|"active"|"inactive">("all");
+  const [sortKey, setSortKey] = useState<"formatLabel"|"technology"|"unitPrice">("formatLabel");
+  const [sortDir, setSortDir] = useState<"asc"|"desc">("asc");
 
   const [form, setForm] = useState({
     technology: "OFFSET" as Printing["technology"],
@@ -36,43 +43,60 @@ export default function PrintingListPage() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch("/api/admin/printing");
+    const params = new URLSearchParams();
+    if (debouncedQ) params.append("q", debouncedQ);
+    if (technologyFilter) params.append("technology", technologyFilter);
+    if (activeFilter !== "all") params.append("active", activeFilter === "active" ? "true" : "false");
+    const res = await fetch(`/api/admin/printing?${params.toString()}`);
     const json = await res.json();
     setRows(Array.isArray(json) ? json : []);
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q.trim()), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [debouncedQ, technologyFilter, activeFilter]);
 
   async function createPrinting() {
-    if (!form.unitPrice) return alert("Informe o preço unidade.");
-    setSaving(true);
-    const res = await fetch("/api/admin/printing", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        technology: form.technology,
-        formatLabel: form.formatLabel.trim() || null,
-        colors: form.colors.trim() || null,
-        sides: Number.isFinite(form.sides as any) ? Number(form.sides) : null,
-        unitPrice: form.unitPrice,
-        yield: Number.isFinite(form.yield as any) ? Number(form.yield) : null,
-        setupMinutes: Number.isFinite(form.setupMinutes as any) ? Number(form.setupMinutes) : null,
-        minFee: form.minFee || null,
-        active: form.active,
-      }),
-    });
-    setSaving(false);
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      return alert("Erro ao criar: " + (j.error?.message || "verifique os campos"));
+    if (!form.unitPrice) {
+      toast.error("Informe o preço unidade.");
+      return;
     }
-    setOpenCreate(false);
-    setForm({
-      technology: "OFFSET", formatLabel: "", colors: "", sides: 1,
-      unitPrice: "0.0000", yield: 1, setupMinutes: 0, minFee: "0.00", active: true
-    });
-    load();
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/printing", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          technology: form.technology,
+          formatLabel: form.formatLabel.trim() || null,
+          colors: form.colors.trim() || null,
+          sides: Number.isFinite(form.sides as any) ? Number(form.sides) : null,
+          unitPrice: form.unitPrice,
+          yield: Number.isFinite(form.yield as any) ? Number(form.yield) : null,
+          setupMinutes: Number.isFinite(form.setupMinutes as any) ? Number(form.setupMinutes) : null,
+          minFee: form.minFee || null,
+          active: form.active,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast.error("Erro ao criar: " + (j.error?.message || "verifique os campos"));
+        return;
+      }
+      toast.success("Impressão criada com sucesso!");
+      setOpenCreate(false);
+      setForm({
+        technology: "OFFSET", formatLabel: "", colors: "", sides: 1,
+        unitPrice: "0.0000", yield: 1, setupMinutes: 0, minFee: "0.00", active: true
+      });
+      load();
+    } finally {
+      setSaving(false);
+    }
   }
 
   const technologyLabels = {
@@ -88,6 +112,37 @@ export default function PrintingListPage() {
     UV: "bg-gray-100 text-gray-800",
     GRANDE_FORMATO: "bg-gray-100 text-gray-800"
   };
+
+  const filteredSorted = useMemo(() => {
+    let list = rows.slice();
+    // Ordenação
+    list.sort((a, b) => {
+      let va: any; let vb: any;
+      if (sortKey === "formatLabel") {
+        va = (a.formatLabel || "").toLowerCase();
+        vb = (b.formatLabel || "").toLowerCase();
+      } else if (sortKey === "technology") {
+        va = a.technology;
+        vb = b.technology;
+      } else {
+        va = parseFloat(String(a.unitPrice));
+        vb = parseFloat(String(b.unitPrice));
+      }
+      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return list;
+  }, [rows, sortKey, sortDir]);
+
+  function highlight(text: string | null | undefined, term: string) {
+    if (!text || !term) return text || "";
+    const i = text.toLowerCase().indexOf(term.toLowerCase());
+    if (i === -1) return text;
+    const before = text.slice(0, i);
+    const match = text.slice(i, i + term.length);
+    const after = text.slice(i + term.length);
+    return (<>{before}<mark className="bg-yellow-100 rounded px-0.5">{match}</mark>{after}</>);
+  }
 
   if (loading) {
     return (
@@ -131,10 +186,72 @@ export default function PrintingListPage() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Search & Filters */}
+        <div className="bg-white border border-slate-200 rounded-lg p-6 mb-8">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Buscar impressões..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+            />
+            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-2">
+              {q && (
+                <button onClick={() => setQ("")} className="px-3 py-2 text-slate-600 hover:text-slate-900">Limpar</button>
+              )}
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+            <select
+              className="px-3 py-2 border rounded"
+              value={technologyFilter}
+              onChange={(e) => setTechnologyFilter(e.target.value)}
+            >
+              <option value="">Todas tecnologias</option>
+              <option value="OFFSET">Offset</option>
+              <option value="DIGITAL">Digital</option>
+              <option value="UV">UV</option>
+              <option value="GRANDE_FORMATO">Grande Formato</option>
+            </select>
+            <select
+              className="px-3 py-2 border rounded"
+              value={activeFilter}
+              onChange={(e) => setActiveFilter(e.target.value as any)}
+            >
+              <option value="all">Todos</option>
+              <option value="active">Ativos</option>
+              <option value="inactive">Inativos</option>
+            </select>
+            <div className="flex gap-2">
+              <select
+                className="flex-1 px-3 py-2 border rounded"
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value as any)}
+              >
+                <option value="formatLabel">Ordenar por Nome</option>
+                <option value="technology">Ordenar por Tecnologia</option>
+                <option value="unitPrice">Ordenar por Preço</option>
+              </select>
+              <button
+                className="px-3 py-2 border rounded"
+                onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
+              >
+                {sortDir === "asc" ? "↑" : "↓"}
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Printings Grid */}
-        {rows.length > 0 ? (
+        {filteredSorted.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {rows.map((printing) => (
+            {filteredSorted.map((printing) => (
               <div key={printing.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
@@ -149,7 +266,7 @@ export default function PrintingListPage() {
                       </span>
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                      {printing.formatLabel || 'Sem formato'}
+                      {highlight(printing.formatLabel || 'Sem formato', debouncedQ)}
                     </h3>
                     {printing.colors && (
                       <p className="text-sm text-gray-600 mb-2">{printing.colors}</p>
@@ -208,19 +325,23 @@ export default function PrintingListPage() {
             <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma impressão configurada</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {q ? 'Nenhuma impressão encontrada' : 'Nenhuma impressão configurada'}
+            </h3>
             <p className="text-gray-600 mb-6">
-              Comece criando sua primeira configuração de impressão para usar nos produtos
+              {q ? 'Tente ajustar os filtros de busca' : 'Comece criando sua primeira configuração de impressão para usar nos produtos'}
             </p>
-            <button
-              onClick={() => setOpenCreate(true)}
-              className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Criar Primeira Impressão
-            </button>
+            {!q && (
+              <button
+                onClick={() => setOpenCreate(true)}
+                className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Criar Primeira Impressão
+              </button>
+            )}
           </div>
         )}
       </div>

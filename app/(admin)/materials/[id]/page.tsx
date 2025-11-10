@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Trash2 } from "lucide-react";
 
 export default function MaterialDetail() {
   const params = useParams<{ id: string }>();
@@ -14,6 +17,9 @@ export default function MaterialDetail() {
   const [hasChanges, setHasChanges] = useState(false);
   const [saving, setSaving] = useState(false);
   const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const router = useRouter();
 
   // formulário de variante
   const [vf, setVf] = useState<any>({
@@ -95,7 +101,7 @@ export default function MaterialDetail() {
       load();
     } catch (error) {
       console.error("Erro ao salvar:", error);
-      alert("Erro ao salvar alterações");
+      toast.error("Erro ao salvar alterações");
     } finally {
       setSaving(false);
     }
@@ -162,7 +168,7 @@ export default function MaterialDetail() {
 
   async function addVariant() {
     if (!vf.label) {
-      alert("Informe o rótulo da variante.");
+      toast.error("Informe o rótulo da variante.");
       return;
     }
     const body: any = {
@@ -181,11 +187,29 @@ export default function MaterialDetail() {
       body: JSON.stringify(body),
     });
     if (res.ok) {
+      toast.success("Variante criada com sucesso!");
       setVf({ label: "", gramagem: "", widthMm: "", heightMm: "", sheetsPerPack: "", packPrice: "", unitPrice: "" });
       load();
     } else {
       const j = await res.json().catch(() => ({}));
-      alert("Erro: " + (j.error?.message || "Falha ao criar variante"));
+      toast.error("Erro: " + (j.error?.message || "Falha ao criar variante"));
+    }
+  }
+
+  async function deleteMaterial() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/materials/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Material eliminado com sucesso");
+        router.push("/materials");
+      } else {
+        const j = await res.json();
+        toast.error(j.error || "Falha ao eliminar material");
+      }
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
     }
   }
 
@@ -236,6 +260,17 @@ export default function MaterialDetail() {
 
   return (
     <main className="min-h-screen bg-gray-50">
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Eliminar Material"
+        description={`Tem a certeza que deseja eliminar o material "${row?.name}"? Esta ação irá desativar o material.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={deleteMaterial}
+        loading={deleting}
+      />
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-6 py-6">
@@ -251,28 +286,37 @@ export default function MaterialDetail() {
                 <p className="text-sm text-gray-600 mt-1">Detalhes e configurações do material</p>
               </div>
             </div>
-            <button
-              onClick={saveChanges}
-              disabled={saving || !hasChanges}
-              className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Salvar Alterações
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="inline-flex items-center px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Eliminar
+              </button>
+              <button
+                onClick={saveChanges}
+                disabled={saving || !hasChanges}
+                className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Salvar Alterações
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

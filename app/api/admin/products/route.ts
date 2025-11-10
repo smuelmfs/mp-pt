@@ -25,7 +25,26 @@ export async function GET(req: Request) {
   const active = searchParams.get("active");
 
   const where: any = {};
+  const andConditions: any[] = [];
   
+  // Filtros diretos (sempre aplicados)
+  if (categoryId) {
+    andConditions.push({ categoryId: parseInt(categoryId) });
+  }
+  if (productId) {
+    andConditions.push({ id: parseInt(productId) });
+  }
+  if (printingId) {
+    andConditions.push({ printingId: parseInt(printingId) });
+  }
+  if (active === "true") {
+    andConditions.push({ active: true });
+  }
+  if (active === "false") {
+    andConditions.push({ active: false });
+  }
+  
+  // Busca (aplicada junto com outros filtros)
   if (q) {
     const maybeId = parseInt(q, 10);
     const or: any[] = [
@@ -35,20 +54,17 @@ export async function GET(req: Request) {
     if (!Number.isNaN(maybeId)) {
       or.push({ id: maybeId });
     }
-    where.OR = or;
+    andConditions.push({ OR: or });
   }
   
-  if (categoryId) {
-    where.categoryId = parseInt(categoryId);
+  // Combinar todas as condições com AND
+  if (andConditions.length > 0) {
+    if (andConditions.length === 1) {
+      Object.assign(where, andConditions[0]);
+    } else {
+      where.AND = andConditions;
+    }
   }
-  if (productId) {
-    where.id = parseInt(productId);
-  }
-  if (printingId) {
-    where.printingId = parseInt(printingId);
-  }
-  if (active === "true") where.active = true;
-  if (active === "false") where.active = false;
 
   const rows = await prisma.product.findMany({
     where,

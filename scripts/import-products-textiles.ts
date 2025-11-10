@@ -198,7 +198,7 @@ export async function runImportProductsTextiles() {
         data: {
           materialId: material.id,
           customerId: customer.id,
-          unitCost: dec4(item.material.unitCost),
+          unitCost: dec4(item.material.unitCost) || "0.0000",
           isCurrent: true,
           priority: 100,
         },
@@ -208,7 +208,7 @@ export async function runImportProductsTextiles() {
       if (!eqDec4(existingMatPrice.unitCost, item.material.unitCost)) {
         await prisma.materialCustomerPrice.update({
           where: { id: existingMatPrice.id },
-          data: { unitCost: dec4(item.material.unitCost) },
+          data: { unitCost: dec4(item.material.unitCost) || "0.0000" },
         });
       }
     }
@@ -229,7 +229,7 @@ export async function runImportProductsTextiles() {
           printingId: printing.id,
           customerId: customer.id,
           sides: 1,
-          unitPrice: dec4(item.printing.unitPrice),
+          unitPrice: dec4(item.printing.unitPrice) || "0.0000",
           isCurrent: true,
           priority: 100,
         },
@@ -239,7 +239,7 @@ export async function runImportProductsTextiles() {
       if (!eqDec4(existingPrintPrice.unitPrice, item.printing.unitPrice)) {
         await prisma.printingCustomerPrice.update({
           where: { id: existingPrintPrice.id },
-          data: { unitPrice: dec4(item.printing.unitPrice) },
+          data: { unitPrice: dec4(item.printing.unitPrice) || "0.0000" },
         });
       }
     }
@@ -280,7 +280,7 @@ export async function runImportProductsTextiles() {
           data: {
             finishId: finish.id,
             customerId: customer.id,
-            baseCost: dec4(item.finish.baseCost),
+            baseCost: dec4(item.finish.baseCost) || "0.0000",
             isCurrent: true,
             priority: 100,
           },
@@ -290,7 +290,7 @@ export async function runImportProductsTextiles() {
         if (!eqDec4(existingFinishPrice.baseCost, item.finish.baseCost)) {
           await prisma.finishCustomerPrice.update({
             where: { id: existingFinishPrice.id },
-            data: { baseCost: dec4(item.finish.baseCost) },
+            data: { baseCost: dec4(item.finish.baseCost) || "0.0000" },
           });
         }
       }

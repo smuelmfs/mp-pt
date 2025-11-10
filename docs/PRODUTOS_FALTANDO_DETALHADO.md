@@ -1,0 +1,140 @@
+# 📦 Produtos Faltando no Sistema (Detalhado)
+
+**Data:** 07/11/2025
+
+## Resumo
+
+- Total encontrado na planilha: 124
+- No sistema: 36
+- Faltando: 124
+
+## CÁLCULO CATALOGOS (38)
+
+- VERDASCA
+- VERDASCA
+- VERDASCA
+- VERDASCA
+- VERDASCA
+- VERDASCA
+- PETFILLING
+- PETFILLING
+- EFICACIA - Qtd: 0.21
+- EFICACIA - Qtd: 1.50423
+- EFICACIA - Qtd: 0.19
+- EFICACIA - Qtd: 2.23024
+- SODARCA - Qtd: 0.195
+- SODARCA - Qtd: 1.65846
+- pineforest - Qtd: 0.429
+- soudias - Qtd: 0.429
+- missal - Qtd: 0.896375
+- artma - Qtd: 0.39
+- artma - Qtd: 1.17824
+- DJANIRA MONTALVAO DA LUZ - Qtd: 1.09
+- DJANIRA MONTALVAO DA LUZ - Qtd: 6.44
+- Joana - Qtd: 0.08
+- Joana - Qtd: 0.42
+- Tiago Trail - Qtd: 1.325
+- HARMA - Qtd: 0.24
+- HARMA - Qtd: 3.4
+- Sr. Gustavo - Qtd: 0.69
+- SOHNIV - Qtd: 0.16
+- BRUNO - Qtd: 0.19
+- BRUNO
+- ROTA e SILVA
+- PERCENTRO
+- Aguas centro Litorall - Qtd: 0.5904
+- Aguas centro Litorall - Qtd: 0.4302
+- concurso wmg - Qtd: 0.5905
+- concurso laminam - Qtd: 2.343
+- SILACO - Qtd: 0.61012
+- SILACO - Qtd: 0.60006
+
+## IMPRESSÕES SINGULARES (86)
+
+- Voucher 110x215mm - Qtd: 175
+- ETIQUETAS FRÁGIL - Qtd: 100
+- 65X110MMM
+- Pagela Oração do Anjo 65x110mm - Qtd: 18.75
+- Pagela Terço 75x220mm - Qtd: 12.5
+- Cartaz Ceia 453x224mm - Qtd: 30
+- Etiquetas para Caixa Terços - Qtd: 20
+- Cartão 80x80mm - Qtd: 13.33333333
+- Pagela Moldura - Qtd: 25
+- Pagela Rosario 87x120 - Qtd: 11.11111111
+- Cartão 120x120mm - Qtd: 33.33333333
+- Diptico A5 - Qtd: 1500 - Preço: €0.81
+- Convite 21,5x21cm, Aberto - Qtd: 80 - Preço: €2.54
+- Cartão a5 210x148 laminado - Qtd: 212.5 - Preço: €0.83
+- Cartão a5 210x148 simples - Qtd: 212.5 - Preço: €0.50
+- Cartão a4 com dobra a5 laminado - Qtd: 430 - Preço: €1.75
+- Cartão a4 com dobra a5 - Qtd: 430 - Preço: €1.11
+- Autocolante camponios - Qtd: 8
+- Pagelas Casamento - Qtd: 35
+- FLYER 95x188 - Qtd: 83.33333333
+- FLYER 95x188 - Qtd: 166.6666667
+- Diptico A5 - Qtd: 125 - Preço: €0.75
+- EMENTA BAIRRO - Qtd: 60 - Preço: €3.43
+- Folha autocolante impressa - Qtd: 50
+- PAPEL VINIL 220x90 - Qtd: 166.6666667 - Preço: €0.24
+- Impressão A5 duatlo - Qtd: 125 - Preço: €0.07
+- Cartaz A3 Constragimento duatlo - Qtd: 3 - Preço: €6.18
+- Cartaz A5 F/V Constragimento duatlo - Qtd: 20 - Preço: €0.58
+- Impressão A5 reis - Qtd: 125 - Preço: €0.07
+- Cartaz A3 reis - Qtd: 15 - Preço: €1.38
+- Cartaz A6 reis - Qtd: 137.5 - Preço: €0.04
+- PAPEL VINIL 220x90 - Qtd: 1 - Preço: €3.48
+- folha timbrada » - Qtd: 250 - Preço: €1.74
+- folha timbrada » - Qtd: 250 - Preço: €0.24
+- CALENDARIO TRIANGULAR - Qtd: 50 - Preço: €1.34
+- Postal - Qtd: 1.666666667 - Preço: €1.10
+- folhas - Qtd: 3.428571429 - Preço: €0.26
+- Folhas papel impresso, voucher com foil - Qtd: 16.66666667 - Preço: €2.64
+- Folha Papel autocolante - Qtd: 1 - Preço: €3.40
+- Impressoes diversas - Qtd: 22 - Preço: €0.19
+- Menu guilherme - Qtd: 3.666666667 - Preço: €0.33
+- Triptico stockled - Qtd: 1000 - Preço: €1.42
+- Autocolante vidros - Qtd: 21 - Preço: €0.31
+- Ementas singulares - Qtd: 20 - Preço: €1.07
+- Papel Timbrado 1000 un ior - Qtd: 500
+- Papel Timbrado continuo 1000 un ior - Qtd: 500
+- Cv 250un - Qtd: 11.9047619
+- Cv 500un - Qtd: 23.80952381
+- Cv 500un - Qtd: 23.80952381 - Preço: €0.19
+- Folheto A5 - Qtd: 500 - Preço: €0.13
+- Cartaz a3 - Qtd: 12 - Preço: €0.88
+- Folhas timbrada - Qtd: 250 - Preço: €0.32
+- Bloco a5 personalizado - Qtd: 25 - Preço: €0.98
+- Bloco a5 personalizado - Qtd: 25 - Preço: €0.93
+- Folhas timbrada - Qtd: 500 - Preço: €0.32
+- Folhas timbrada - Qtd: 50 - Preço: €0.46
+- Folhas - Qtd: 10 - Preço: €0.25
+- Folhas cartaz a3 - Qtd: 1250 - Preço: €0.22
+- Triptico stockled - Qtd: 1000 - Preço: €1.60
+- Folhas convite cla 250 - Qtd: 30 - Preço: €0.50
+- flyer 25x25 - Qtd: 200 - Preço: €0.81
+- Folha a3 - Qtd: 19 - Preço: €0.51
+- Folha papel autocolante - Qtd: 50 - Preço: €0.08
+- Papel couche 250gr - Qtd: 750 - Preço: €0.42
+- Papel couche 250gr - Qtd: 375 - Preço: €0.46
+- Papel autocolante - Qtd: 50 - Preço: €0.73
+- Marcador - Qtd: 62.5 - Preço: €0.16
+- cartaz a2 - Qtd: 6 - Preço: €4.05
+- cartaz a2 - Qtd: 3 - Preço: €5.54
+- CV especial - Qtd: 15 - Preço: €0.69
+- flyer a5 - Qtd: 500 - Preço: €0.19
+- cartaz a2 - Qtd: 2 - Preço: €0.30
+- cartaz a3 - Qtd: 15 - Preço: €0.30
+- senhas - Qtd: 34 - Preço: €0.01
+- Folha timbrada - Qtd: 50 - Preço: €0.33
+- EMENTAS - Qtd: 90 - Preço: €4.69
+- EMENTAS VINHOS - Qtd: 10 - Preço: €3.36
+- Cartaz - Qtd: 20 - Preço: €1.95
+- EMENTAS VINHOS - Qtd: 100 - Preço: €2.02
+- folha timbrada - Qtd: 25 - Preço: €0.66
+- folha timbrada - Qtd: 50 - Preço: €0.46
+- Flyer A5 - Qtd: 50 - Preço: €0.80
+- Flyer A5 - Qtd: 125 - Preço: €0.40
+- Flyer A5 - Qtd: 187.5 - Preço: €0.33
+- Flyer A5 - Qtd: 250 - Preço: €0.28
+- CV STockled - Qtd: 23.80952381 - Preço: €0.16
+

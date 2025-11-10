@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
 export default function ConfigPage() {
   const [config, setConfig] = useState<any>(null);
@@ -40,7 +41,7 @@ export default function ConfigPage() {
       load();
     } catch (error) {
       console.error('Erro ao salvar configuração:', error);
-      alert("Erro ao salvar configurações");
+      toast.error("Erro ao salvar configurações");
     } finally {
       setSaving(false);
     }

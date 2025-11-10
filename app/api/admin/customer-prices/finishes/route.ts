@@ -4,12 +4,33 @@ import { prisma } from "@/lib/prisma";
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const customerId = Number(searchParams.get("customerId"));
-  if (!Number.isFinite(customerId)) return NextResponse.json({ error: "customerId é obrigatório" }, { status: 400 });
+  const finishId = Number(searchParams.get("finishId"));
+  
+  if (!Number.isFinite(customerId) && !Number.isFinite(finishId)) {
+    return NextResponse.json({ error: "customerId ou finishId é obrigatório" }, { status: 400 });
+  }
+  
+  const where: any = { isCurrent: true };
+  if (Number.isFinite(customerId)) where.customerId = customerId;
+  if (Number.isFinite(finishId)) where.finishId = finishId;
+  
   const rows = await prisma.finishCustomerPrice.findMany({
-    where: { customerId },
+    where,
+    include: {
+      customer: true,
+      finish: true,
+    },
     orderBy: [{ priority: "asc" }],
   });
-  return NextResponse.json(rows);
+  
+  // Serializa Decimal para string
+  const serialized = rows.map(row => ({
+    ...row,
+    baseCost: row.baseCost.toString(),
+    minFee: row.minFee ? row.minFee.toString() : null,
+    areaStepM2: row.areaStepM2 ? row.areaStepM2.toString() : null,
+  }));
+  return NextResponse.json(serialized);
 }
 
 export async function POST(req: Request) {

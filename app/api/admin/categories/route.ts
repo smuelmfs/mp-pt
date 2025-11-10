@@ -21,14 +21,28 @@ export async function GET() {
     }
   });
   
-  return NextResponse.json(rows.map(category => ({
-    id: category.id,
-    name: category.name,
-    roundingStep: category.roundingStep,
-    _count: {
-      products: category._count.products
-    }
-  })));
+  // Garantir que a contagem está correta
+  const categoriesWithCount = await Promise.all(
+    rows.map(async (category) => {
+      const productCount = await prisma.product.count({
+        where: { categoryId: category.id }
+      });
+      return {
+        id: category.id,
+        name: category.name,
+        roundingStep: category.roundingStep,
+        roundingStrategy: category.roundingStrategy,
+        pricingStrategy: category.pricingStrategy,
+        minPricePerPiece: category.minPricePerPiece,
+        lossFactor: category.lossFactor,
+        _count: {
+          products: productCount
+        }
+      };
+    })
+  );
+  
+  return NextResponse.json(categoriesWithCount);
 }
 
 export async function POST(req: Request) {

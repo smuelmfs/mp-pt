@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 
 export default function ProductDetail() {
   const params = useParams<{ id: string }>();
@@ -59,7 +62,12 @@ export default function ProductDetail() {
   // toast para feedback
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [removingDimension, setRemovingDimension] = useState<number | null>(null);
+  const [removingQuantity, setRemovingQuantity] = useState<number | null>(null);
+  const [addingQuantity, setAddingQuantity] = useState(false);
   const [addingDimension, setAddingDimension] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const router = useRouter();
 
   function showSuccessToast(message: string) {
     setToast({ type: 'success', message });
@@ -130,7 +138,7 @@ export default function ProductDetail() {
       load();
     } catch (error) {
       console.error("Erro ao salvar:", error);
-      alert("Erro ao salvar alterações");
+      showErrorToast("Erro ao salvar alterações");
     } finally {
       setSaving(false);
     }
@@ -142,10 +150,27 @@ export default function ProductDetail() {
     setHasChanges(true);
   }
 
+  async function deleteProduct() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Produto eliminado com sucesso");
+        router.push("/products");
+      } else {
+        const j = await res.json();
+        toast.error(j.error || "Falha ao eliminar produto");
+      }
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  }
+
   // criar/atualizar composição
   async function addMaterial() {
     if (!pmForm.materialId || !pmForm.qtyPerUnit) {
-      alert("Escolha um material e informe Qty/Un.");
+      showErrorToast("Escolha um material e informe Qty/Un.");
       return;
     }
     const body: any = {
@@ -165,7 +190,7 @@ export default function ProductDetail() {
       load();
     } else {
       const j = await res.json();
-      alert("Erro: " + (j.error?.message || "Falha ao salvar material"));
+      showErrorToast("Erro: " + (j.error?.message || "Falha ao salvar material"));
     }
   }
 
@@ -176,7 +201,7 @@ export default function ProductDetail() {
 
   async function addFinish() {
     if (!pfForm.finishId) {
-      alert("Escolha um acabamento.");
+      showErrorToast("Escolha um acabamento.");
       return;
     }
     const body: any = {
@@ -196,7 +221,7 @@ export default function ProductDetail() {
       load();
     } else {
       const j = await res.json();
-      alert("Erro: " + (j.error?.message || "Falha ao salvar acabamento"));
+      showErrorToast("Erro: " + (j.error?.message || "Falha ao salvar acabamento"));
     }
   }
 
@@ -257,13 +282,79 @@ export default function ProductDetail() {
     }
   }
 
+  const [confirmDeleteDimension, setConfirmDeleteDimension] = useState<{ id: number; name: string } | null>(null);
+
+  async function addQuantity() {
+    if (!quantityForm.quantity || Number(quantityForm.quantity) <= 0) {
+      showErrorToast("Informe uma quantidade válida.");
+      return;
+    }
+
+    setAddingQuantity(true);
+    
+    try {
+      const body = {
+        quantity: Number(quantityForm.quantity),
+        label: quantityForm.label?.trim() || null,
+        order: Number(quantityForm.order) || 0,
+        active: true,
+      };
+      
+      const res = await fetch(`/api/admin/products/${id}/suggested-quantities`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      
+      if (res.ok) {
+        showSuccessToast(`Tiragem de ${quantityForm.quantity} unidades adicionada com sucesso!`);
+        setQuantityForm({ quantity: "", label: "", order: 0 });
+        load();
+      } else {
+        const j = await res.json();
+        showErrorToast("Erro: " + (j.error?.message || "Falha ao adicionar tiragem"));
+      }
+    } catch (error) {
+      console.error("Erro ao adicionar tiragem:", error);
+      showErrorToast("Erro de conexão. Tente novamente.");
+    } finally {
+      setAddingQuantity(false);
+    }
+  }
+
+  async function removeQuantity(quantityId: number) {
+    setRemovingQuantity(quantityId);
+    try {
+      const res = await fetch(`/api/admin/products/${id}/suggested-quantities`, {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ quantityId }),
+      });
+      if (res.ok) {
+        showSuccessToast("Tiragem removida com sucesso!");
+        load();
+      } else {
+        const j = await res.json();
+        showErrorToast(j.error || "Erro ao remover tiragem");
+      }
+    } catch (error) {
+      console.error("Erro ao remover tiragem:", error);
+      showErrorToast("Erro de conexão. Tente novamente.");
+    } finally {
+      setRemovingQuantity(null);
+    }
+  }
+
   async function removeDimension(dimensionId: number) {
     const dimension = dimensions.find(d => d.id === dimensionId);
     const dimensionName = dimension?.name || "esta dimensão";
-    
-    if (!confirm(`Tem certeza que deseja remover a dimensão "${dimensionName}"?`)) {
-      return;
-    }
+    setConfirmDeleteDimension({ id: dimensionId, name: dimensionName });
+  }
+
+  async function confirmRemoveDimension() {
+    if (!confirmDeleteDimension) return;
+    const dimensionId = confirmDeleteDimension.id;
+    const dimensionName = confirmDeleteDimension.name;
 
     setRemovingDimension(dimensionId);
     
@@ -302,6 +393,17 @@ export default function ProductDetail() {
 
   return (
     <main className="min-h-screen bg-gray-50">
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Eliminar Produto"
+        description={`Tem a certeza que deseja eliminar o produto "${row?.name}"? Esta ação irá desativar o produto.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={deleteProduct}
+        loading={deleting}
+      />
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-6">
@@ -320,6 +422,13 @@ export default function ProductDetail() {
               <p className="text-gray-600 mt-2">Configure materiais e acabamentos - o comercial escolherá entre eles</p>
             </div>
             <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="inline-flex items-center px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Eliminar
+              </button>
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                 row.active ? 'bg-gray-100 text-gray-800' : 'bg-gray-200 text-gray-600'
               }`}>
@@ -455,7 +564,8 @@ export default function ProductDetail() {
                   <option value="">Sem impressão específica</option>
                   {prints.map((p: any) => (
                     <option key={p.id} value={p.id}>
-                      {p.technology} {p.colors ?? ""}
+                      {p.formatLabel || `${p.technology} ${p.colors ?? ""}`}
+                      {p.formatLabel && ` (${p.technology}${p.colors ? ` ${p.colors}` : ""})`}
                     </option>
                   ))}
                 </select>
@@ -609,6 +719,114 @@ export default function ProductDetail() {
               </div>
             </div>
 
+            {/* Resumo de Custos */}
+            {(() => {
+              // Calcular custos dos materiais
+              let totalMaterialCost = 0;
+              const materialCosts: Array<{ name: string; cost: number }> = [];
+              if (Array.isArray(row.materials)) {
+                row.materials.forEach((pm: any) => {
+                  const materialCost = pm.material?.unitCost ? Number(pm.material.unitCost) : 0;
+                  const qtyPerUnit = pm.qtyPerUnit ? Number(pm.qtyPerUnit) : 0;
+                  const wasteFactor = pm.wasteFactor ? Number(pm.wasteFactor) : 0;
+                  const cost = materialCost * qtyPerUnit * (1 + wasteFactor);
+                  totalMaterialCost += cost;
+                  if (cost > 0) {
+                    materialCosts.push({
+                      name: pm.material?.name || "Material desconhecido",
+                      cost
+                    });
+                  }
+                });
+              }
+
+              // Calcular custos dos acabamentos
+              let totalFinishCost = 0;
+              const finishCosts: Array<{ name: string; cost: number }> = [];
+              if (Array.isArray(row.finishes)) {
+                row.finishes.forEach((pf: any) => {
+                  const finishCost = pf.costOverride 
+                    ? Number(pf.costOverride) 
+                    : (pf.finish?.baseCost ? Number(pf.finish.baseCost) : 0);
+                  const qtyPerUnit = pf.qtyPerUnit ? Number(pf.qtyPerUnit) : 1;
+                  const cost = finishCost * qtyPerUnit;
+                  totalFinishCost += cost;
+                  if (cost > 0) {
+                    finishCosts.push({
+                      name: pf.finish?.name || "Acabamento desconhecido",
+                      cost
+                    });
+                  }
+                });
+              }
+
+              // Custo da impressão
+              const printingCost = row.printing?.unitPrice ? Number(row.printing.unitPrice) : 0;
+
+              const totalCost = totalMaterialCost + totalFinishCost + printingCost;
+
+              if (totalCost === 0 && materialCosts.length === 0 && finishCosts.length === 0) {
+                return null;
+              }
+
+              return (
+                <div className="border-t border-gray-200 pt-6 mt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Resumo de Custos</h3>
+                  <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                    {materialCosts.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-2">Materiais ({materialCosts.length}):</p>
+                        <div className="space-y-1 mb-3">
+                          {materialCosts.map((mc, idx) => (
+                            <div key={idx} className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600">{mc.name}:</span>
+                              <span className="font-semibold text-gray-900">€{mc.cost.toFixed(4)}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-200">
+                          <span className="text-gray-700 font-medium">Subtotal Materiais:</span>
+                          <span className="font-semibold text-gray-900">€{totalMaterialCost.toFixed(4)}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {finishCosts.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-2">Acabamentos ({finishCosts.length}):</p>
+                        <div className="space-y-1 mb-3">
+                          {finishCosts.map((fc, idx) => (
+                            <div key={idx} className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600">{fc.name}:</span>
+                              <span className="font-semibold text-gray-900">€{fc.cost.toFixed(4)}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-200">
+                          <span className="text-gray-700 font-medium">Subtotal Acabamentos:</span>
+                          <span className="font-semibold text-gray-900">€{totalFinishCost.toFixed(4)}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {printingCost > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Impressão:</span>
+                        <span className="font-semibold text-gray-900">€{printingCost.toFixed(4)}</span>
+                      </div>
+                    )}
+
+                    {(totalMaterialCost > 0 || totalFinishCost > 0 || printingCost > 0) && (
+                      <div className="flex items-center justify-between text-sm pt-4 border-t-2 border-gray-300">
+                        <span className="text-gray-900 font-bold text-base">Custo Total por Unidade:</span>
+                        <span className="font-bold text-gray-900 text-lg">€{totalCost.toFixed(4)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Status */}
             <div className="border-t border-gray-200 pt-6 mt-6">
               <div className="flex items-center">
@@ -640,10 +858,15 @@ export default function ProductDetail() {
                       {qty.label && <span className="text-sm text-gray-500">({qty.label})</span>}
                     </div>
                     <button 
-                      className="text-red-600 hover:text-red-800 text-sm"
-                      onClick={() => {/* TODO: implementar exclusão */}}
+                      className={`text-sm transition-colors ${
+                        removingQuantity === qty.id 
+                          ? 'text-gray-400 cursor-not-allowed' 
+                          : 'text-red-600 hover:text-red-800'
+                      }`}
+                      onClick={() => removeQuantity(qty.id)}
+                      disabled={removingQuantity === qty.id}
                     >
-                      Excluir
+                      {removingQuantity === qty.id ? 'Removendo...' : 'Excluir'}
                     </button>
                   </div>
                 ))}
@@ -675,10 +898,11 @@ export default function ProductDetail() {
                   </div>
                   <div className="flex items-end">
                     <button 
-                      className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-                      onClick={() => {/* TODO: implementar adição */}}
+                      className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={addQuantity}
+                      disabled={addingQuantity}
                     >
-                      Adicionar
+                      {addingQuantity ? 'Adicionando...' : 'Adicionar'}
                     </button>
                   </div>
                 </div>

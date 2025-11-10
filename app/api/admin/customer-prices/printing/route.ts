@@ -3,13 +3,31 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const customerId = Number(searchParams.get("customerId"));
-  if (!Number.isFinite(customerId)) return NextResponse.json({ error: "customerId é obrigatório" }, { status: 400 });
+  const customerId = searchParams.get("customerId") ? Number(searchParams.get("customerId")) : null;
+  const printingId = searchParams.get("printingId") ? Number(searchParams.get("printingId")) : null;
+  
+  if (!customerId && !printingId) {
+    return NextResponse.json({ error: "customerId ou printingId é obrigatório" }, { status: 400 });
+  }
+  
+  const where: any = { isCurrent: true };
+  if (customerId) where.customerId = customerId;
+  if (printingId) where.printingId = printingId;
+  
   const rows = await prisma.printingCustomerPrice.findMany({
-    where: { customerId },
+    where,
+    include: {
+      customer: { select: { id: true, name: true } },
+      printing: { select: { id: true, formatLabel: true, technology: true } },
+    },
     orderBy: [{ priority: "asc" }],
   });
-  return NextResponse.json(rows);
+  // Serializa Decimal para string
+  const serialized = rows.map(row => ({
+    ...row,
+    unitPrice: row.unitPrice.toString(),
+  }));
+  return NextResponse.json(serialized);
 }
 
 export async function POST(req: Request) {

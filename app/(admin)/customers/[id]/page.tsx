@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, X, Pencil, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
@@ -57,6 +58,8 @@ export default function CustomerDetailPage() {
   const [previewQty, setPreviewQty] = useState<string>("100");
   const [priceCompare, setPriceCompare] = useState<{ normal?: number; customer?: number } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'mat' | 'prn' | 'fin'; id: number; label: string } | null>(null);
+  const [confirmDeleteCustomer, setConfirmDeleteCustomer] = useState(false);
+  const [deletingCustomer, setDeletingCustomer] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -179,6 +182,23 @@ export default function CustomerDetailPage() {
     }
   }
 
+  async function deleteCustomer() {
+    setDeletingCustomer(true);
+    try {
+      const res = await fetch(`/api/admin/customers/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Cliente eliminado com sucesso");
+        router.push("/customers");
+      } else {
+        const j = await res.json();
+        toast.error(j.error || "Falha ao eliminar cliente");
+      }
+    } finally {
+      setDeletingCustomer(false);
+      setConfirmDeleteCustomer(false);
+    }
+  }
+
   useEffect(()=>{ if (Number.isFinite(id)) load(); }, [id]);
   if (!Number.isFinite(id)) return <main className="p-6">ID inválido</main>;
   if (loading) return <main className="p-6">Carregando…</main>;
@@ -186,14 +206,27 @@ export default function CustomerDetailPage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
+      <ConfirmDialog
+        open={confirmDeleteCustomer}
+        onOpenChange={setConfirmDeleteCustomer}
+        title="Eliminar Cliente"
+        description={`Tem a certeza que deseja eliminar o cliente "${customer?.name}"? Esta ação irá desativar o cliente.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={deleteCustomer}
+        loading={deletingCustomer}
+      />
       <AlertDialog open={!!confirmDelete} onOpenChange={(open)=>{ if (!open) setConfirmDelete(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar eliminação</AlertDialogTitle>
             <AlertDialogDescription>
               Tem a certeza que deseja eliminar este preço?
-              <div className="mt-1 text-sm text-muted-foreground">{confirmDelete?.label}</div>
             </AlertDialogDescription>
+            {confirmDelete?.label && (
+              <div className="mt-1 text-sm text-muted-foreground px-6">{confirmDelete.label}</div>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -214,14 +247,23 @@ export default function CustomerDetailPage() {
           <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-3">
             <Link href="/customers" className="hover:text-gray-900">Clientes</Link>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-            <span className="text-gray-900">{customer?.name ?? "Detalhe"}</span>
+            <span className="text-gray-900 uppercase">{customer?.name ?? "Detalhe"}</span>
           </nav>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{customer?.name || "Cliente"}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 uppercase">{customer?.name || "Cliente"}</h1>
               <p className="text-gray-600 mt-2">Gerir preços específicos e overrides por produto</p>
             </div>
-            <Link href="/customers" className="text-sm text-gray-600">Voltar</Link>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setConfirmDeleteCustomer(true)}
+                className="inline-flex items-center px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Eliminar
+              </button>
+              <Link href="/customers" className="text-sm text-gray-600">Voltar</Link>
+            </div>
           </div>
         </div>
       </div>
@@ -251,7 +293,18 @@ export default function CustomerDetailPage() {
           <div className="p-6">
           {activeTab==="basic" && (
             <div id="panel-basic" role="tabpanel" className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Input defaultValue={customer.name} onBlur={e=>saveBasic({ name: (e.target as HTMLInputElement).value })} />
+              <Input 
+                defaultValue={customer.name} 
+                onBlur={e=>{
+                  const value = (e.target as HTMLInputElement).value.trim().toUpperCase();
+                  saveBasic({ name: value });
+                }}
+                onChange={e=>{
+                  const input = e.target as HTMLInputElement;
+                  input.value = input.value.toUpperCase();
+                }}
+                style={{ textTransform: "uppercase" }}
+              />
               <Input defaultValue={customer.email||""} placeholder="Email" onBlur={e=>saveBasic({ email: (e.target as HTMLInputElement).value||null })} />
               <Input defaultValue={customer.taxId||""} placeholder="Tax ID" onBlur={e=>saveBasic({ taxId: (e.target as HTMLInputElement).value||null })} />
               <label className="flex items-center gap-2 text-sm"><Checkbox defaultChecked={customer.isActive} onCheckedChange={(v)=>saveBasic({ isActive: !!v })} /> Ativo</label>

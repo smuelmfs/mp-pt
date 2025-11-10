@@ -1,0 +1,70 @@
+{
+  "total": 13,
+  "customers": [
+    {
+      "name": "Abbott",
+      "sheet": "PRODUTOS PUBLICITÁRIOS",
+      "count": 1
+    },
+    {
+      "name": "catarina",
+      "sheet": "FLEX",
+      "count": 1
+    },
+    {
+      "name": "CNE BATALHA",
+      "sheet": "FLEX",
+      "count": 1
+    },
+    {
+      "name": "CNE POUSOS",
+      "sheet": "FLEX",
+      "count": 3
+    },
+    {
+      "name": "Festas pederneira",
+      "sheet": "FLEX",
+      "count": 1
+    },
+    {
+      "name": "ISCF",
+      "sheet": "PRODUTOS PUBLICITÁRIOS",
+      "count": 2
+    },
+    {
+      "name": "João Vitorino",
+      "sheet": "FLEX",
+      "count": 2
+    },
+    {
+      "name": "RODRIGUES & GONÇALVES",
+      "sheet": "PRODUTOS PUBLICITÁRIOS",
+      "count": 1
+    },
+    {
+      "name": "TECOFIX",
+      "sheet": "PRODUTOS PUBLICITÁRIOS",
+      "count": 2
+    },
+    {
+      "name": "TERRAÇOS",
+      "sheet": "FLEX",
+      "count": 1
+    },
+    {
+      "name": "vera",
+      "sheet": "FLEX",
+      "count": 2
+    },
+    {
+      "name": "WMG",
+      "sheet": "PRODUTOS PUBLICITÁRIOS",
+      "count": 1
+    },
+    {
+      "name": "zircom",
+      "sheet": "FLEX",
+      "count": 1
+    }
+  ]
+}

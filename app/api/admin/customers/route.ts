@@ -9,12 +9,17 @@ export async function GET() {
   return NextResponse.json(customers);
 }
 
+function normalizeCustomerName(name: string): string {
+  return name.trim().toUpperCase().replace(/\s+/g, " ");
+}
+
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const { name, email, taxId, groupId, isActive } = body || {};
   if (!name) return NextResponse.json({ error: "name é obrigatório" }, { status: 400 });
+  const normalizedName = normalizeCustomerName(name);
   const created = await prisma.customer.create({
-    data: { name, email: email || null, taxId: taxId || null, groupId: groupId || null, isActive: isActive ?? true },
+    data: { name: normalizedName, email: email || null, taxId: taxId || null, groupId: groupId || null, isActive: isActive ?? true },
   });
   return NextResponse.json(created, { status: 201 });
 }

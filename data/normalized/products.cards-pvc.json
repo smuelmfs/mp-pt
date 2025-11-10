@@ -1,0 +1,142 @@
+{
+  "printings": [
+    {
+      "formatLabel": "PVC CMYK Frente",
+      "colors": "CMYK",
+      "sides": 1,
+      "unitPrice": "0.2900"
+    },
+    {
+      "formatLabel": "PVC K Frente",
+      "colors": "K",
+      "sides": 1,
+      "unitPrice": "0.0100"
+    },
+    {
+      "formatLabel": "PVC CMYK F/V",
+      "colors": "CMYK",
+      "sides": 2,
+      "unitPrice": "0.0000"
+    }
+  ],
+  "materials": [
+    {
+      "name": "Cartão PVC BRANCO SIMPLES",
+      "unitCost": "0.0900",
+      "active": true
+    },
+    {
+      "name": "Cartão PVC BRANCO BANDA MAGNETICA",
+      "unitCost": "0.0000",
+      "active": true
+    },
+    {
+      "name": "Cartão PVC BRANCO CHIP",
+      "unitCost": "0.0000",
+      "active": true
+    },
+    {
+      "name": "Cartão PVC CLIENTE",
+      "unitCost": "0.0000",
+      "active": true
+    }
+  ],
+  "products": [
+    {
+      "name": "Cartão PVC BRANCO SIMPLES CMYK Frente",
+      "widthMm": 85.6,
+      "heightMm": 53.98,
+      "printing": {
+        "formatLabel": "PVC CMYK Frente",
+        "colors": "CMYK",
+        "sides": 1
+      },
+      "materials": [
+        {
+          "name": "Cartão PVC BRANCO SIMPLES",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "suggestedQuantities": [
+        25,
+        50,
+        100,
+        250,
+        500,
+        1000
+      ]
+    },
+    {
+      "name": "Cartão PVC BRANCO BANDA MAGNETICA K Frente",
+      "widthMm": 85.6,
+      "heightMm": 53.98,
+      "printing": {
+        "formatLabel": "PVC K Frente",
+        "colors": "K",
+        "sides": 1
+      },
+      "materials": [
+        {
+          "name": "Cartão PVC BRANCO BANDA MAGNETICA",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "suggestedQuantities": [
+        25,
+        50,
+        100,
+        250,
+        500,
+        1000
+      ]
+    },
+    {
+      "name": "Cartão PVC BRANCO CHIP CMYK F/V",
+      "widthMm": 85.6,
+      "heightMm": 53.98,
+      "printing": {
+        "formatLabel": "PVC CMYK F/V",
+        "colors": "CMYK",
+        "sides": 2
+      },
+      "materials": [
+        {
+          "name": "Cartão PVC BRANCO CHIP",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "suggestedQuantities": [
+        25,
+        50,
+        100,
+        250,
+        500,
+        1000
+      ]
+    },
+    {
+      "name": "Cartão PVC CLIENTE CMYK Frente",
+      "widthMm": 85.6,
+      "heightMm": 53.98,
+      "printing": {
+        "formatLabel": "PVC CMYK Frente",
+        "colors": "CMYK",
+        "sides": 1
+      },
+      "materials": [
+        {
+          "name": "Cartão PVC CLIENTE",
+          "qtyPerUnit": "1.0000"
+        }
+      ],
+      "suggestedQuantities": [
+        25,
+        50,
+        100,
+        250,
+        500,
+        1000
+      ]
+    }
+  ]
+}

@@ -3,10 +3,11 @@ import { prisma } from "@/lib/prisma";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const dimensionId = Number(params.id);
+    const { id } = await ctx.params;
+    const dimensionId = Number(id);
     
     if (!Number.isFinite(dimensionId)) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });

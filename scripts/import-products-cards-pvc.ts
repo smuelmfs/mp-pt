@@ -17,7 +17,7 @@ const eqDec2 = (a: any, b: any) => {
 };
 
 export async function runImportProductsCardsPVC() {
-  const dataPath = path.resolve(process.cwd(), "data/normalized/products.cards.pvc.json");
+  const dataPath = path.resolve(process.cwd(), "data/normalized/products.cards-pvc.json");
   const data = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
 
   const summary = {

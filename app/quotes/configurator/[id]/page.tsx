@@ -40,6 +40,12 @@ interface ProductConfig {
         calcType: string;
         costOverride?: number;
       };
+      dimension?: {
+        id: number;
+        widthMm: number;
+        heightMm: number;
+        description?: string | null;
+      };
       qtyPerUnit?: number;
       wasteFactor?: number;
     }>;

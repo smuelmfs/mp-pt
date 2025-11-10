@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function ProductsPage() {
   const [q, setQ] = useState("");
@@ -20,7 +21,9 @@ export default function ProductsPage() {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (productId) params.set("productId", productId);
-    if (categoryFilter) params.set("categoryId", categoryFilter);
+    if (categoryFilter && categoryFilter !== "") {
+      params.set("categoryId", categoryFilter);
+    }
     if (activeFilter) params.set("active", activeFilter);
 
     const [pRes, cRes, prRes] = await Promise.all([
@@ -55,7 +58,8 @@ export default function ProductsPage() {
       setForm({ name: "", categoryId: "", printingId: "", marginDefault: "", markupDefault: "", roundingStep: "", roundingStrategy: "", pricingStrategy: "", minPricePerPiece: "" });
       load();
     } else {
-      const j = await res.json(); alert("Erro: " + (j.error?.message || "Falha ao criar"));
+      const j = await res.json();
+      toast.error("Erro: " + (j.error?.message || "Falha ao criar"));
     }
   }
 
@@ -117,10 +121,14 @@ export default function ProductsPage() {
               <select 
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
                 value={categoryFilter}
-                onChange={(e)=>setCategoryFilter(e.target.value)}
+                onChange={(e)=>{
+                  setCategoryFilter(e.target.value);
+                  // Aplicar filtro automaticamente quando categoria muda
+                  setTimeout(() => load(), 100);
+                }}
               >
                 <option value="">Todas</option>
-                {cats.map((c:any)=> <option key={c.id} value={c.id}>{c.name}</option>)}
+                {cats.map((c:any)=> <option key={c.id} value={String(c.id)}>{c.name}</option>)}
               </select>
             </div>
 
@@ -288,7 +296,12 @@ export default function ProductsPage() {
                       onChange={(e)=>setForm((f:any)=>({...f,printingId:e.target.value}))}
                     >
                       <option value="">Sem impressão específica</option>
-                      {prints.map((p:any)=> <option key={p.id} value={p.id}>{p.technology} {p.colors ?? ""}</option>)}
+                      {prints.map((p:any)=> (
+                        <option key={p.id} value={p.id}>
+                          {p.formatLabel || `${p.technology} ${p.colors ?? ""}`}
+                          {p.formatLabel && ` (${p.technology}${p.colors ? ` ${p.colors}` : ""})`}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -372,12 +385,21 @@ export default function ProductsPage() {
                 </div>
               </div>
 
-              {/* Próximos Passos */}
-              <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">Próximos Passos</h4>
-                <p className="text-sm text-gray-700">
-                  Após criar o produto, você poderá configurar materiais, acabamentos e opções para o comercial.
-                </p>
+              {/* Resumo de Custos */}
+              <div className="mt-8 border-t border-gray-200 pt-6">
+                <h4 className="text-sm font-medium text-gray-900 mb-4">Resumo de Custos</h4>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <p className="text-xs text-gray-600 mb-3">
+                    O resumo completo de custos será calculado após adicionar materiais e acabamentos ao produto.
+                  </p>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Custo Total Estimado:</span>
+                    <span className="font-semibold text-gray-900">€0.00</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Configure materiais e acabamentos na página de edição do produto para ver o cálculo completo.
+                  </p>
+                </div>
               </div>
             </div>
 

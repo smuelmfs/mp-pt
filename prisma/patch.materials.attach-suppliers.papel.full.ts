@@ -84,7 +84,7 @@ async function main() {
 
   // 2) Mapeamento explícito de materiais por fornecedor (nomes 1:1 com os já semeados)
   // INAPA: 11 materiais principais (alguns da lista podem ser variantes ou sem dados completos)
-  const INAPA_MATERIALS = [
+  const INAPA_MATERIALS: string[] = [
     "Papel Condat Gloss 150g",
     "Papel Condat Gloss 170g",
     "Papel Condat Gloss 250g",
@@ -109,9 +109,7 @@ async function main() {
 
   // 3) Aplica vínculos
   for (const item of INAPA_MATERIALS) {
-    const name = typeof item === 'string' ? item : item.name;
-    const pattern = typeof item === 'object' ? item.searchPattern : undefined;
-    await attachSupplierToMaterial(name, inapaId, pattern);
+    await attachSupplierToMaterial(item, inapaId);
   }
   
   for (const item of ANTALIS_MATERIALS) {

@@ -1,0 +1,42 @@
+{
+  "printing": {
+    "technology": "DIGITAL",
+    "formatLabel": "DL",
+    "unitPrice": "0.1200"
+  },
+  "items": [
+    {
+      "name": "Envelope DL 90 JANELA",
+      "format": "DL 90",
+      "type": "JANELA",
+      "unitCost": "0.0000"
+    },
+    {
+      "name": "Envelope DL 90 S_JANELA",
+      "format": "DL 90",
+      "type": "S_JANELA",
+      "unitCost": "0.0400"
+    },
+    {
+      "name": "Envelope DL 120 JANELA",
+      "format": "DL 120",
+      "type": "JANELA",
+      "unitCost": "0.0000"
+    },
+    {
+      "name": "Envelope DL 120 S_JANELA",
+      "format": "DL 120",
+      "type": "S_JANELA",
+      "unitCost": "0.1200"
+    }
+  ],
+  "suggestedQuantities": [
+    50,
+    100,
+    250,
+    500,
+    1000,
+    2000,
+    5000
+  ]
+}

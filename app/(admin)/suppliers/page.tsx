@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 
 type Supplier = { id: number; name: string; active: boolean };
 
@@ -13,6 +15,8 @@ export default function SuppliersPage() {
   const [saving, setSaving] = useState(false);
   const [formName, setFormName] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all"|"active"|"inactive">("all");
+  const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -33,21 +37,31 @@ export default function SuppliersPage() {
   useEffect(()=>{ load(); /* eslint-disable-next-line */ }, [debouncedQ, activeFilter]);
 
   async function createSupplier() {
-    if (!formName.trim()) return alert("Informe o nome do fornecedor.");
-    setSaving(true);
-    const res = await fetch("/api/admin/suppliers", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: formName.trim() })
-    });
-    setSaving(false);
-    if (!res.ok) {
-      const j = await res.json().catch(()=>({}));
-      return alert("Erro ao criar: " + (j.error || "verifique os campos"));
+    if (!formName.trim()) {
+      toast.error("Informe o nome do fornecedor.");
+      return;
     }
-    setOpenCreate(false);
-    setFormName("");
-    load();
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/suppliers", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: formName.trim() })
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(()=>({}));
+        toast.error("Erro ao criar: " + (j.error || "verifique os campos"));
+        return;
+      }
+      toast.success("Fornecedor criado com sucesso!");
+      setOpenCreate(false);
+      setFormName("");
+      load();
+    } catch (error) {
+      toast.error("Erro ao criar fornecedor");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function updateSupplier(id: number, patch: Partial<Supplier>) {
@@ -60,9 +74,27 @@ export default function SuppliersPage() {
   }
 
   async function deleteSupplier(id: number) {
-    if (!confirm("Desativar fornecedor?")) return;
-    await fetch(`/api/admin/suppliers/${id}`, { method: "DELETE" });
-    load();
+    const supplier = rows.find(s => s.id === id);
+    setConfirmDelete({ id, name: supplier?.name || "este fornecedor" });
+  }
+
+  async function confirmDeleteSupplier() {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/suppliers/${confirmDelete.id}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Fornecedor desativado com sucesso!");
+        load();
+      } else {
+        toast.error("Erro ao desativar fornecedor");
+      }
+    } catch (error) {
+      toast.error("Erro ao desativar fornecedor");
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(null);
+    }
   }
 
   const filtered = useMemo(()=>{
@@ -73,6 +105,17 @@ export default function SuppliersPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 p-6">
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(open) => !open && setConfirmDelete(null)}
+        title="Confirmar Desativação"
+        description={`Tem certeza que deseja desativar o fornecedor "${confirmDelete?.name}"?`}
+        confirmText="Desativar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={confirmDeleteSupplier}
+        loading={deleting}
+      />
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>

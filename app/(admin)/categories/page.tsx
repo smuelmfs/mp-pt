@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface Category {
   id: number;
@@ -17,6 +18,8 @@ export default function CategoriesPage() {
   const [openCreate, setOpenCreate] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -46,7 +49,7 @@ export default function CategoriesPage() {
 
   async function createCategory() {
     if (!formData.name.trim()) {
-      alert("Nome da categoria é obrigatório");
+      toast.error("Nome da categoria é obrigatório");
       return;
     }
 
@@ -58,22 +61,23 @@ export default function CategoriesPage() {
       });
 
       if (res.ok) {
+        toast.success("Categoria criada com sucesso!");
         setOpenCreate(false);
         setFormData({ name: "", roundingStep: 0.05, roundingStrategy: "", pricingStrategy: "", minPricePerPiece: "", lossFactor: "" });
         load();
       } else {
         const error = await res.json();
-        alert("Erro: " + (error.error || "Falha ao criar categoria"));
+        toast.error("Erro: " + (error.error || "Falha ao criar categoria"));
       }
     } catch (error) {
       console.error("Erro ao criar categoria:", error);
-      alert("Erro ao criar categoria");
+      toast.error("Erro ao criar categoria");
     }
   }
 
   async function updateCategory(id: number) {
     if (!formData.name.trim()) {
-      alert("Nome da categoria é obrigatório");
+      toast.error("Nome da categoria é obrigatório");
       return;
     }
 
@@ -85,36 +89,49 @@ export default function CategoriesPage() {
       });
 
       if (res.ok) {
+        toast.success("Categoria atualizada com sucesso!");
         setEditing(null);
         setFormData({ name: "", roundingStep: 0.05, roundingStrategy: "", pricingStrategy: "", minPricePerPiece: "", lossFactor: "" });
         load();
       } else {
         const error = await res.json();
-        alert("Erro: " + (error.error || "Falha ao atualizar categoria"));
+        toast.error("Erro: " + (error.error || "Falha ao atualizar categoria"));
       }
     } catch (error) {
       console.error("Erro ao atualizar categoria:", error);
-      alert("Erro ao atualizar categoria");
+      toast.error("Erro ao atualizar categoria");
     }
   }
 
-  async function deleteCategory(id: number) {
-    if (!confirm("Tem certeza que deseja excluir esta categoria?")) return;
+  function startDelete(category: Category) {
+    setDeletingCategory(category);
+    setDeleteError(null);
+  }
+
+  function cancelDelete() {
+    setDeletingCategory(null);
+    setDeleteError(null);
+  }
+
+  async function confirmDelete() {
+    if (!deletingCategory) return;
 
     try {
-      const res = await fetch(`/api/admin/categories/${id}`, {
+      const res = await fetch(`/api/admin/categories/${deletingCategory.id}`, {
         method: "DELETE",
       });
 
       if (res.ok) {
+        setDeletingCategory(null);
+        setDeleteError(null);
         load();
       } else {
         const error = await res.json();
-        alert("Erro: " + (error.error || "Falha ao excluir categoria"));
+        setDeleteError(error.error || "Falha ao excluir categoria");
       }
     } catch (error) {
       console.error("Erro ao excluir categoria:", error);
-      alert("Erro ao excluir categoria");
+      setDeleteError("Erro ao excluir categoria");
     }
   }
 
@@ -233,7 +250,7 @@ export default function CategoriesPage() {
                       </svg>
                     </button>
                     <button
-                      onClick={() => deleteCategory(category.id)}
+                      onClick={() => startDelete(category)}
                       className="p-2 text-gray-400 hover:text-red-600 transition-colors"
                       title="Excluir categoria"
                     >
@@ -414,6 +431,85 @@ export default function CategoriesPage() {
                   onClick={editing ? () => updateCategory(editing.id) : createCategory}
                 >
                   {editing ? 'Salvar Alterações' : 'Criar Categoria'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingCategory && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
+            {/* Header */}
+            <div className="border-b border-gray-200 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">Confirmar Exclusão</h2>
+                    <p className="text-sm text-gray-600 mt-1">Esta ação não pode ser desfeita</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={cancelDelete}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <p className="text-gray-700 mb-4">
+                Tem certeza que deseja excluir a categoria <strong className="text-gray-900">"{deletingCategory.name}"</strong>?
+              </p>
+              {deletingCategory._count && deletingCategory._count.products > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-start">
+                    <svg className="w-5 h-5 text-yellow-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800">
+                        Esta categoria possui {deletingCategory._count.products} produto(s).
+                      </p>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        A exclusão só será permitida se a categoria estiver vazia.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {deleteError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-red-800">{deleteError}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 px-6 py-4">
+              <div className="flex justify-end gap-3">
+                <button 
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  onClick={cancelDelete}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                  onClick={confirmDelete}
+                >
+                  Excluir
                 </button>
               </div>
             </div>

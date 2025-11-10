@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +44,7 @@ function LoginForm() {
 
   async function login() {
     if (!role) { 
-      alert("Escolha um papel"); 
+      toast.error("Escolha um papel"); 
       return; 
     }
     
@@ -55,12 +56,13 @@ function LoginForm() {
         body: JSON.stringify({ role }),
       });
       if (res.ok) {
+        toast.success("Login realizado com sucesso!");
         router.replace(redirect);
       } else {
-        alert("Falha ao logar");
+        toast.error("Falha ao logar");
       }
     } catch (error) {
-      alert("Erro ao fazer login");
+      toast.error("Erro ao fazer login");
     } finally {
       setLoading(false);
     }
@@ -70,9 +72,10 @@ function LoginForm() {
     setLoading(true);
     try {
       await fetch("/api/dev/logout", { method: "POST" });
+      toast.success("Logout realizado com sucesso!");
       loadMe();
     } catch (error) {
-      alert("Erro ao fazer logout");
+      toast.error("Erro ao fazer logout");
     } finally {
       setLoading(false);
     }

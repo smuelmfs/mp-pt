@@ -1,0 +1,114 @@
+[
+  {
+    "name": "Pasta A4 + Plastificação + Bolsa + Dobra",
+    "widthMm": 210,
+    "heightMm": 297,
+    "printing": {
+      "technology": "DIGITAL",
+      "formatLabel": "SRA3 CMYK SÓ FRENTE",
+      "colors": "CMYK",
+      "sides": 1,
+      "unitPrice": "0.0900"
+    },
+    "material": {
+      "name": "Papel SRA3 250g",
+      "gramagem": 250,
+      "unitCost": "0.0900"
+    },
+    "finishes": [
+      {
+        "name": "NORMAL",
+        "baseCost": "1.0000"
+      },
+      {
+        "name": "Plastificação 1 Face",
+        "baseCost": "25.0000"
+      },
+      {
+        "name": "Dobra",
+        "baseCost": "3.5000"
+      }
+    ],
+    "suggestedQuantities": [
+      50,
+      80,
+      100,
+      125,
+      150,
+      175
+    ]
+  },
+  {
+    "name": "Pasta A4 + Plastificação + Foil + Bolsa + Dobra",
+    "widthMm": 210,
+    "heightMm": 297,
+    "printing": {
+      "technology": "DIGITAL",
+      "formatLabel": "SRA3 CMYK SÓ FRENTE",
+      "colors": "CMYK",
+      "sides": 1,
+      "unitPrice": "0.0900"
+    },
+    "material": {
+      "name": "Papel SRA3 250g",
+      "gramagem": 250,
+      "unitCost": "0.0900"
+    },
+    "finishes": [
+      {
+        "name": "NORMAL",
+        "baseCost": "4.0000"
+      },
+      {
+        "name": "Plastificação 1 Face",
+        "baseCost": "68.0000"
+      },
+      {
+        "name": "Foil 1 Face",
+        "baseCost": "170.0000"
+      },
+      {
+        "name": "Dobra",
+        "baseCost": "14.0000"
+      }
+    ],
+    "suggestedQuantities": [
+      200
+    ]
+  },
+  {
+    "name": "Pasta A4 + Plastificação + Ferragem + Dobra",
+    "widthMm": 210,
+    "heightMm": 297,
+    "printing": {
+      "technology": "DIGITAL",
+      "formatLabel": "SRA3 CMYK SÓ FRENTE",
+      "colors": "CMYK",
+      "sides": 1,
+      "unitPrice": "0.0900"
+    },
+    "material": {
+      "name": "Papel SRA3 250g",
+      "gramagem": 250,
+      "unitCost": "0.0900"
+    },
+    "finishes": [
+      {
+        "name": "NORMAL",
+        "baseCost": "5.0000"
+      },
+      {
+        "name": "Plastificação 1 Face",
+        "baseCost": "85.0000"
+      },
+      {
+        "name": "Dobra",
+        "baseCost": "17.5000"
+      }
+    ],
+    "suggestedQuantities": [
+      250,
+      300
+    ]
+  }
+]

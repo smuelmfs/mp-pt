@@ -6,11 +6,16 @@ export async function GET(req: Request) {
   const customerId = Number(searchParams.get("customerId"));
   if (!Number.isFinite(customerId)) return NextResponse.json({ error: "customerId é obrigatório" }, { status: 400 });
   const rows = await prisma.materialCustomerPrice.findMany({
-    where: { customerId },
+    where: { customerId, isCurrent: true },
     include: { /* join via custom queries if needed */ },
     orderBy: [{ priority: "asc" }],
   });
-  return NextResponse.json(rows);
+  // Serializa Decimal para string
+  const serialized = rows.map(row => ({
+    ...row,
+    unitCost: row.unitCost.toString(),
+  }));
+  return NextResponse.json(serialized);
 }
 
 export async function POST(req: Request) {

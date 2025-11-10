@@ -20,21 +20,44 @@ const CreateSchema = z.object({
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") || "").trim();
+  const technology = searchParams.get("technology");
+  const active = searchParams.get("active");
 
-  const where = q ? {
-    OR: [
+  const where: any = {};
+  
+  if (q) {
+    where.OR = [
       { formatLabel: { contains: q, mode: "insensitive" as const } },
       { colors: { contains: q, mode: "insensitive" as const } },
       { technology: { equals: q.toUpperCase() as any } },
-    ],
-  } : {};
+    ];
+  }
+
+  if (technology) {
+    where.technology = technology.toUpperCase();
+  }
+
+  if (active !== null && active !== undefined) {
+    where.active = active === "true" || active === "1";
+  }
+
+  // Filtra apenas registros atuais
+  where.isCurrent = true;
 
   const rows = await prisma.printing.findMany({
     where,
     orderBy: { createdAt: "desc" },
     take: 200,
   });
-  return NextResponse.json(rows);
+  
+  // Serializa Decimal para string
+  const serialized = rows.map(row => ({
+    ...row,
+    unitPrice: row.unitPrice.toString(),
+    minFee: row.minFee ? row.minFee.toString() : null,
+  }));
+  
+  return NextResponse.json(serialized);
 }
 
 export async function POST(req: Request) {

@@ -89,7 +89,12 @@ export default function CustomersPage() {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <Label className="mb-2">Nome *</Label>
-              <Input placeholder="Nome" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} />
+              <Input 
+                placeholder="Nome" 
+                value={form.name} 
+                onChange={e=>setForm({...form,name:e.target.value.toUpperCase()})} 
+                style={{ textTransform: "uppercase" }}
+              />
             </div>
             <div>
               <Label className="mb-2">Email</Label>
@@ -130,7 +135,7 @@ export default function CustomersPage() {
                 {rows.map((c:any)=> (
                   <TableRow key={c.id}>
                     <TableCell>{c.id}</TableCell>
-                    <TableCell>{c.name}</TableCell>
+                    <TableCell className="uppercase font-medium">{c.name}</TableCell>
                     <TableCell>{c.email || "-"}</TableCell>
                     <TableCell>{c.groupId || "-"}</TableCell>
                     <TableCell>{c.isActive?"Sim":"Não"}</TableCell>

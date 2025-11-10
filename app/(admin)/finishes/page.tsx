@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 type Finish = {
   id: number;
@@ -17,10 +18,17 @@ type Finish = {
 };
 
 export default function FinishesListPage() {
+  const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [rows, setRows] = useState<Finish[]>([]);
   const [loading, setLoading] = useState(true);
   const [openCreate, setOpenCreate] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [unitFilter, setUnitFilter] = useState<Finish["unit"] | "">("");
+  const [activeFilter, setActiveFilter] = useState<"all"|"active"|"inactive">("all");
+  const [sortKey, setSortKey] = useState<"name"|"category"|"baseCost">("name");
+  const [sortDir, setSortDir] = useState<"asc"|"desc">("asc");
 
   const [form, setForm] = useState({
     name: "",
@@ -35,52 +43,71 @@ export default function FinishesListPage() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch("/api/admin/finishes");
+    const params = new URLSearchParams();
+    if (debouncedQ) params.append("q", debouncedQ);
+    if (categoryFilter) params.append("category", categoryFilter);
+    if (unitFilter) params.append("unit", unitFilter);
+    if (activeFilter !== "all") params.append("active", activeFilter === "active" ? "true" : "false");
+    const res = await fetch(`/api/admin/finishes?${params.toString()}`);
     const json = await res.json();
     setRows(Array.isArray(json) ? json : []);
     setLoading(false);
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    const t = setTimeout(() => setDebouncedQ(q.trim()), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [debouncedQ, categoryFilter, unitFilter, activeFilter]);
 
   async function createFinish() {
-    if (!form.name.trim()) return alert("Nome é obrigatório");
-    if (!form.baseCost) return alert("Custo base é obrigatório");
+    if (!form.name.trim()) {
+      toast.error("Nome é obrigatório");
+      return;
+    }
+    if (!form.baseCost) {
+      toast.error("Custo base é obrigatório");
+      return;
+    }
 
     setSaving(true);
-    const res = await fetch("/api/admin/finishes", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        name: form.name.trim(),
-        category: form.category,
-        unit: form.unit,
-        baseCost: form.baseCost,
-        calcType: form.calcType,
-        minFee: form.minFee || null,
-        marginDefault: form.marginDefault || null,
-        active: form.active,
-      }),
-    });
-    setSaving(false);
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      return alert("Erro ao criar: " + (j.error?.message || "verifique os campos"));
+    try {
+      const res = await fetch("/api/admin/finishes", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          category: form.category,
+          unit: form.unit,
+          baseCost: form.baseCost,
+          calcType: form.calcType,
+          minFee: form.minFee || null,
+          marginDefault: form.marginDefault || null,
+          active: form.active,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast.error("Erro ao criar: " + (j.error?.message || "verifique os campos"));
+        return;
+      }
+      toast.success("Acabamento criado com sucesso!");
+      setOpenCreate(false);
+      setForm({
+        name: "",
+        category: "OUTROS",
+        unit: "UNIT",
+        baseCost: "0.0000",
+        calcType: "PER_UNIT",
+        minFee: "",
+        marginDefault: "",
+        active: true,
+      });
+      load();
+    } finally {
+      setSaving(false);
     }
-    setOpenCreate(false);
-    setForm({
-      name: "",
-      category: "OUTROS",
-      unit: "UNIT",
-      baseCost: "0.0000",
-      calcType: "PER_UNIT",
-      minFee: "",
-      marginDefault: "",
-      active: true,
-    });
-    load();
   }
 
   const categoryLabels = {
@@ -113,6 +140,37 @@ export default function FinishesListPage() {
     PER_LOT: "Por Lote",
     PER_HOUR: "Por Hora"
   };
+
+  const filteredSorted = useMemo(() => {
+    let list = rows.slice();
+    // Ordenação
+    list.sort((a, b) => {
+      let va: any; let vb: any;
+      if (sortKey === "name") {
+        va = a.name.toLowerCase();
+        vb = b.name.toLowerCase();
+      } else if (sortKey === "category") {
+        va = a.category;
+        vb = b.category;
+      } else {
+        va = parseFloat(String(a.baseCost));
+        vb = parseFloat(String(b.baseCost));
+      }
+      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return list;
+  }, [rows, sortKey, sortDir]);
+
+  function highlight(text: string, term: string) {
+    if (!text || !term) return text;
+    const i = text.toLowerCase().indexOf(term.toLowerCase());
+    if (i === -1) return text;
+    const before = text.slice(0, i);
+    const match = text.slice(i, i + term.length);
+    const after = text.slice(i + term.length);
+    return (<>{before}<mark className="bg-yellow-100 rounded px-0.5">{match}</mark>{after}</>);
+  }
 
   if (loading) {
     return (
@@ -156,10 +214,85 @@ export default function FinishesListPage() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Search & Filters */}
+        <div className="bg-white border border-slate-200 rounded-lg p-6 mb-8">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Buscar acabamentos..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+            />
+            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-2">
+              {q && (
+                <button onClick={() => setQ("")} className="px-3 py-2 text-slate-600 hover:text-slate-900">Limpar</button>
+              )}
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-5 gap-3">
+            <select
+              className="px-3 py-2 border rounded"
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="">Todas categorias</option>
+              <option value="LAMINACAO">Laminação</option>
+              <option value="VERNIZ">Verniz</option>
+              <option value="CORTE">Corte</option>
+              <option value="DOBRA">Dobra</option>
+              <option value="OUTROS">Outros</option>
+            </select>
+            <select
+              className="px-3 py-2 border rounded"
+              value={unitFilter}
+              onChange={(e) => setUnitFilter(e.target.value as any)}
+            >
+              <option value="">Todas unidades</option>
+              <option value="UNIT">Unidade</option>
+              <option value="M2">Metro Quadrado</option>
+              <option value="LOT">Lote</option>
+              <option value="HOUR">Hora</option>
+              <option value="SHEET">Folha</option>
+            </select>
+            <select
+              className="px-3 py-2 border rounded"
+              value={activeFilter}
+              onChange={(e) => setActiveFilter(e.target.value as any)}
+            >
+              <option value="all">Todos</option>
+              <option value="active">Ativos</option>
+              <option value="inactive">Inativos</option>
+            </select>
+            <div className="flex gap-2">
+              <select
+                className="flex-1 px-3 py-2 border rounded"
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value as any)}
+              >
+                <option value="name">Ordenar por Nome</option>
+                <option value="category">Ordenar por Categoria</option>
+                <option value="baseCost">Ordenar por Custo</option>
+              </select>
+              <button
+                className="px-3 py-2 border rounded"
+                onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
+              >
+                {sortDir === "asc" ? "↑" : "↓"}
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Finishes Grid */}
-        {rows.length > 0 ? (
+        {filteredSorted.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {rows.map((finish) => (
+            {filteredSorted.map((finish) => (
               <div key={finish.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
@@ -173,7 +306,7 @@ export default function FinishesListPage() {
                         {finish.active ? 'Ativo' : 'Inativo'}
                       </span>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">{finish.name}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">{highlight(finish.name, debouncedQ)}</h3>
                   </div>
                 </div>
                 
@@ -229,19 +362,23 @@ export default function FinishesListPage() {
             <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum acabamento configurado</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {q ? 'Nenhum acabamento encontrado' : 'Nenhum acabamento configurado'}
+            </h3>
             <p className="text-gray-600 mb-6">
-              Comece criando seu primeiro acabamento para usar nos produtos
+              {q ? 'Tente ajustar os filtros de busca' : 'Comece criando seu primeiro acabamento para usar nos produtos'}
             </p>
-            <button
-              onClick={() => setOpenCreate(true)}
-              className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Criar Primeiro Acabamento
-            </button>
+            {!q && (
+              <button
+                onClick={() => setOpenCreate(true)}
+                className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Criar Primeiro Acabamento
+              </button>
+            )}
           </div>
         )}
       </div>

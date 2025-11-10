@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 type Material = {
   id: number;
@@ -71,8 +72,14 @@ export default function MaterialsPage() {
   }, []);
 
   async function createMaterial() {
-    if (!form.name.trim()) return alert("Informe o nome.");
-    if (!form.unitCost) return alert("Informe o custo unitário.");
+    if (!form.name.trim()) {
+      toast.error("Informe o nome.");
+      return;
+    }
+    if (!form.unitCost) {
+      toast.error("Informe o custo unitário.");
+      return;
+    }
     setSaving(true);
     try {
       // resolve supplierId: usa selecionado; se vazio e houver supplierName, cria/reativa supplier e usa o id
@@ -90,7 +97,7 @@ export default function MaterialsPage() {
           supplierIdToUse = sup?.id || null;
         } else {
           const j = await supRes.json().catch(()=>({}));
-          alert("Erro ao criar fornecedor: " + (j.error || "tente novamente"));
+          toast.error("Erro ao criar fornecedor: " + (j.error || "tente novamente"));
           setSaving(false);
           return;
         }
@@ -135,10 +142,11 @@ export default function MaterialsPage() {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        alert("Erro ao criar: " + (j.error?.message || "verifique os campos"));
+        toast.error("Erro ao criar: " + (j.error?.message || "verifique os campos"));
         setSaving(false);
         return;
       }
+      toast.success("Material criado com sucesso!");
       // refresh list and suppliers cache so the new supplier appears
       await Promise.all([
         load(),

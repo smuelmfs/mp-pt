@@ -93,7 +93,7 @@ export async function runImportProductsAlveolar() {
     });
 
     // If not found, try by existing ProductMaterial link (materialId + qtyPerUnit)
-    if (!product) {
+    if (!product && qtyPerUnit) {
       const pm = await prisma.productMaterial.findFirst({
         where: { materialId: (material as any).id, qtyPerUnit },
         include: { product: true },
@@ -146,7 +146,7 @@ export async function runImportProductsAlveolar() {
         data: {
           productId: (product as any).id,
           materialId: (material as any).id,
-          qtyPerUnit,
+          qtyPerUnit: qtyPerUnit || "1.0000",
           wasteFactor: "0.0000",
           lossFactor: null,
         },

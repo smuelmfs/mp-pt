@@ -1,0 +1,112 @@
+[
+  {
+    "name": "Flex 10x10cm",
+    "widthMm": 1000,
+    "heightMm": 1000,
+    "material": {
+      "name": "Vinil FLEX BRANCO",
+      "unitCost": "1.1500"
+    },
+    "printing": {
+      "technology": "GRANDE_FORMATO",
+      "formatLabel": "FLEX 10x10cm",
+      "unitPrice": "0.0000"
+    },
+    "suggestedQuantities": [
+      1,
+      5,
+      10,
+      25,
+      50,
+      100
+    ]
+  },
+  {
+    "name": "Flex 21x10cm",
+    "widthMm": 2100,
+    "heightMm": 1000,
+    "material": {
+      "name": "Vinil FLEX BRANCO",
+      "unitCost": "1.7500"
+    },
+    "printing": {
+      "technology": "GRANDE_FORMATO",
+      "formatLabel": "FLEX 21x10cm",
+      "unitPrice": "0.0000"
+    },
+    "suggestedQuantities": [
+      1,
+      5,
+      10,
+      25,
+      50,
+      100
+    ]
+  },
+  {
+    "name": "Flex 21x20cm",
+    "widthMm": 2100,
+    "heightMm": 2000,
+    "material": {
+      "name": "Vinil FLEX BRANCO",
+      "unitCost": "2.5000"
+    },
+    "printing": {
+      "technology": "GRANDE_FORMATO",
+      "formatLabel": "FLEX 21x20cm",
+      "unitPrice": "0.0000"
+    },
+    "suggestedQuantities": [
+      1,
+      5,
+      10,
+      25,
+      50,
+      100
+    ]
+  },
+  {
+    "name": "Flex 23x20+-cm",
+    "widthMm": 2300,
+    "heightMm": 2000,
+    "material": {
+      "name": "Vinil FLEX BRANCO",
+      "unitCost": "2.7000"
+    },
+    "printing": {
+      "technology": "GRANDE_FORMATO",
+      "formatLabel": "FLEX 23x20+-cm",
+      "unitPrice": "0.0000"
+    },
+    "suggestedQuantities": [
+      1,
+      5,
+      10,
+      25,
+      50,
+      100
+    ]
+  },
+  {
+    "name": "Flex 30x21cm",
+    "widthMm": 3000,
+    "heightMm": 2100,
+    "material": {
+      "name": "Vinil FLEX BRANCO",
+      "unitCost": "3.2000"
+    },
+    "printing": {
+      "technology": "GRANDE_FORMATO",
+      "formatLabel": "FLEX 30x21cm",
+      "unitPrice": "0.0000"
+    },
+    "suggestedQuantities": [
+      1,
+      5,
+      10,
+      25,
+      50,
+      100
+    ]
+  }
+]

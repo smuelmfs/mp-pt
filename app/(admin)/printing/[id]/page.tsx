@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Trash2 } from "lucide-react";
 
 export default function PrintingDetailPage() {
   const params = useParams<{ id: string }>();
@@ -13,6 +16,11 @@ export default function PrintingDetailPage() {
   const [formData, setFormData] = useState<any>({});
   const [hasChanges, setHasChanges] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [customerPrices, setCustomerPrices] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const router = useRouter();
 
   async function load() {
     setLoading(true);
@@ -20,6 +28,21 @@ export default function PrintingDetailPage() {
     const json = await res.json();
     setRow(json);
     setFormData(json);
+    
+    // Carrega preços por cliente
+    const pricesRes = await fetch(`/api/admin/customer-prices/printing?printingId=${id}`);
+    if (pricesRes.ok) {
+      const prices = await pricesRes.json();
+      setCustomerPrices(prices);
+    }
+    
+    // Carrega lista de clientes
+    const customersRes = await fetch(`/api/admin/customers?activeOnly=true`);
+    if (customersRes.ok) {
+      const customersData = await customersRes.json();
+      setCustomers(customersData);
+    }
+    
     setLoading(false);
   }
 
@@ -45,7 +68,7 @@ export default function PrintingDetailPage() {
       load();
     } catch (error) {
       console.error("Erro ao salvar:", error);
-      alert("Erro ao salvar alterações");
+      toast.error("Erro ao salvar alterações");
     } finally {
       setSaving(false);
     }
@@ -55,6 +78,23 @@ export default function PrintingDetailPage() {
   async function patch(patch: any) {
     setFormData({ ...formData, ...patch });
     setHasChanges(true);
+  }
+
+  async function deletePrinting() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/printing/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Impressão eliminada com sucesso");
+        router.push("/printing");
+      } else {
+        const j = await res.json();
+        toast.error(j.error || "Falha ao eliminar impressão");
+      }
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
   }
 
   if (!Number.isFinite(id)) {
@@ -105,6 +145,17 @@ export default function PrintingDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Eliminar Impressão"
+        description={row ? `Tem a certeza que deseja eliminar a impressão "${row.formatLabel || row.technology || "esta impressão"}"? Esta ação irá desativar a impressão.` : "Tem a certeza que deseja eliminar esta impressão? Esta ação irá desativar a impressão."}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={deletePrinting}
+        loading={deleting}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -124,28 +175,37 @@ export default function PrintingDetailPage() {
                 <p className="text-sm text-gray-600 mt-1">Detalhes e configurações da impressão</p>
               </div>
             </div>
-            <button
-              onClick={saveChanges}
-              disabled={saving || !hasChanges}
-              className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Salvar Alterações
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="inline-flex items-center px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Eliminar
+              </button>
+              <button
+                onClick={saveChanges}
+                disabled={saving || !hasChanges}
+                className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Salvar Alterações
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -292,6 +352,66 @@ export default function PrintingDetailPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Preços por Cliente */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-6">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Preços por Cliente</h2>
+            <p className="text-sm text-gray-600 mt-1">Preços específicos configurados para cada cliente</p>
+          </div>
+          
+          <div className="p-6">
+            {customerPrices.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>Nenhum preço específico por cliente configurado.</p>
+                <p className="text-sm mt-2">Configure preços por cliente na página do cliente.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b text-gray-700">
+                      <th className="p-3 text-left font-medium">Cliente</th>
+                      <th className="p-3 text-left font-medium">Lados</th>
+                      <th className="p-3 text-left font-medium">Preço Unitário</th>
+                      <th className="p-3 text-left font-medium">Prioridade</th>
+                      <th className="p-3 text-left font-medium">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customerPrices.map((cp: any) => {
+                      const customer = customers.find((c: any) => c.id === cp.customerId);
+                      return (
+                        <tr key={cp.id} className="border-b hover:bg-gray-50">
+                          <td className="p-3">
+                            <Link 
+                              href={`/customers/${cp.customerId}`}
+                              className="text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              {customer?.name || `Cliente #${cp.customerId}`}
+                            </Link>
+                          </td>
+                          <td className="p-3">{cp.sides || '-'}</td>
+                          <td className="p-3 font-medium">€{Number(cp.unitPrice).toFixed(4)}</td>
+                          <td className="p-3">{cp.priority}</td>
+                          <td className="p-3">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              cp.isCurrent 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {cp.isCurrent ? 'Ativo' : 'Inativo'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       </div>

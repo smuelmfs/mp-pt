@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -88,7 +89,7 @@ export default function MarginsPage() {
 
   async function createFixed() {
     if (!formFixed.margin) {
-      alert("Margem é obrigatória");
+      toast.error("Margem é obrigatória");
       return;
     }
 
@@ -107,15 +108,16 @@ export default function MarginsPage() {
         method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body)
       });
       if (res.ok) {
+        toast.success("Regra criada com sucesso!");
         setFormFixed({ scope, categoryId: "", productId: "", margin: "0.30", startsAt: "", endsAt: "", active: true });
         setOpenCreate(false);
         loadRules();
       } else {
         const j = await res.json(); 
-        alert("Erro: "+(j.error?.message || "Falha ao criar"));
+        toast.error("Erro: "+(j.error?.message || "Falha ao criar"));
       }
     } catch (error) {
-      alert("Erro ao criar regra");
+      toast.error("Erro ao criar regra");
     } finally {
       setLoading(false);
     }
@@ -123,7 +125,7 @@ export default function MarginsPage() {
 
   async function createDyn() {
     if (!formDyn.adjustPercent) {
-      alert("Percentual de ajuste é obrigatório");
+      toast.error("Percentual de ajuste é obrigatório");
       return;
     }
 
@@ -152,10 +154,10 @@ export default function MarginsPage() {
         loadRules();
       } else {
         const j = await res.json(); 
-        alert("Erro: "+(j.error?.message || "Falha ao criar"));
+        toast.error("Erro: "+(j.error?.message || "Falha ao criar"));
       }
     } catch (error) {
-      alert("Erro ao criar regra");
+      toast.error("Erro ao criar regra");
     } finally {
       setLoading(false);
     }
@@ -167,7 +169,7 @@ export default function MarginsPage() {
       await fetch(url, { method: "PATCH", headers: { "content-type":"application/json" }, body: JSON.stringify({ active }) });
       loadRules();
     } catch (error) {
-      alert("Erro ao alterar status");
+      toast.error("Erro ao alterar status");
     }
   }
 
@@ -204,7 +206,7 @@ export default function MarginsPage() {
 
   async function updateFixed() {
     if (!formFixed.margin) {
-      alert("Margem é obrigatória");
+      toast.error("Margem é obrigatória");
       return;
     }
 
@@ -229,10 +231,10 @@ export default function MarginsPage() {
         loadRules();
       } else {
         const j = await res.json(); 
-        alert("Erro: "+(j.error?.message || "Falha ao atualizar"));
+        toast.error("Erro: "+(j.error?.message || "Falha ao atualizar"));
       }
     } catch (error) {
-      alert("Erro ao atualizar regra");
+      toast.error("Erro ao atualizar regra");
     } finally {
       setLoading(false);
     }
@@ -240,7 +242,7 @@ export default function MarginsPage() {
 
   async function updateDyn() {
     if (!formDyn.adjustPercent) {
-      alert("Percentual de ajuste é obrigatório");
+      toast.error("Percentual de ajuste é obrigatório");
       return;
     }
 
@@ -270,10 +272,10 @@ export default function MarginsPage() {
         loadRules();
       } else {
         const j = await res.json(); 
-        alert("Erro: "+(j.error?.message || "Falha ao atualizar"));
+        toast.error("Erro: "+(j.error?.message || "Falha ao atualizar"));
       }
     } catch (error) {
-      alert("Erro ao atualizar regra");
+      toast.error("Erro ao atualizar regra");
     } finally {
       setLoading(false);
     }
@@ -290,11 +292,16 @@ export default function MarginsPage() {
       const url = ruleToDelete.kind === "FIXA" 
         ? `/api/admin/margin-rules/${ruleToDelete.id}` 
         : `/api/admin/margin-rules-dyn/${ruleToDelete.id}`;
-      await fetch(url, { method: "DELETE" });
-      setRuleToDelete(null);
-      loadRules();
+      const res = await fetch(url, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Regra excluída com sucesso!");
+        setRuleToDelete(null);
+        loadRules();
+      } else {
+        toast.error("Erro ao excluir regra");
+      }
     } catch (error) {
-      alert("Erro ao excluir regra");
+      toast.error("Erro ao excluir regra");
     }
   }
 
