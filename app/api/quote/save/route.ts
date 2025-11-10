@@ -27,15 +27,22 @@ export async function POST(req: Request) {
   const quantity  = Number(body.quantity ?? 1000);
   const params    = body.params ?? {};
   const choiceIds = body.choiceIds ?? [];
+  const customerId = body.customerId ? Number(body.customerId) : null;
 
   if (!Number.isFinite(productId) || productId <= 0) {
     return NextResponse.json({ error: "productId é obrigatório (number)" }, { status: 400 });
   }
 
   // Aplicar overrides das escolhas
-  const overrides = await applyChoiceOverrides(productId, choiceIds);
+  const choiceOverrides = await applyChoiceOverrides(productId, choiceIds);
+  // Preparar overrides completos incluindo cliente
+  const overrides = {
+    ...choiceOverrides,
+    customerId: customerId && Number.isFinite(customerId) ? customerId : undefined,
+    sourcingMode: body.sourcingMode || "INTERNAL"
+  };
   const c = await calcQuote(productId, quantity, params, overrides);
-  const finalResult = applyPriceOverrides(c, overrides);
+  const finalResult = applyPriceOverrides(c, choiceOverrides);
 
   const user = await prisma.user.upsert({
     where: { email: "demo@local" },
@@ -46,7 +53,8 @@ export async function POST(req: Request) {
   const quote = await prisma.quote.create({
     data: {
       number: `Q-${Date.now()}`, userId: user.id,
-      productId: finalResult.product.id, quantity: finalResult.quantity, 
+      productId: finalResult.product.id, quantity: finalResult.quantity,
+      customerId: customerId && Number.isFinite(customerId) ? customerId : null,
       params: { 
         ...finalResult.params, 
         choiceIds,

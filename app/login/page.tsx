@@ -104,7 +104,7 @@ function LoginForm() {
           <Card className="w-full">
             <CardHeader className="text-center">
               <div className="flex justify-center mb-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-900">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#F66807]">
                   <Calculator className="h-6 w-6 text-white" />
                 </div>
               </div>
@@ -195,7 +195,7 @@ function LoginForm() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-lg">
-                  <User className="h-5 w-5 mr-2 text-slate-600" />
+                  <User className="h-5 w-5 mr-2 text-gray-600" />
                   Área Comercial
                 </CardTitle>
                 <CardDescription>
@@ -222,7 +222,7 @@ function LoginForm() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-lg">
-                  <Settings className="h-5 w-5 mr-2 text-slate-600" />
+                  <Settings className="h-5 w-5 mr-2 text-gray-600" />
                   Área Administrativa
                 </CardTitle>
                 <CardDescription>

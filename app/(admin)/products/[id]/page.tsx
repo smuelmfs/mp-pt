@@ -392,7 +392,7 @@ export default function ProductDetail() {
   if (row?.error) return <main className="p-6 text-red-600">{row.error}</main>;
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-[#F6EEE8]">
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
@@ -449,7 +449,7 @@ export default function ProductDetail() {
               onClick={() => setActiveTab('basic')}
               className={`flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'basic'
-                  ? 'border-black text-black bg-gray-50'
+                  ? 'border-[#F66807] text-[#F66807] bg-[#F6EEE8]'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
@@ -462,7 +462,7 @@ export default function ProductDetail() {
               onClick={() => setActiveTab('materials')}
               className={`flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'materials'
-                  ? 'border-black text-black bg-gray-50'
+                  ? 'border-[#F66807] text-[#F66807] bg-[#F6EEE8]'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
@@ -475,7 +475,7 @@ export default function ProductDetail() {
               onClick={() => setActiveTab('finishes')}
               className={`flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'finishes'
-                  ? 'border-black text-black bg-gray-50'
+                  ? 'border-[#F66807] text-[#F66807] bg-[#F6EEE8]'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
@@ -488,7 +488,7 @@ export default function ProductDetail() {
               onClick={() => setActiveTab('dimensions')}
               className={`flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'dimensions'
-                  ? 'border-black text-black bg-gray-50'
+                  ? 'border-[#F66807] text-[#F66807] bg-[#F6EEE8]'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
@@ -508,7 +508,7 @@ export default function ProductDetail() {
               <button
                 onClick={saveChanges}
                 disabled={saving || !hasChanges}
-                className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? (
                   <>
@@ -772,7 +772,7 @@ export default function ProductDetail() {
               return (
                 <div className="border-t border-gray-200 pt-6 mt-6">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Resumo de Custos</h3>
-                  <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                  <div className="bg-[#F6EEE8] rounded-lg p-6 space-y-4">
                     {materialCosts.length > 0 && (
                       <div>
                         <p className="text-sm font-medium text-gray-700 mb-2">Materiais ({materialCosts.length}):</p>
@@ -835,7 +835,7 @@ export default function ProductDetail() {
                   id="active"
                   defaultChecked={row.active} 
                   onChange={(e) => update({ active: e.target.checked })} 
-                  className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
+                  className="h-4 w-4 text-[#F66807] focus:ring-[#F66807] border-gray-300 rounded"
                 />
                 <label htmlFor="active" className="ml-2 block text-sm font-medium text-gray-700">
                   Produto ativo
@@ -852,7 +852,7 @@ export default function ProductDetail() {
               {/* Lista de tiragens */}
               <div className="space-y-2 mb-4">
                 {suggestedQuantities.map((qty: any) => (
-                  <div key={qty.id} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                  <div key={qty.id} className="flex items-center justify-between p-3 border rounded-lg bg-[#F6EEE8]">
                     <div className="flex items-center space-x-3">
                       <span className="font-medium">{qty.quantity} unidades</span>
                       {qty.label && <span className="text-sm text-gray-500">({qty.label})</span>}
@@ -880,7 +880,7 @@ export default function ProductDetail() {
                     <label className="block text-sm font-medium mb-1">Quantidade</label>
                     <input
                       type="number"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                       value={quantityForm.quantity}
                       onChange={(e) => setQuantityForm({...quantityForm, quantity: e.target.value})}
                       placeholder="Ex: 100, 250, 500"
@@ -890,7 +890,7 @@ export default function ProductDetail() {
                     <label className="block text-sm font-medium mb-1">Rótulo (opcional)</label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                       value={quantityForm.label}
                       onChange={(e) => setQuantityForm({...quantityForm, label: e.target.value})}
                       placeholder="Ex: Pequena tiragem"
@@ -898,7 +898,7 @@ export default function ProductDetail() {
                   </div>
                   <div className="flex items-end">
                     <button 
-                      className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-6 py-3 bg-[#F66807] text-white rounded-lg hover:bg-[#F66807]/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={addQuantity}
                       disabled={addingQuantity}
                     >
@@ -1030,7 +1030,7 @@ export default function ProductDetail() {
             <div className="flex justify-end mt-4">
               <button
                 onClick={addMaterial}
-                className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 focus:ring-2 focus:ring-black focus:ring-offset-2 font-medium"
+                className="px-6 py-3 bg-[#F66807] text-white rounded-lg hover:bg-[#F66807]/90 focus:ring-2 focus:ring-[#F66807] focus:ring-offset-2 font-medium"
               >
                 Adicionar Material
               </button>
@@ -1154,7 +1154,7 @@ export default function ProductDetail() {
             <div className="flex justify-end mt-4">
               <button
                 onClick={addFinish}
-                className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 focus:ring-2 focus:ring-black focus:ring-offset-2 font-medium"
+                className="px-6 py-3 bg-[#F66807] text-white rounded-lg hover:bg-[#F66807]/90 focus:ring-2 focus:ring-[#F66807] focus:ring-offset-2 font-medium"
               >
                 Adicionar Acabamento
               </button>
@@ -1303,10 +1303,10 @@ export default function ProductDetail() {
               <button
                 onClick={addDimension}
                 disabled={addingDimension}
-                className={`px-6 py-3 rounded-lg focus:ring-2 focus:ring-black focus:ring-offset-2 flex items-center gap-2 ${
+                className={`px-6 py-3 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:ring-offset-2 flex items-center gap-2 ${
                   addingDimension
                     ? 'bg-gray-400 text-white cursor-not-allowed'
-                    : 'bg-black text-white hover:bg-gray-800'
+                    : 'bg-[#F66807] text-white hover:bg-[#F66807]/90'
                 }`}
               >
                 {addingDimension ? (

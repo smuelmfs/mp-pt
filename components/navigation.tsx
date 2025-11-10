@@ -151,19 +151,20 @@ export function Navigation() {
 
   if (!isMounted) {
     return (
-      <header className="sticky top-0 z-50 w-full border-b border-slate-200/60 bg-white/80 backdrop-blur-md">
+      <header className="sticky top-0 z-50 w-full border-b border-[#F6EEE8] bg-white/95 backdrop-blur-md shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center justify-between">
             <div className="flex items-center">
               <Link href="/" className="flex items-center space-x-3 group">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 group-hover:bg-slate-800 transition-colors">
-                  <Calculator className="h-4 w-4 text-white" />
-                </div>
-                <span className="text-lg font-semibold text-slate-900">MP-PT</span>
+                <img 
+                  src="/logo.svg" 
+                  alt="MyPrint.pt" 
+                  className="h-8 w-auto"
+                />
               </Link>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="h-8 w-8 rounded-full bg-slate-100 animate-pulse"></div>
+              <div className="h-8 w-8 rounded-full bg-[#F6EEE8] animate-pulse"></div>
             </div>
           </div>
         </div>
@@ -172,16 +173,17 @@ export function Navigation() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200/60 bg-white/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-[#F6EEE8] bg-white/95 backdrop-blur-md shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center justify-between">
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-3 group">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 group-hover:bg-slate-800 transition-colors">
-                <Calculator className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-lg font-semibold text-slate-900">MP-PT</span>
+              <img 
+                src="/logo.svg" 
+                alt="MyPrint.pt" 
+                className="h-8 w-auto"
+              />
             </Link>
           </div>
 
@@ -197,10 +199,10 @@ export function Navigation() {
                         <NavigationMenuLink asChild>
                           <Link 
                             href={item.href}
-                            className={`group inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 focus:bg-slate-100 focus:text-slate-900 focus:outline-none ${
-                              pathname === item.href 
-                                ? 'bg-slate-100 text-slate-900' 
-                                : 'text-slate-600'
+                            className={`group inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors hover:bg-[#F6EEE8] hover:text-[#341601] focus:bg-[#F6EEE8] focus:text-[#341601] focus:outline-none ${
+                              pathname === item.href
+                                ? 'bg-[#F6EEE8] text-[#341601]' 
+                                : 'text-[#341601]'
                             }`}
                           >
                             <item.icon className="h-4 w-4 mr-2" />
@@ -220,10 +222,10 @@ export function Navigation() {
                         <NavigationMenuLink asChild>
                           <Link 
                             href={item.href}
-                            className={`group inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 focus:bg-slate-100 focus:text-slate-900 focus:outline-none ${
-                              pathname === item.href 
-                                ? 'bg-slate-100 text-slate-900' 
-                                : 'text-slate-600'
+                            className={`group inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors hover:bg-[#F6EEE8] hover:text-[#341601] focus:bg-[#F6EEE8] focus:text-[#341601] focus:outline-none ${
+                              pathname === item.href
+                                ? 'bg-[#F6EEE8] text-[#341601]' 
+                                : 'text-[#341601]'
                             }`}
                           >
                             <item.icon className="h-4 w-4 mr-2" />
@@ -243,10 +245,10 @@ export function Navigation() {
             {/* User menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-slate-100">
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-[#F6EEE8]">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src="/placeholder-user.jpg" alt="User" />
-                    <AvatarFallback className="bg-slate-100 text-slate-700">
+                    <AvatarFallback className="bg-[#F6EEE8] text-[#341601]">
                       <User className="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>
@@ -255,14 +257,14 @@ export function Navigation() {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none text-slate-900">Usuário</p>
-                    <p className="text-xs leading-none text-slate-500">
-                      Sistema MP-PT
+                    <p className="text-sm font-medium leading-none text-[#341601]">Usuário</p>
+                    <p className="text-xs leading-none text-[#341601]/70">
+                      MyPrint.pt
                     </p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-slate-700 hover:bg-slate-100">
+                <DropdownMenuItem onClick={handleLogout} className="text-[#341601] hover:bg-[#F6EEE8]">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Sair</span>
                 </DropdownMenuItem>
@@ -273,7 +275,7 @@ export function Navigation() {
             <Button
               variant="ghost"
               size="sm"
-              className="md:hidden hover:bg-slate-100"
+              className="md:hidden hover:bg-[#F6EEE8]"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? (
@@ -288,7 +290,7 @@ export function Navigation() {
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
           <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 border-t border-slate-200">
+            <div className="px-2 pt-2 pb-3 space-y-1 border-t border-[#F6EEE8]">
               {/* Comercial Navigation */}
               {!isAdmin && (
                 <>
@@ -298,8 +300,8 @@ export function Navigation() {
                       href={item.href}
                       className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                         pathname === item.href
-                          ? 'bg-slate-100 text-slate-900'
-                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                          ? 'bg-[#F6EEE8] text-[#341601]'
+                          : 'text-[#341601] hover:bg-[#F6EEE8] hover:text-[#341601]'
                       }`}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
@@ -319,8 +321,8 @@ export function Navigation() {
                       href={item.href}
                       className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                         pathname === item.href
-                          ? 'bg-slate-100 text-slate-900'
-                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                          ? 'bg-[#F6EEE8] text-[#341601]'
+                          : 'text-[#341601] hover:bg-[#F6EEE8] hover:text-[#341601]'
                       }`}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >

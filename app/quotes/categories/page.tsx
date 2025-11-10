@@ -11,6 +11,12 @@ interface Product {
   };
   widthMm: number | null;
   heightMm: number | null;
+  printing?: {
+    id: number;
+    technology: string;
+    formatLabel: string | null;
+    colors: string | null;
+  } | null;
   materials?: Array<{
     material: {
       id: number;
@@ -30,6 +36,9 @@ interface Product {
 interface FiltersData {
   materialTypes: string[];
   finishCategories: string[];
+  printingTechnologies: string[];
+  printingFormats: string[];
+  printingColors: string[];
   categories: Array<{ id: number; name: string }>;
 }
 
@@ -43,13 +52,23 @@ interface Pagination {
 export default function CategoriesPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<FiltersData>({ materialTypes: [], finishCategories: [], categories: [] });
+  const [filters, setFilters] = useState<FiltersData>({ 
+    materialTypes: [], 
+    finishCategories: [], 
+    printingTechnologies: [],
+    printingFormats: [],
+    printingColors: [],
+    categories: [] 
+  });
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 12, total: 0, totalPages: 0 });
   
   // Estados dos filtros
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMaterialTypes, setSelectedMaterialTypes] = useState<string[]>([]);
   const [selectedFinishCategories, setSelectedFinishCategories] = useState<string[]>([]);
+  const [selectedPrintingTechnology, setSelectedPrintingTechnology] = useState<string>("");
+  const [selectedPrintingFormat, setSelectedPrintingFormat] = useState<string>("");
+  const [selectedPrintingColors, setSelectedPrintingColors] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("all");
 
   useEffect(() => {
@@ -67,6 +86,15 @@ export default function CategoriesPage() {
         }
         if (selectedFinishCategories.length > 0) {
           selectedFinishCategories.forEach(cat => params.append("finishCategory", cat));
+        }
+        if (selectedPrintingTechnology) {
+          params.append("printingTechnology", selectedPrintingTechnology);
+        }
+        if (selectedPrintingFormat) {
+          params.append("printingFormat", selectedPrintingFormat);
+        }
+        if (selectedPrintingColors) {
+          params.append("printingColors", selectedPrintingColors);
         }
         if (activeTab !== "all") {
           params.append("categoryId", activeTab);
@@ -104,7 +132,7 @@ export default function CategoriesPage() {
     }
 
     loadProducts();
-  }, [pagination.page, searchQuery, selectedMaterialTypes, selectedFinishCategories, activeTab]);
+  }, [pagination.page, searchQuery, selectedMaterialTypes, selectedFinishCategories, selectedPrintingTechnology, selectedPrintingFormat, selectedPrintingColors, activeTab]);
 
   const handlePageChange = (newPage: number) => {
     setPagination(prev => ({ ...prev, page: newPage }));
@@ -114,6 +142,9 @@ export default function CategoriesPage() {
     setSearchQuery("");
     setSelectedMaterialTypes([]);
     setSelectedFinishCategories([]);
+    setSelectedPrintingTechnology("");
+    setSelectedPrintingFormat("");
+    setSelectedPrintingColors("");
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
@@ -140,7 +171,7 @@ export default function CategoriesPage() {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  const hasActiveFilters = searchQuery || selectedMaterialTypes.length > 0 || selectedFinishCategories.length > 0;
+  const hasActiveFilters = searchQuery || selectedMaterialTypes.length > 0 || selectedFinishCategories.length > 0 || selectedPrintingTechnology || selectedPrintingFormat || selectedPrintingColors;
 
   if (loading) {
     return (
@@ -170,31 +201,33 @@ export default function CategoriesPage() {
           <p className="text-gray-600 mt-2">Explore todos os produtos disponíveis</p>
           
           {/* Abas de Categorias */}
-          <div className="mt-6 border-b border-gray-200">
-            <div className="flex gap-1 overflow-x-auto">
-              <button
-                onClick={() => handleTabChange("all")}
-                className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
-                  activeTab === "all"
-                    ? "border-black text-black"
-                    : "border-transparent text-gray-600 hover:text-black hover:border-gray-300"
-                }`}
-              >
-                Todos
-              </button>
-              {filters.categories.map((category) => (
+          <div className="mt-6">
+            <div className="border-b border-gray-200">
+              <div className="flex gap-0 overflow-x-auto hide-scrollbar scroll-smooth">
                 <button
-                  key={category.id}
-                  onClick={() => handleTabChange(category.id.toString())}
-                  className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
-                    activeTab === category.id.toString()
-                      ? "border-black text-black"
-                      : "border-transparent text-gray-600 hover:text-black hover:border-gray-300"
+                  onClick={() => handleTabChange("all")}
+                  className={`px-5 py-3 font-medium text-sm border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${
+                    activeTab === "all"
+                      ? "border-[#F66807] text-[#F66807] font-semibold"
+                      : "border-transparent text-[#341601] hover:text-[#F66807] hover:border-[#F66807]"
                   }`}
                 >
-                  {category.name}
+                  Todos
                 </button>
-              ))}
+                {filters.categories.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => handleTabChange(category.id.toString())}
+                    className={`px-5 py-3 font-medium text-sm border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${
+                      activeTab === category.id.toString()
+                        ? "border-[#F66807] text-[#F66807] font-semibold"
+                        : "border-transparent text-gray-600 hover:text-[#F66807] hover:border-gray-300"
+                    }`}
+                  >
+                    {category.name}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -208,7 +241,7 @@ export default function CategoriesPage() {
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
-                    className="text-xs text-gray-600 hover:text-black font-medium"
+                    className="text-xs text-[#341601] hover:text-[#F66807] font-medium"
                   >
                     Limpar
                   </button>
@@ -245,7 +278,7 @@ export default function CategoriesPage() {
                           type="checkbox"
                           checked={selectedMaterialTypes.includes(type)}
                           onChange={() => toggleMaterialType(type)}
-                          className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
+                          className="h-4 w-4 text-[#F66807] focus:ring-[#F66807] border-gray-300 rounded"
                         />
                         <span className="text-sm text-gray-700">{type}</span>
                       </label>
@@ -267,12 +300,84 @@ export default function CategoriesPage() {
                           type="checkbox"
                           checked={selectedFinishCategories.includes(category)}
                           onChange={() => toggleFinishCategory(category)}
-                          className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
+                          className="h-4 w-4 text-[#F66807] focus:ring-[#F66807] border-gray-300 rounded"
                         />
                         <span className="text-sm text-gray-700">{category}</span>
                       </label>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Filtro por Tecnologia de Impressão */}
+              {filters.printingTechnologies.length > 0 && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Tecnologia de Impressão
+                  </label>
+                  <select
+                    value={selectedPrintingTechnology}
+                    onChange={(e) => {
+                      setSelectedPrintingTechnology(e.target.value);
+                      setPagination(prev => ({ ...prev, page: 1 }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  >
+                    <option value="">Todas as tecnologias</option>
+                    {filters.printingTechnologies.map((tech) => (
+                      <option key={tech} value={tech}>
+                        {tech}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Filtro por Formato de Impressão */}
+              {filters.printingFormats.length > 0 && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Formato de Impressão
+                  </label>
+                  <select
+                    value={selectedPrintingFormat}
+                    onChange={(e) => {
+                      setSelectedPrintingFormat(e.target.value);
+                      setPagination(prev => ({ ...prev, page: 1 }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  >
+                    <option value="">Todos os formatos</option>
+                    {filters.printingFormats.map((format) => (
+                      <option key={format} value={format}>
+                        {format}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Filtro por Cores de Impressão */}
+              {filters.printingColors.length > 0 && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Cores de Impressão
+                  </label>
+                  <select
+                    value={selectedPrintingColors}
+                    onChange={(e) => {
+                      setSelectedPrintingColors(e.target.value);
+                      setPagination(prev => ({ ...prev, page: 1 }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  >
+                    <option value="">Todas as cores</option>
+                    {filters.printingColors.map((colors) => (
+                      <option key={colors} value={colors}>
+                        {colors}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
             </div>
@@ -298,16 +403,25 @@ export default function CategoriesPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        {product.printing && (
+                          <div className="flex items-center gap-1">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
+                              {product.printing.technology}
+                              {product.printing.formatLabel && ` - ${product.printing.formatLabel}`}
+                              {product.printing.colors && ` (${product.printing.colors})`}
+                            </span>
+                          </div>
+                        )}
                         {product.materials && product.materials.length > 0 && (
                           <div className="flex items-center gap-1">
-                            <span className="text-xs text-gray-600">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
                               {product.materials[0].material.type}
                             </span>
                           </div>
                         )}
                         {product.finishes && product.finishes.length > 0 && (
-                          <span className="text-xs text-gray-600">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700">
                             {product.finishes.map(f => f.finish.name).join(", ")}
                           </span>
                         )}
@@ -362,7 +476,7 @@ export default function CategoriesPage() {
                       onClick={() => handlePageChange(pageNum)}
                       className={`px-4 py-2 border rounded-md font-medium ${
                         pagination.page === pageNum
-                          ? 'bg-black text-white border-black'
+                          ? 'bg-[#F66807] text-white border-[#F66807]'
                           : 'border-gray-300 hover:bg-gray-100 text-gray-700'
                       }`}
                     >

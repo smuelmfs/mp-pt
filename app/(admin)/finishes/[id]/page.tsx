@@ -99,7 +99,7 @@ export default function FinishDetailPage() {
 
   if (!Number.isFinite(id)) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#F6EEE8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <div className="text-red-600 text-lg font-medium">ID inválido</div>
@@ -111,7 +111,7 @@ export default function FinishDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#F6EEE8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
@@ -133,7 +133,7 @@ export default function FinishDetailPage() {
 
   if (row?.error) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#F6EEE8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <div className="text-red-600 text-lg font-medium">{row.error}</div>
@@ -144,7 +144,7 @@ export default function FinishDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F6EEE8]">
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
@@ -163,7 +163,7 @@ export default function FinishDetailPage() {
             <div className="flex items-center space-x-4">
               <Link 
                 href="/finishes" 
-                className="inline-flex items-center text-gray-600 hover:text-black transition-colors"
+                className="inline-flex items-center text-[#341601] hover:text-[#F66807] transition-colors"
               >
                 <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -186,7 +186,7 @@ export default function FinishDetailPage() {
               <button
                 onClick={saveChanges}
                 disabled={saving || !hasChanges}
-                className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? (
                   <>
@@ -224,7 +224,7 @@ export default function FinishDetailPage() {
                 </label>
                 <input
                   type="text"
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-colors"
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] transition-colors"
                   defaultValue={row.name}
                   onBlur={(e) => patch({ name: e.target.value })}
                   placeholder="Nome do acabamento"
@@ -236,7 +236,7 @@ export default function FinishDetailPage() {
                   Categoria
                 </label>
                 <select
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-colors"
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] transition-colors"
                   defaultValue={row.category}
                   onChange={(e) => patch({ category: e.target.value })}
                 >
@@ -253,7 +253,7 @@ export default function FinishDetailPage() {
                   Unidade
                 </label>
                 <select
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-colors"
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] transition-colors"
                   defaultValue={row.unit}
                   onChange={(e) => patch({ unit: e.target.value })}
                 >
@@ -271,7 +271,7 @@ export default function FinishDetailPage() {
                 </label>
                 <input
                   type="text"
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-colors"
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] transition-colors"
                   defaultValue={row.baseCost}
                   onBlur={(e) => patch({ baseCost: e.target.value })}
                   placeholder="0.0000"
@@ -284,7 +284,7 @@ export default function FinishDetailPage() {
                 </label>
                 <input
                   type="text"
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-colors"
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] transition-colors"
                   defaultValue={row.marginDefault ?? ""}
                   onBlur={(e) => patch({ marginDefault: e.target.value || null })}
                   placeholder="0.15"
@@ -296,7 +296,7 @@ export default function FinishDetailPage() {
                   Tipo de Cálculo
                 </label>
                 <select
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-colors"
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] transition-colors"
                   defaultValue={row.calcType}
                   onChange={(e) => patch({ calcType: e.target.value })}
                 >
@@ -313,7 +313,7 @@ export default function FinishDetailPage() {
                 </label>
                 <input
                   type="text"
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-colors"
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] transition-colors"
                   defaultValue={row.minFee ?? ""}
                   onBlur={(e) => patch({ minFee: e.target.value || null })}
                   placeholder="0.00"
@@ -326,7 +326,7 @@ export default function FinishDetailPage() {
                 </label>
                 <input
                   type="text"
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-colors"
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] transition-colors"
                   defaultValue={row.areaStepM2 ?? ""}
                   onBlur={(e) => patch({ areaStepM2: e.target.value || null })}
                   placeholder="1.00"
@@ -338,7 +338,7 @@ export default function FinishDetailPage() {
                   <input
                     type="checkbox"
                     id="active"
-                    className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
+                    className="h-4 w-4 text-[#F66807] focus:ring-[#F66807] border-gray-300 rounded"
                     defaultChecked={row.active}
                     onChange={(e) => patch({ active: e.target.checked })}
                   />
@@ -368,7 +368,7 @@ export default function FinishDetailPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-gray-50 border-b text-gray-700">
+                    <tr className="bg-[#F6EEE8] border-b text-gray-700">
                       <th className="p-3 text-left font-medium">Cliente</th>
                       <th className="p-3 text-left font-medium">Custo Base</th>
                       <th className="p-3 text-left font-medium">Taxa Mínima</th>
@@ -381,7 +381,7 @@ export default function FinishDetailPage() {
                     {customerPrices.map((cp: any) => {
                       const customer = customers.find((c: any) => c.id === cp.customerId);
                       return (
-                        <tr key={cp.id} className="border-b hover:bg-gray-50">
+                        <tr key={cp.id} className="border-b hover:bg-white">
                           <td className="p-3">
                             <Link 
                               href={`/customers/${cp.customerId}`}

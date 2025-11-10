@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Printer, FileText, Calendar, User, Package, Euro, TrendingUp } from "lucide-react";
+import { ArrowLeft, Printer, FileText, Calendar, User, Package, Euro, TrendingUp, Building2, Download, FileSpreadsheet } from "lucide-react";
+import { toast } from "sonner";
 
 function money(n: number | string | null | undefined) {
   const v = typeof n === "number" ? n : Number(n || 0);
@@ -52,13 +53,13 @@ export default function QuoteDetailPage() {
 
   if (!Number.isFinite(id)) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <main className="min-h-screen bg-[#F6EEE8] flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center text-red-600">
               <FileText className="h-12 w-12 mx-auto mb-4 text-red-400" />
               <h2 className="text-lg font-semibold mb-2">ID Inválido</h2>
-              <p className="text-sm text-slate-600 mb-4">O ID do orçamento não é válido.</p>
+              <p className="text-sm text-gray-600 mb-4">O ID do orçamento não é válido.</p>
               <Button asChild>
                 <Link href="/quotes">
                   <ArrowLeft className="h-4 w-4 mr-2" />
@@ -74,12 +75,12 @@ export default function QuoteDetailPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <main className="min-h-screen bg-[#F6EEE8] flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 mx-auto mb-4"></div>
-              <p className="text-slate-600">Carregando orçamento...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#341601] mx-auto mb-4"></div>
+              <p className="text-gray-600">Carregando orçamento...</p>
             </div>
           </CardContent>
         </Card>
@@ -89,13 +90,13 @@ export default function QuoteDetailPage() {
 
   if (row?.error) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <main className="min-h-screen bg-[#F6EEE8] flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center text-red-600">
               <FileText className="h-12 w-12 mx-auto mb-4 text-red-400" />
               <h2 className="text-lg font-semibold mb-2">Erro</h2>
-              <p className="text-sm text-slate-600 mb-4">{row.error}</p>
+              <p className="text-sm text-gray-600 mb-4">{row.error}</p>
               <Button asChild>
                 <Link href="/quotes">
                   <ArrowLeft className="h-4 w-4 mr-2" />
@@ -112,7 +113,7 @@ export default function QuoteDetailPage() {
   const items = Array.isArray(row.items) ? row.items : [];
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[#F6EEE8]">
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -124,18 +125,76 @@ export default function QuoteDetailPage() {
               </Link>
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Orçamento #{row.number}</h1>
-              <p className="text-slate-600 mt-1">Detalhes completos do orçamento</p>
+              <h1 className="text-3xl font-bold text-[#341601]">Orçamento #{row.number}</h1>
+              <p className="text-gray-600 mt-1">Detalhes completos do orçamento</p>
             </div>
           </div>
-          <Button onClick={() => window.print()} className="flex items-center gap-2">
-            <Printer className="h-4 w-4" />
-            Imprimir/PDF
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={async () => {
+                try {
+                  const res = await fetch(`/api/quotes/${id}/export/pdf`);
+                  if (!res.ok) throw new Error("Erro ao gerar PDF");
+                  const blob = await res.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `orcamento-${row.number}.pdf`;
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  document.body.removeChild(a);
+                  toast.success("PDF gerado com sucesso!");
+                } catch (error) {
+                  console.error("Erro ao exportar PDF:", error);
+                  toast.error("Erro ao gerar PDF");
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Exportar PDF
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={async () => {
+                try {
+                  const res = await fetch(`/api/quotes/${id}/export/excel`);
+                  if (!res.ok) throw new Error("Erro ao gerar Excel");
+                  const blob = await res.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `orcamento-${row.number}.xlsx`;
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  document.body.removeChild(a);
+                  toast.success("Excel gerado com sucesso!");
+                } catch (error) {
+                  console.error("Erro ao exportar Excel:", error);
+                  toast.error("Erro ao gerar Excel");
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Exportar Excel
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => window.print()}
+              className="flex items-center gap-2"
+            >
+              <Printer className="h-4 w-4" />
+              Imprimir
+            </Button>
+          </div>
         </div>
 
         {/* Informações Principais */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -146,16 +205,47 @@ export default function QuoteDetailPage() {
             <CardContent>
               <div className="space-y-2">
                 <div>
-                  <span className="text-sm text-slate-600">Nome:</span>
+                  <span className="text-sm text-gray-600">Nome:</span>
                   <p className="font-medium">{row.product?.name || "Não especificado"}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-slate-600">Quantidade:</span>
+                  <span className="text-sm text-gray-600">Quantidade:</span>
                   <p className="font-medium">{row.quantity?.toLocaleString() || "0"}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          {row.customer && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Cliente
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-sm text-gray-600">Nome:</span>
+                    <p className="font-medium">{row.customer.name}</p>
+                  </div>
+                  {row.customer.email && (
+                    <div>
+                      <span className="text-sm text-gray-600">Email:</span>
+                      <p className="font-medium">{row.customer.email}</p>
+                    </div>
+                  )}
+                  {row.customer.taxId && (
+                    <div>
+                      <span className="text-sm text-gray-600">NIF:</span>
+                      <p className="font-medium">{row.customer.taxId}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader className="pb-3">
@@ -167,11 +257,11 @@ export default function QuoteDetailPage() {
             <CardContent>
               <div className="space-y-2">
                 <div>
-                  <span className="text-sm text-slate-600">Subtotal:</span>
+                  <span className="text-sm text-gray-600">Subtotal:</span>
                   <p className="font-medium">{money(row.subtotal)}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-slate-600">Preço Final:</span>
+                  <span className="text-sm text-gray-600">Preço Final:</span>
                   <p className="font-bold text-lg">{money(row.finalPrice)}</p>
                 </div>
               </div>
@@ -188,11 +278,11 @@ export default function QuoteDetailPage() {
             <CardContent>
               <div className="space-y-2">
                 <div>
-                  <span className="text-sm text-slate-600">Criado em:</span>
+                  <span className="text-sm text-gray-600">Criado em:</span>
                   <p className="font-medium">{formatDate(row.createdAt)}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-slate-600">Usuário:</span>
+                  <span className="text-sm text-gray-600">Usuário:</span>
                   <p className="font-medium">{row.user?.name || "Sistema"}</p>
                 </div>
               </div>
@@ -218,26 +308,26 @@ export default function QuoteDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-slate-50 rounded-lg">
-                <div className="text-sm text-slate-600">Markup</div>
+              <div className="text-center p-4 bg-[#F6EEE8] rounded-lg">
+                <div className="text-sm text-gray-600">Markup</div>
                 <div className="text-xl font-semibold">
                   {(Number(row.markupApplied) * 100).toFixed(1)}%
                 </div>
               </div>
-              <div className="text-center p-4 bg-slate-50 rounded-lg">
-                <div className="text-sm text-slate-600">Margem</div>
+              <div className="text-center p-4 bg-[#F6EEE8] rounded-lg">
+                <div className="text-sm text-gray-600">Margem</div>
                 <div className="text-xl font-semibold">
                   {(Number(row.marginApplied) * 100).toFixed(1)}%
                 </div>
               </div>
-              <div className="text-center p-4 bg-slate-50 rounded-lg">
-                <div className="text-sm text-slate-600">Dinâmica</div>
+              <div className="text-center p-4 bg-[#F6EEE8] rounded-lg">
+                <div className="text-sm text-gray-600">Dinâmica</div>
                 <div className="text-xl font-semibold">
                   {(Number(row.dynamicAdjust) * 100).toFixed(1)}%
                 </div>
               </div>
-              <div className="text-center p-4 bg-slate-50 rounded-lg">
-                <div className="text-sm text-slate-600">IVA</div>
+              <div className="text-center p-4 bg-[#F6EEE8] rounded-lg">
+                <div className="text-sm text-gray-600">IVA</div>
                 <div className="text-xl font-semibold">
                   {row.vatAmount ? money(row.vatAmount) : "N/A"}
                 </div>
@@ -257,25 +347,25 @@ export default function QuoteDetailPage() {
           <CardContent>
             {items.length === 0 ? (
               <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-600">Nenhum item encontrado neste orçamento.</p>
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">Nenhum item encontrado neste orçamento.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200">
-                      <th className="text-left py-3 px-2 font-medium text-slate-700">Tipo</th>
-                      <th className="text-left py-3 px-2 font-medium text-slate-700">Nome</th>
-                      <th className="text-right py-3 px-2 font-medium text-slate-700">Quantidade</th>
-                      <th className="text-left py-3 px-2 font-medium text-slate-700">Unidade</th>
-                      <th className="text-right py-3 px-2 font-medium text-slate-700">Custo Unit.</th>
-                      <th className="text-right py-3 px-2 font-medium text-slate-700">Total</th>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-2 font-medium text-[#341601]">Tipo</th>
+                      <th className="text-left py-3 px-2 font-medium text-[#341601]">Nome</th>
+                      <th className="text-right py-3 px-2 font-medium text-[#341601]">Quantidade</th>
+                      <th className="text-left py-3 px-2 font-medium text-[#341601]">Unidade</th>
+                      <th className="text-right py-3 px-2 font-medium text-[#341601]">Custo Unit.</th>
+                      <th className="text-right py-3 px-2 font-medium text-[#341601]">Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {items.map((item: any, index: number) => (
-                      <tr key={item.id || index} className="border-b border-slate-100 hover:bg-slate-50">
+                      <tr key={item.id || index} className="border-b border-gray-100 hover:bg-[#F6EEE8]">
                         <td className="py-3 px-2">
                           <Badge variant="outline" className="text-xs">
                             {item.itemType}

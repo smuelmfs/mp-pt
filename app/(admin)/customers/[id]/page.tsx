@@ -205,7 +205,7 @@ export default function CustomerDetailPage() {
   if (customer?.error) return <main className="p-6 text-red-600">{customer.error}</main>;
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-[#F6EEE8]">
       <ConfirmDialog
         open={confirmDeleteCustomer}
         onOpenChange={setConfirmDeleteCustomer}
@@ -279,7 +279,7 @@ export default function CustomerDetailPage() {
                 aria-selected={activeTab===tab}
                 aria-controls={`panel-${tab}`}
                 onClick={()=>setTab(tab)}
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab===tab?"border-black text-black bg-gray-50":"border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab===tab?"border-[#F66807] text-[#F66807] bg-[#F6EEE8]":"border-transparent text-[#341601] hover:text-[#F66807] hover:border-[#F66807]"}`}
               >
                 {tab.toUpperCase()}
                 {tab!=='basic' && (
@@ -333,13 +333,13 @@ export default function CustomerDetailPage() {
                 </div>
                 <div className="mt-3 border rounded">
                   <table className="w-full text-sm">
-                    <thead><tr className="bg-gray-50 border-b text-gray-700"><th className="p-2 text-left font-medium">Material</th><th className="p-2 text-left font-medium">Custo unitário</th><th className="p-2 text-left font-medium">Prioridade</th><th className="p-2 text-left font-medium">Estado</th><th className="p-2 text-left font-medium">Ações</th></tr></thead>
+                    <thead><tr className="bg-[#F6EEE8] border-b text-gray-700"><th className="p-2 text-left font-medium">Material</th><th className="p-2 text-left font-medium">Custo unitário</th><th className="p-2 text-left font-medium">Prioridade</th><th className="p-2 text-left font-medium">Estado</th><th className="p-2 text-left font-medium">Ações</th></tr></thead>
                     <tbody>
                       {matPrices.map((r:any)=>{
                         const name = materialsList.find((m:any)=>m.id===r.materialId)?.name || r.materialId;
                         const isEditing = matEditId === r.id;
                         return (
-                          <tr key={r.id} className="border-b hover:bg-gray-50">
+                          <tr key={r.id} className="border-b hover:bg-white">
                             <td className="p-2">{isEditing ? (
                               <select className="w-full px-2 py-1 border rounded" value={matEditForm.materialId} onChange={e=>setMatEditForm({...matEditForm, materialId: e.target.value})}>
                                 <option value="">(manter)</option>
@@ -407,14 +407,14 @@ export default function CustomerDetailPage() {
                 </div>
                 <div className="mt-3 border rounded">
                   <table className="w-full text-sm">
-                    <thead><tr className="bg-gray-50 border-b text-gray-700"><th className="p-2 text-left font-medium">Impressão</th><th className="p-2 text-left font-medium">Lados</th><th className="p-2 text-left font-medium">Preço unitário</th><th className="p-2 text-left font-medium">Prioridade</th><th className="p-2 text-left font-medium">Estado</th><th className="p-2 text-left font-medium">Ações</th></tr></thead>
+                    <thead><tr className="bg-[#F6EEE8] border-b text-gray-700"><th className="p-2 text-left font-medium">Impressão</th><th className="p-2 text-left font-medium">Lados</th><th className="p-2 text-left font-medium">Preço unitário</th><th className="p-2 text-left font-medium">Prioridade</th><th className="p-2 text-left font-medium">Estado</th><th className="p-2 text-left font-medium">Ações</th></tr></thead>
                     <tbody>
                       {prnPrices.map((r:any)=>{
                         const label = printingList.find((p:any)=>p.id===r.printingId);
                         const name = label ? (label.formatLabel || `${label.technology} ${label.colors??""}`) : r.printingId;
                         const isEditing = prnEditId === r.id;
                         return (
-                          <tr key={r.id} className="border-b hover:bg-gray-50">
+                          <tr key={r.id} className="border-b hover:bg-white">
                             <td className="p-2">{isEditing ? (
                               <select className="w-full px-2 py-1 border rounded" value={prnEditForm.printingId} onChange={e=>setPrnEditForm({...prnEditForm, printingId: e.target.value})}>
                                 <option value="">(manter)</option>
@@ -485,13 +485,13 @@ export default function CustomerDetailPage() {
                 </div>
                 <div className="mt-3 border rounded">
                   <table className="w-full text-sm">
-                    <thead><tr className="bg-gray-50 border-b text-gray-700"><th className="p-2 text-left font-medium">Acabamento</th><th className="p-2 text-left font-medium">Custo base</th><th className="p-2 text-left font-medium">Taxa mínima</th><th className="p-2 text-left font-medium">Passo m²</th><th className="p-2 text-left font-medium">Prioridade</th><th className="p-2 text-left font-medium">Estado</th><th className="p-2 text-left font-medium">Ações</th></tr></thead>
+                    <thead><tr className="bg-[#F6EEE8] border-b text-gray-700"><th className="p-2 text-left font-medium">Acabamento</th><th className="p-2 text-left font-medium">Custo base</th><th className="p-2 text-left font-medium">Taxa mínima</th><th className="p-2 text-left font-medium">Passo m²</th><th className="p-2 text-left font-medium">Prioridade</th><th className="p-2 text-left font-medium">Estado</th><th className="p-2 text-left font-medium">Ações</th></tr></thead>
                     <tbody>
                       {finPrices.map((r:any)=>{
                         const name = finishesList.find((f:any)=>f.id===r.finishId)?.name || r.finishId;
                         const isEditing = finEditId === r.id;
                         return (
-                          <tr key={r.id} className="border-b hover:bg-gray-50">
+                          <tr key={r.id} className="border-b hover:bg-white">
                             <td className="p-2">{isEditing ? (
                               <select className="w-full px-2 py-1 border rounded" value={finEditForm.finishId} onChange={e=>setFinEditForm({...finEditForm, finishId: e.target.value})}>
                                 <option value="">(manter)</option>
@@ -547,7 +547,7 @@ export default function CustomerDetailPage() {
           {activeTab==="overrides" && (
             <div id="panel-overrides" role="tabpanel">
               {/* Bloco 1: Comparação rápida */}
-              <div className="mb-4 p-4 border rounded-lg bg-gray-50">
+              <div className="mb-4 p-4 border rounded-lg bg-[#F6EEE8]">
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">Comparar preço por Produto</h3>
                 <p className="text-sm text-gray-600 mb-3">Escolha um produto e uma quantidade para ver o preço normal vs o preço com regras deste cliente.</p>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
@@ -611,12 +611,12 @@ export default function CustomerDetailPage() {
               </div>
               <div className="mt-4 border rounded">
                 <table className="w-full text-sm">
-                  <thead><tr className="bg-gray-50 border-b text-gray-700"><th className="p-2 text-left font-medium">Produto</th><th className="p-2 text-left font-medium">Margem</th><th className="p-2 text-left font-medium">Markup</th><th className="p-2 text-left font-medium">Passo</th><th className="p-2 text-left font-medium">Min €/peça</th><th className="p-2 text-left font-medium">Prioridade</th></tr></thead>
+                  <thead><tr className="bg-[#F6EEE8] border-b text-gray-700"><th className="p-2 text-left font-medium">Produto</th><th className="p-2 text-left font-medium">Margem</th><th className="p-2 text-left font-medium">Markup</th><th className="p-2 text-left font-medium">Passo</th><th className="p-2 text-left font-medium">Min €/peça</th><th className="p-2 text-left font-medium">Prioridade</th></tr></thead>
                   <tbody>
                     {prodOverrides.map((r:any)=>{
                       const name = products.find((p:any)=>p.id===r.productId)?.name || r.productId;
                       return (
-                        <tr key={r.id} className="border-b hover:bg-gray-50"><td className="p-2">{name}</td><td className="p-2">{r.marginDefault??"-"}</td><td className="p-2">{r.markupDefault??"-"}</td><td className="p-2">{r.roundingStep??"-"}</td><td className="p-2">{r.minPricePerPiece??"-"}</td><td className="p-2">{r.priority}</td></tr>
+                        <tr key={r.id} className="border-b hover:bg-white"><td className="p-2">{name}</td><td className="p-2">{r.marginDefault??"-"}</td><td className="p-2">{r.markupDefault??"-"}</td><td className="p-2">{r.roundingStep??"-"}</td><td className="p-2">{r.minPricePerPiece??"-"}</td><td className="p-2">{r.priority}</td></tr>
                       );
                     })}
                   </tbody>

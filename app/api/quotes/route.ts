@@ -7,14 +7,45 @@ export async function GET(req: Request) {
   const page = Math.max(1, Number(searchParams.get("page") || 1));
   const pageSize = Math.min(50, Math.max(5, Number(searchParams.get("pageSize") || 10)));
   const q = (searchParams.get("q") || "").trim();
+  const customerId = searchParams.get("customerId");
+  const productId = searchParams.get("productId");
+  const dateFrom = searchParams.get("dateFrom");
+  const dateTo = searchParams.get("dateTo");
 
-  const where: any = q ? {
-    OR: [
+  const where: any = {};
+
+  // Busca por texto
+  if (q) {
+    where.OR = [
       { number: { contains: q, mode: "insensitive" } },
       { product: { name: { contains: q, mode: "insensitive" } } },
       { user: { name: { contains: q, mode: "insensitive" } } },
-    ],
-  } : {};
+      { customer: { name: { contains: q, mode: "insensitive" } } },
+    ];
+  }
+
+  // Filtro por cliente
+  if (customerId && Number.isFinite(Number(customerId))) {
+    where.customerId = Number(customerId);
+  }
+
+  // Filtro por produto
+  if (productId && Number.isFinite(Number(productId))) {
+    where.productId = Number(productId);
+  }
+
+  // Filtro por data
+  if (dateFrom || dateTo) {
+    where.createdAt = {};
+    if (dateFrom) {
+      where.createdAt.gte = new Date(dateFrom);
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      where.createdAt.lte = toDate;
+    }
+  }
 
   const [total, data] = await Promise.all([
     prisma.quote.count({ where }),
@@ -26,6 +57,7 @@ export async function GET(req: Request) {
       select: {
         id: true, number: true, createdAt: true, finalPrice: true, subtotal: true, quantity: true,
         product: { select: { id: true, name: true } },
+        customer: { select: { id: true, name: true } },
         user: { select: { id: true, name: true, email: true } },
       },
     }),

@@ -223,7 +223,7 @@ export default function MaterialDetail() {
 
   if (!Number.isFinite(id)) {
     return (
-      <main className="min-h-screen bg-gray-50 p-6">
+      <main className="min-h-screen bg-[#F6EEE8] p-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-red-600">ID inválido</div>
         </div>
@@ -233,7 +233,7 @@ export default function MaterialDetail() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 p-6">
+      <main className="min-h-screen bg-[#F6EEE8] p-6">
         <div className="max-w-5xl mx-auto">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
@@ -248,7 +248,7 @@ export default function MaterialDetail() {
 
   if (row?.error) {
     return (
-      <main className="min-h-screen bg-gray-50 p-6">
+      <main className="min-h-screen bg-[#F6EEE8] p-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-red-600">{row.error}</div>
         </div>
@@ -259,7 +259,7 @@ export default function MaterialDetail() {
   const variants = Array.isArray(row?.variants) ? row.variants : [];
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-[#F6EEE8]">
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
@@ -276,7 +276,7 @@ export default function MaterialDetail() {
         <div className="max-w-5xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Link href="/materials" className="text-gray-600 hover:text-black transition-colors">
+              <Link href="/materials" className="text-gray-600 hover:text-[#F66807] transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
@@ -297,7 +297,7 @@ export default function MaterialDetail() {
               <button
                 onClick={saveChanges}
                 disabled={saving || !hasChanges}
-                className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? (
                   <>
@@ -333,7 +333,7 @@ export default function MaterialDetail() {
                 Nome
               </label>
               <input
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                 defaultValue={row.name}
                 onBlur={(e) => patch({ name: e.target.value })}
               />
@@ -344,7 +344,7 @@ export default function MaterialDetail() {
                 Tipo
               </label>
               <input
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                 defaultValue={row.type}
                 onBlur={(e) => patch({ type: e.target.value })}
               />
@@ -355,7 +355,7 @@ export default function MaterialDetail() {
                 Unidade
               </label>
               <select
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                 defaultValue={row.unit}
                 onChange={(e) => patch({ unit: e.target.value })}
               >
@@ -372,7 +372,7 @@ export default function MaterialDetail() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Fornecedor</label>
                 <input
                   list="supplier-suggestions-edit"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   defaultValue={row?.supplier?.name || ""}
                   onBlur={(e)=> patch({ supplierName: e.target.value })}
                   placeholder="Digite para procurar ou criar"
@@ -386,7 +386,7 @@ export default function MaterialDetail() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Custo do Fornecedor (€)</label>
                 <input
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   defaultValue={row.supplierUnitCost != null ? String(row.supplierUnitCost) : ""}
                   onBlur={(e) => patch({ supplierUnitCost: e.target.value || null })}
                   placeholder="0.0000"
@@ -404,7 +404,7 @@ export default function MaterialDetail() {
                   <input
                     type="number"
                     step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                     defaultValue=""
                     onBlur={(e) => patch({ supplierRollCost: e.target.value || null })}
                     placeholder="Ex: 19.12"
@@ -417,7 +417,7 @@ export default function MaterialDetail() {
                       <input
                         type="number"
                         step="0.001"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                         defaultValue=""
                         onBlur={(e) => patch({ supplierRollWidth: e.target.value || null })}
                         placeholder="Ex: 0.615"
@@ -428,7 +428,7 @@ export default function MaterialDetail() {
                       <input
                         type="number"
                         step="0.001"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                         defaultValue=""
                         onBlur={(e) => patch({ supplierRollLength: e.target.value || null })}
                         placeholder="Ex: 5.0"
@@ -442,7 +442,7 @@ export default function MaterialDetail() {
                     <input
                       type="number"
                       step="1"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                       defaultValue=""
                       onBlur={(e) => patch({ supplierRollQuantity: e.target.value || null })}
                       placeholder="Ex: 500"
@@ -455,7 +455,7 @@ export default function MaterialDetail() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Custo Unitário (€)</label>
               <input
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                 defaultValue={row.unitCost}
                 onBlur={(e) => patch({ unitCost: e.target.value })}
               />
@@ -466,7 +466,7 @@ export default function MaterialDetail() {
                 type="checkbox"
                 defaultChecked={row.active}
                 onChange={(e) => patch({ active: e.target.checked })}
-                className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
+                className="h-4 w-4 text-[#F66807] focus:ring-[#F66807] border-gray-300 rounded"
               />
               <label className="ml-2 block text-sm font-medium text-gray-700">
                 Material ativo
@@ -500,7 +500,7 @@ export default function MaterialDetail() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {variants.map((v: any) => (
-                    <tr key={v.id} className="hover:bg-gray-50">
+                    <tr key={v.id} className="hover:bg-white">
                       <td className="py-3 px-4 text-gray-900 font-medium">{v.label}</td>
                       <td className="py-3 px-4 text-gray-600">{v.gramagem ?? "-"}</td>
                       <td className="py-3 px-4 text-gray-600">{v.widthMm ?? "-"}</td>
@@ -523,7 +523,7 @@ export default function MaterialDetail() {
           )}
 
           {/* Formulário de Nova Variante */}
-          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+          <div className="border border-gray-200 rounded-lg p-4 bg-[#F6EEE8]">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">Adicionar Nova Variante</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -532,7 +532,7 @@ export default function MaterialDetail() {
                   Label *
                 </label>
                 <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black text-sm"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   value={vf.label}
                   onChange={(e) => setVf((s: any) => ({ ...s, label: e.target.value }))}
                   placeholder="Ex: A4 90g"
@@ -545,7 +545,7 @@ export default function MaterialDetail() {
                 </label>
                 <input
                   type="number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black text-sm"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   value={vf.gramagem}
                   onChange={(e) => setVf((s: any) => ({ ...s, gramagem: e.target.value }))}
                   placeholder="90"
@@ -558,7 +558,7 @@ export default function MaterialDetail() {
                 </label>
                 <input
                   type="number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black text-sm"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   value={vf.widthMm}
                   onChange={(e) => setVf((s: any) => ({ ...s, widthMm: e.target.value }))}
                   placeholder="210"
@@ -571,7 +571,7 @@ export default function MaterialDetail() {
                 </label>
                 <input
                   type="number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black text-sm"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   value={vf.heightMm}
                   onChange={(e) => setVf((s: any) => ({ ...s, heightMm: e.target.value }))}
                   placeholder="297"
@@ -584,7 +584,7 @@ export default function MaterialDetail() {
                 </label>
                 <input
                   type="number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black text-sm"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   value={vf.sheetsPerPack}
                   onChange={(e) => setVf((s: any) => ({ ...s, sheetsPerPack: e.target.value }))}
                   placeholder="500"
@@ -598,7 +598,7 @@ export default function MaterialDetail() {
                 <input
                   type="number"
                   step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black text-sm"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   value={vf.packPrice}
                   onChange={(e) => setVf((s: any) => ({ ...s, packPrice: e.target.value }))}
                   placeholder="25.00"
@@ -612,7 +612,7 @@ export default function MaterialDetail() {
                 <input
                   type="number"
                   step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black text-sm"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   value={vf.unitPrice}
                   onChange={(e) => setVf((s: any) => ({ ...s, unitPrice: e.target.value }))}
                   placeholder="0.05"
@@ -621,7 +621,7 @@ export default function MaterialDetail() {
               
               <div className="flex items-end">
                 <button
-                  className="w-full px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-sm"
+                  className="w-full px-6 py-3 bg-[#F66807] text-white rounded-lg hover:bg-[#F66807]/90 transition-colors font-medium"
                   onClick={addVariant}
                 >
                   Adicionar Variante
@@ -668,7 +668,7 @@ export default function MaterialDetail() {
                       const variantUnitCost = v.unitPrice ? Number(v.unitPrice) : (v.packPrice && v.sheetsPerPack ? Number(v.packPrice) / Number(v.sheetsPerPack) : 0);
                       const variantTotal = variantUnitCost + costSummary.supplierCostValue;
                       return (
-                        <div key={v.id} className="bg-gray-50 rounded-lg p-3">
+                        <div key={v.id} className="bg-[#F6EEE8] rounded-lg p-3">
                           <div className="flex items-center justify-between text-xs mb-1">
                             <span className="font-medium text-gray-700">{v.label}</span>
                             {v.gramagem && <span className="text-gray-500">{v.gramagem}g</span>}

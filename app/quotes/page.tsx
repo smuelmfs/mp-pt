@@ -5,14 +5,27 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, FileText, Euro, RefreshCw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { CalendarDays, FileText, Euro, RefreshCw, Search, Filter, X } from "lucide-react";
 
 type QuoteRow = {
   id: number; 
   number: string; 
   finalPrice: string;
+  quantity?: number | null;
   product?: { id: number; name: string } | null;
+  customer?: { id: number; name: string } | null;
   createdAt: string;
+};
+
+type Customer = {
+  id: number;
+  name: string;
+};
+
+type Product = {
+  id: number;
+  name: string;
 };
 
 function money(n: number | string | null | undefined) {
@@ -34,13 +47,59 @@ function formatDate(dateString: string) {
 export default function QuotesPage() {
   const [rows, setRows] = useState<QuoteRow[]>([]);
   const [loadingList, setLoadingList] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<string>("");
+  const [selectedProduct, setSelectedProduct] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Debounce da busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Carregar clientes e produtos para filtros
+  useEffect(() => {
+    async function loadFilters() {
+      try {
+        const [customersRes, productsRes] = await Promise.all([
+          fetch("/api/admin/customers?activeOnly=true"),
+          fetch("/api/admin/products?activeOnly=true&limit=200")
+        ]);
+        if (customersRes.ok) {
+          const customersData = await customersRes.json();
+          setCustomers(Array.isArray(customersData) ? customersData : []);
+        }
+        if (productsRes.ok) {
+          const productsData = await productsRes.json();
+          setProducts(Array.isArray(productsData) ? productsData : []);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar filtros:', error);
+      }
+    }
+    loadFilters();
+  }, []);
 
   async function loadQuotes() {
     setLoadingList(true);
     try {
-      const res = await fetch("/api/quotes");
+      const params = new URLSearchParams();
+      if (debouncedSearch) params.append("q", debouncedSearch);
+      if (selectedCustomer) params.append("customerId", selectedCustomer);
+      if (selectedProduct) params.append("productId", selectedProduct);
+      if (dateFrom) params.append("dateFrom", dateFrom);
+      if (dateTo) params.append("dateTo", dateTo);
+
+      const res = await fetch(`/api/quotes?${params.toString()}`);
       const json = await res.json();
-      // A API retorna { data: [...], total: number, page: number, ... }
       setRows(Array.isArray(json.data) ? json.data : []);
     } catch (error) {
       console.error('Erro ao carregar orçamentos:', error);
@@ -51,16 +110,26 @@ export default function QuotesPage() {
 
   useEffect(() => {
     loadQuotes();
-  }, []);
+  }, [debouncedSearch, selectedCustomer, selectedProduct, dateFrom, dateTo]);
+
+  function clearFilters() {
+    setSearchQuery("");
+    setSelectedCustomer("");
+    setSelectedProduct("");
+    setDateFrom("");
+    setDateTo("");
+  }
+
+  const hasActiveFilters = debouncedSearch || selectedCustomer || selectedProduct || dateFrom || dateTo;
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[#F6EEE8]">
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Orçamentos</h1>
-            <p className="text-slate-600 mt-2">Gerencie todos os orçamentos criados</p>
+            <h1 className="text-3xl font-bold text-[#341601]">Orçamentos</h1>
+            <p className="text-gray-600 mt-2">Gerencie todos os orçamentos criados</p>
           </div>
           <div className="flex items-center gap-3">
             <Button 
@@ -127,27 +196,138 @@ export default function QuotesPage() {
           </Card>
         </div>
 
+        {/* Filtros e Busca */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Buscar e Filtrar</CardTitle>
+                <CardDescription>
+                  Encontre orçamentos específicos usando os filtros abaixo
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                {hasActiveFilters && (
+                  <Button variant="outline" size="sm" onClick={clearFilters}>
+                    <X className="h-4 w-4 mr-2" />
+                    Limpar Filtros
+                  </Button>
+                )}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  {showFilters ? 'Ocultar' : 'Mostrar'} Filtros
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Busca */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Buscar por número, produto, cliente ou usuário..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Filtros Avançados */}
+              {showFilters && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
+                  <div>
+                    <label className="block text-sm font-medium text-[#341601] mb-2">
+                      Cliente
+                    </label>
+                    <select
+                      value={selectedCustomer}
+                      onChange={(e) => setSelectedCustomer(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F66807]"
+                    >
+                      <option value="">Todos os clientes</option>
+                      {customers.map((customer) => (
+                        <option key={customer.id} value={customer.id}>
+                          {customer.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#341601] mb-2">
+                      Produto
+                    </label>
+                    <select
+                      value={selectedProduct}
+                      onChange={(e) => setSelectedProduct(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F66807]"
+                    >
+                      <option value="">Todos os produtos</option>
+                      {products.map((product) => (
+                        <option key={product.id} value={product.id}>
+                          {product.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#341601] mb-2">
+                      Data Inicial
+                    </label>
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#341601] mb-2">
+                      Data Final
+                    </label>
+                    <Input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Orçamentos List */}
         <Card>
           <CardHeader>
-            <CardTitle>Orçamentos Recentes</CardTitle>
+            <CardTitle>Orçamentos {hasActiveFilters ? 'Filtrados' : 'Recentes'}</CardTitle>
             <CardDescription>
-              Lista de todos os orçamentos criados no sistema
+              {hasActiveFilters 
+                ? `${rows.length} orçamento(s) encontrado(s) com os filtros aplicados`
+                : 'Lista de todos os orçamentos criados no sistema'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loadingList ? (
               <div className="flex items-center justify-center py-12">
-                <div className="flex items-center gap-2 text-slate-600">
+                <div className="flex items-center gap-2 text-gray-600">
                   <RefreshCw className="h-4 w-4 animate-spin" />
                   Carregando orçamentos...
                 </div>
               </div>
             ) : rows.length === 0 ? (
               <div className="text-center py-12">
-                <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-900 mb-2">Nenhum orçamento encontrado</h3>
-                <p className="text-slate-600 mb-4">Comece criando seu primeiro orçamento através das categorias.</p>
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-[#341601] mb-2">Nenhum orçamento encontrado</h3>
+                <p className="text-gray-600 mb-4">Comece criando seu primeiro orçamento através das categorias.</p>
                 <Button asChild>
                   <Link href="/quotes/categories">
                     <FileText className="h-4 w-4 mr-2" />
@@ -158,23 +338,28 @@ export default function QuotesPage() {
             ) : (
               <div className="space-y-4">
                 {rows.map((quote) => (
-                  <div key={quote.id} className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors">
+                  <div key={quote.id} className="border border-gray-200 rounded-lg p-4 hover:bg-[#F6EEE8] transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <Badge variant="outline" className="font-mono">
                             #{quote.number}
                           </Badge>
-                          <span className="text-sm text-slate-600">
+                          <span className="text-sm text-gray-600">
                             {formatDate(quote.createdAt)}
                           </span>
                         </div>
-                        <h3 className="font-medium text-slate-900 mb-1">
+                        <h3 className="font-medium text-[#341601] mb-1">
                           {quote.product?.name || 'Produto não especificado'}
                         </h3>
-                        <div className="flex items-center gap-4 text-sm text-slate-600">
-                          <span>ID: {quote.id}</span>
-                          <span className="font-medium text-slate-900">
+                        <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
+                          {quote.customer && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700">
+                              Cliente: {quote.customer.name}
+                            </span>
+                          )}
+                          <span>Qtd: {quote.quantity?.toLocaleString() || '-'}</span>
+                          <span className="font-medium text-[#341601]">
                             Valor: {money(quote.finalPrice)}
                           </span>
                         </div>

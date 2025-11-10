@@ -8,6 +8,9 @@ export async function GET(req: Request) {
     const categoryId = searchParams.get("categoryId");
     const materialType = searchParams.get("materialType");
     const finishCategory = searchParams.get("finishCategory");
+    const printingTechnology = searchParams.get("printingTechnology");
+    const printingFormat = searchParams.get("printingFormat");
+    const printingColors = searchParams.get("printingColors");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "12");
     const skip = (page - 1) * limit;
@@ -52,6 +55,21 @@ export async function GET(req: Request) {
       };
     }
 
+    // Filtros de impressão (combinados)
+    if (printingTechnology || printingFormat || printingColors) {
+      const printingWhere: any = {};
+      if (printingTechnology) {
+        printingWhere.technology = { equals: printingTechnology };
+      }
+      if (printingFormat) {
+        printingWhere.formatLabel = { contains: printingFormat, mode: "insensitive" as const };
+      }
+      if (printingColors) {
+        printingWhere.colors = { contains: printingColors, mode: "insensitive" as const };
+      }
+      where.printing = printingWhere;
+    }
+
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
@@ -60,6 +78,14 @@ export async function GET(req: Request) {
         orderBy: { name: "asc" },
         include: {
           category: { select: { id: true, name: true } },
+          printing: { 
+            select: { 
+              id: true, 
+              technology: true, 
+              formatLabel: true, 
+              colors: true 
+            } 
+          },
           materials: {
             include: {
               material: { select: { id: true, name: true, type: true } }
@@ -75,73 +101,59 @@ export async function GET(req: Request) {
       prisma.product.count({ where })
     ]);
 
-    // Buscar opções de filtro únicas baseadas na categoria selecionada
-    let materialTypes: string[], finishCategories: string[];
+    // Sempre buscar TODOS os materiais, acabamentos e impressões ativos, independente da categoria
+    const [allMaterials, allFinishes, allPrintings] = await Promise.all([
+      prisma.material.findMany({
+        where: { active: true },
+        select: { type: true },
+        distinct: ["type"],
+        orderBy: { type: "asc" }
+      }),
+      prisma.finish.findMany({
+        where: { active: true },
+        select: { category: true },
+        distinct: ["category"],
+        orderBy: { category: "asc" }
+      }),
+      prisma.printing.findMany({
+        where: { active: true },
+        select: { 
+          technology: true, 
+          formatLabel: true, 
+          colors: true 
+        },
+        orderBy: [
+          { technology: "asc" },
+          { formatLabel: "asc" }
+        ]
+      })
+    ]);
     
-    if (categoryId) {
-      // Para categoria específica, buscar materiais e acabamentos usados nessa categoria
-      const [materialsInCategory, finishesInCategory] = await Promise.all([
-        prisma.productMaterial.findMany({
-          where: {
-            product: {
-              categoryId: parseInt(categoryId)
-            },
-            material: {
-              active: true
-            }
-          },
-          include: {
-            material: {
-              select: { type: true }
-            }
-          }
-        }),
-        prisma.productFinish.findMany({
-          where: {
-            product: {
-              categoryId: parseInt(categoryId)
-            },
-            finish: {
-              active: true
-            }
-          },
-          include: {
-            finish: {
-              select: { category: true }
-            }
-          }
-        })
-      ]);
-      
-      materialTypes = materialsInCategory
-        .map(pm => pm.material.type)
-        .filter((type, index, arr) => arr.indexOf(type) === index)
-        .sort();
-        
-      finishCategories = finishesInCategory
-        .map(pf => pf.finish.category)
-        .filter((category, index, arr) => arr.indexOf(category) === index)
-        .sort();
-    } else {
-      // Para "Todos", buscar todos os materiais e acabamentos
-      const [allMaterials, allFinishes] = await Promise.all([
-        prisma.material.findMany({
-          where: { active: true },
-          select: { type: true },
-          distinct: ["type"],
-          orderBy: { type: "asc" }
-        }),
-        prisma.finish.findMany({
-          where: { active: true },
-          select: { category: true },
-          distinct: ["category"],
-          orderBy: { category: "asc" }
-        })
-      ]);
-      
-      materialTypes = allMaterials.map(m => m.type);
-      finishCategories = allFinishes.map(f => f.category);
-    }
+    const materialTypes = allMaterials.map(m => m.type);
+    const finishCategories = allFinishes.map(f => f.category);
+    
+    // Extrair tecnologias únicas de impressão
+    const printingTechnologies = Array.from(
+      new Set(allPrintings.map(p => p.technology))
+    ).sort();
+    
+    // Extrair formatos únicos de impressão (não nulos)
+    const printingFormats = Array.from(
+      new Set(
+        allPrintings
+          .filter(p => p.formatLabel)
+          .map(p => p.formatLabel!)
+      )
+    ).sort();
+    
+    // Extrair cores únicas de impressão (não nulas)
+    const printingColorsList = Array.from(
+      new Set(
+        allPrintings
+          .filter(p => p.colors)
+          .map(p => p.colors!)
+      )
+    ).sort();
     
     const categories = await prisma.productCategory.findMany({
       select: { id: true, name: true },
@@ -159,6 +171,9 @@ export async function GET(req: Request) {
       filters: {
         materialTypes: materialTypes,
         finishCategories: finishCategories,
+        printingTechnologies: printingTechnologies,
+        printingFormats: printingFormats,
+        printingColors: printingColorsList,
         categories: categories.map(c => ({ id: c.id, name: c.name }))
       }
     };

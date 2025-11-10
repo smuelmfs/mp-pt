@@ -13,7 +13,12 @@ export async function GET(_req: Request, ctx: { params: any }) {
 
   const quote = await prisma.quote.findUnique({
     where: { id },
-    include: { product: true, user: true, items: true },
+    include: { 
+      product: true, 
+      user: true, 
+      customer: true,
+      items: true 
+    },
   });
   if (!quote) return NextResponse.json({ error: "Orçamento não encontrado" }, { status: 404 });
   return NextResponse.json(quote);

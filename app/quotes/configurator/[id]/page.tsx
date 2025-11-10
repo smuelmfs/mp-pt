@@ -103,6 +103,8 @@ export default function ConfiguratorPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [customerId, setCustomerId] = useState<string>("");
+  const [customers, setCustomers] = useState<Array<{ id: number; name: string }>>([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [sourcingMode, setSourcingMode] = useState<"INTERNAL" | "SUPPLIER" | "HYBRID">("INTERNAL");
 
   function showSuccessToast(message: string) {
@@ -171,8 +173,24 @@ export default function ConfiguratorPage() {
       }
     }
 
+    async function loadCustomers() {
+      setLoadingCustomers(true);
+      try {
+        const res = await fetch('/api/admin/customers?activeOnly=true');
+        if (res.ok) {
+          const data = await res.json();
+          setCustomers(Array.isArray(data) ? data : []);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar clientes:', error);
+      } finally {
+        setLoadingCustomers(false);
+      }
+    }
+
     if (productId) {
       loadConfig();
+      loadCustomers();
     }
   }, [productId]);
 
@@ -457,6 +475,8 @@ export default function ConfiguratorPage() {
           productId: parseInt(productId),
           quantity,
           choiceIds,
+          customerId: customerId ? Number(customerId) : undefined,
+          sourcingMode,
           params: {
             materialOverrides,
             finishOverrides,
@@ -560,6 +580,32 @@ export default function ConfiguratorPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Configurações */}
           <div className="space-y-6">
+            {/* Seleção de Cliente */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Cliente (Opcional)</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Selecione um cliente para aplicar preços específicos automaticamente
+              </p>
+              <select
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={loadingCustomers}
+              >
+                <option value="">Sem cliente (preços padrão)</option>
+                {customers.map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </option>
+                ))}
+              </select>
+              {customerId && (
+                <p className="text-xs text-green-600 mt-2">
+                  ✓ Preços específicos do cliente serão aplicados
+                </p>
+              )}
+            </div>
+
             {config && config.optionGroups && config.optionGroups.length > 0 ? config.optionGroups.map((group) => (
               <div key={group.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
@@ -597,7 +643,7 @@ export default function ConfiguratorPage() {
                             : selectedChoices[group.id] === choice.id
                         }
                         onChange={() => handleChoiceChange(group.id, choice.id)}
-                        className="h-4 w-4 text-black focus:ring-black border-gray-300 mt-1"
+                        className="h-4 w-4 text-[#F66807] focus:ring-[#F66807] border-gray-300 mt-1"
                       />
                       <div className="flex-1">
                         <div className="font-medium text-gray-900">{choice.name}</div>
@@ -658,7 +704,7 @@ export default function ConfiguratorPage() {
                       <button
                         key={p.id}
                         onClick={() => setQuantity(p.quantity)}
-                        className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${quantity === p.quantity ? 'bg-black text-white border-black' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'}`}
+                        className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${quantity === p.quantity ? 'bg-[#F66807] text-white border-[#F66807]' : 'bg-white text-[#341601] border-gray-300 hover:bg-[#F6EEE8]'}`}
                         title={p.label || String(p.quantity)}
                       >
                         {p.label || p.quantity}
@@ -762,7 +808,7 @@ export default function ConfiguratorPage() {
                 <button
                   onClick={generateMatrix}
                   disabled={calculating}
-                  className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 disabled:opacity-50 font-medium"
+                  className="px-4 py-2 bg-[#F66807] text-white rounded-md hover:bg-[#F66807]/90 disabled:opacity-50 font-medium"
                 >
                   {calculating ? 'Calculando...' : 'Gerar Grade'}
                 </button>
@@ -801,7 +847,7 @@ export default function ConfiguratorPage() {
               <button
                 onClick={saveQuote}
                 disabled={!preview || saving}
-                className="w-full px-6 py-3 bg-black text-white rounded-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                className="w-full px-6 py-3 bg-[#F66807] text-white rounded-md hover:bg-[#F66807]/90 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 {saving ? 'Salvando...' : 'Salvar Orçamento'}
               </button>

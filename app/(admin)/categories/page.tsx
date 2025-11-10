@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
+import { SimplePagination } from "@/components/ui/simple-pagination";
 
 interface Category {
   id: number;
@@ -20,6 +21,8 @@ export default function CategoriesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -152,13 +155,27 @@ export default function CategoriesPage() {
     setFormData({ name: "", roundingStep: 0.05, roundingStrategy: "", pricingStrategy: "", minPricePerPiece: "", lossFactor: "" });
   }
 
-  const filteredCategories = categories.filter(category =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCategories = useMemo(() => {
+    return categories.filter(category =>
+      category.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [categories, searchTerm]);
+
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredCategories.slice(start, end);
+  }, [filteredCategories, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 p-6">
+      <main className="min-h-screen bg-[#FFFFFF] p-6">
         <div className="max-w-7xl mx-auto">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
@@ -174,18 +191,18 @@ export default function CategoriesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-[#F6EEE8]">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Categorias</h1>
+              <h1 className="text-3xl font-bold text-[#341601]">Categorias</h1>
               <p className="text-gray-600 mt-2">Organize os produtos em categorias para facilitar a navegação</p>
             </div>
             <button
               onClick={() => setOpenCreate(true)}
-              className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-sm"
+              className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors shadow-sm"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -198,98 +215,115 @@ export default function CategoriesPage() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Search */}
-        <div className="mb-8">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          {/* Search */}
+          <div className="mb-8">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Buscar categorias..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
+              />
             </div>
-            <input
-              type="text"
-              placeholder="Buscar categorias..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
-            />
           </div>
-        </div>
 
-        {/* Categories Grid */}
-        {filteredCategories.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCategories.map((category) => (
-              <div key={category.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{category.name}</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm text-gray-600">
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                        </svg>
-                        {category._count?.products || 0} produto{(category._count?.products || 0) !== 1 ? 's' : ''}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                        Arredondamento: €{Number(category.roundingStep).toFixed(2)}
+          {/* Categories Grid */}
+          {filteredCategories.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                {paginatedItems.map((category) => (
+                <div key={category.id} className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-[#341601] mb-2">{category.name}</h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                          {category._count?.products || 0} produto{(category._count?.products || 0) !== 1 ? 's' : ''}
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                          </svg>
+                          Arredondamento: €{Number(category.roundingStep).toFixed(2)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-2 ml-4">
-                    <button
-                      onClick={() => startEdit(category)}
-                      className="p-2 text-gray-400 hover:text-black transition-colors"
-                      title="Editar categoria"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => startDelete(category)}
-                      className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                      title="Excluir categoria"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                    <div className="flex items-center space-x-2 ml-4">
+                      <button
+                        onClick={() => startEdit(category)}
+                        className="p-2 text-gray-400 hover:text-[#F66807] transition-colors"
+                        title="Editar categoria"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => startDelete(category)}
+                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                        title="Excluir categoria"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
+              ))}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchTerm ? 'Nenhuma categoria encontrada' : 'Nenhuma categoria criada'}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {searchTerm 
-                ? 'Tente ajustar os termos de busca' 
-                : 'Comece criando sua primeira categoria para organizar os produtos'
-              }
-            </p>
-            {!searchTerm && (
-              <button
-                onClick={() => setOpenCreate(true)}
-                  className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Criar Primeira Categoria
-              </button>
-            )}
-          </div>
-        )}
+              <div className="rounded-lg">
+                <SimplePagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={filteredCategories.length}
+                  onItemsPerPageChange={(items) => {
+                    setItemsPerPage(items);
+                    setCurrentPage(1);
+                  }}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+              <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <h3 className="text-lg font-medium text-[#341601] mb-2">
+                {searchTerm ? 'Nenhuma categoria encontrada' : 'Nenhuma categoria criada'}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {searchTerm 
+                  ? 'Tente ajustar os termos de busca' 
+                  : 'Comece criando sua primeira categoria para organizar os produtos'
+                }
+              </p>
+              {!searchTerm && (
+                <button
+                  onClick={() => setOpenCreate(true)}
+                    className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Criar Primeira Categoria
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Create/Edit Modal */}
@@ -300,7 +334,7 @@ export default function CategoriesPage() {
             <div className="border-b border-gray-200 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">
+                  <h2 className="text-xl font-semibold text-[#341601]">
                     {editing ? 'Editar Categoria' : 'Nova Categoria'}
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">
@@ -321,12 +355,12 @@ export default function CategoriesPage() {
             {/* Content */}
             <div className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-[#341601] mb-2">
                   Nome da Categoria
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   placeholder="Ex: Cartões de Visita, Flyers, Banners"
@@ -335,14 +369,14 @@ export default function CategoriesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-[#341601] mb-2">
                   Arredondamento (€)
                 </label>
                 <input
                   type="number"
                   step="0.01"
                   min="0"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   value={formData.roundingStep}
                   onChange={(e) => setFormData({...formData, roundingStep: parseFloat(e.target.value) || 0})}
                   placeholder="0.05"
@@ -351,11 +385,11 @@ export default function CategoriesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-[#341601] mb-2">
                   Estratégia de Arredondamento
                 </label>
                 <select
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   value={formData.roundingStrategy}
                   onChange={(e) => setFormData({...formData, roundingStrategy: e.target.value})}
                 >
@@ -367,11 +401,11 @@ export default function CategoriesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-[#341601] mb-2">
                   Estratégia de Precificação
                 </label>
                 <select
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   value={formData.pricingStrategy}
                   onChange={(e) => setFormData({...formData, pricingStrategy: e.target.value})}
                 >
@@ -384,14 +418,14 @@ export default function CategoriesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-[#341601] mb-2">
                   Preço Mínimo por Peça (€)
                 </label>
                 <input
                   type="number"
                   step="0.01"
                   min="0"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   value={formData.minPricePerPiece}
                   onChange={(e) => setFormData({...formData, minPricePerPiece: e.target.value})}
                   placeholder="0.50"
@@ -400,7 +434,7 @@ export default function CategoriesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-[#341601] mb-2">
                   Fator de Perda (%)
                 </label>
                 <input
@@ -408,7 +442,7 @@ export default function CategoriesPage() {
                   step="0.001"
                   min="0"
                   max="1"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   value={formData.lossFactor}
                   onChange={(e) => setFormData({...formData, lossFactor: e.target.value})}
                   placeholder="0.01"
@@ -421,13 +455,13 @@ export default function CategoriesPage() {
             <div className="border-t border-gray-200 px-6 py-4">
               <div className="flex justify-end gap-3">
                 <button 
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-6 py-3 border border-gray-300 text-[#341601] rounded-lg hover:bg-white transition-colors"
                   onClick={editing ? cancelEdit : () => setOpenCreate(false)}
                 >
                   Cancelar
                 </button>
                 <button 
-                  className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
+                  className="px-6 py-3 bg-[#F66807] text-white rounded-lg hover:bg-[#F66807]/90 transition-colors font-medium"
                   onClick={editing ? () => updateCategory(editing.id) : createCategory}
                 >
                   {editing ? 'Salvar Alterações' : 'Criar Categoria'}
@@ -452,7 +486,7 @@ export default function CategoriesPage() {
                     </svg>
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Confirmar Exclusão</h2>
+                    <h2 className="text-xl font-semibold text-[#341601]">Confirmar Exclusão</h2>
                     <p className="text-sm text-gray-600 mt-1">Esta ação não pode ser desfeita</p>
                   </div>
                 </div>
@@ -469,8 +503,8 @@ export default function CategoriesPage() {
 
             {/* Content */}
             <div className="p-6">
-              <p className="text-gray-700 mb-4">
-                Tem certeza que deseja excluir a categoria <strong className="text-gray-900">"{deletingCategory.name}"</strong>?
+              <p className="text-[#341601] mb-4">
+                Tem certeza que deseja excluir a categoria <strong className="text-[#341601]">"{deletingCategory.name}"</strong>?
               </p>
               {deletingCategory._count && deletingCategory._count.products > 0 && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
@@ -500,7 +534,7 @@ export default function CategoriesPage() {
             <div className="border-t border-gray-200 px-6 py-4">
               <div className="flex justify-end gap-3">
                 <button 
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  className="px-6 py-3 border border-gray-300 text-[#341601] rounded-lg hover:bg-white transition-colors font-medium"
                   onClick={cancelDelete}
                 >
                   Cancelar

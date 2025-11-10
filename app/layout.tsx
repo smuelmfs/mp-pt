@@ -1,30 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Nunito } from "next/font/google";
 import "./globals.css";
 import { Navigation } from "@/components/navigation";
 import { Toaster } from "@/components/ui/sonner";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const nunito = Nunito({
+  variable: "--font-nunito",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
 });
 
 export const metadata: Metadata = {
-  title: "MP-PT - Sistema de Orçamentos",
+  title: "MyPrint.pt - Sistema de Orçamentos",
   description: "Sistema de orçamentos para impressão digital",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt">
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+      <body className={`${nunito.variable} font-sans antialiased`} suppressHydrationWarning>
         <Navigation />
-        <main className="min-h-screen bg-gray-50">
+        <main className="min-h-screen bg-[#F6EEE8]">
           {children}
         </main>
         <Toaster richColors closeButton position="top-right" />

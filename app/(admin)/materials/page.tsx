@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { SimplePagination } from "@/components/ui/simple-pagination";
 
 type Material = {
   id: number;
@@ -28,6 +29,8 @@ export default function MaterialsPage() {
   const [supplierFilter, setSupplierFilter] = useState<string>("");
   const [sortKey, setSortKey] = useState<"name"|"unitCost"|"type">("name");
   const [sortDir, setSortDir] = useState<"asc"|"desc">("asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [form, setForm] = useState({
@@ -183,6 +186,18 @@ export default function MaterialsPage() {
     return list;
   }, [rows, typeFilter, unitFilter, activeFilter, sortKey, sortDir]);
 
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredSorted.slice(start, end);
+  }, [filteredSorted, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredSorted.length / itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [typeFilter, unitFilter, activeFilter, supplierFilter, debouncedQ, sortKey, sortDir]);
+
   function highlight(text: string, term: string) {
     if (!term) return text;
     const i = text.toLowerCase().indexOf(term.toLowerCase());
@@ -195,7 +210,7 @@ export default function MaterialsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 p-6">
+      <main className="min-h-screen bg-[#F6EEE8] p-6">
         <div className="max-w-7xl mx-auto">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
@@ -211,18 +226,18 @@ export default function MaterialsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[#F6EEE8]">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Materiais</h1>
-              <p className="text-slate-600 mt-2">Gerencie os materiais disponíveis para produção</p>
+              <h1 className="text-3xl font-bold text-[#341601]">Materiais</h1>
+              <p className="text-gray-600 mt-2">Gerencie os materiais disponíveis para produção</p>
             </div>
                     <button
                       onClick={() => setOpenCreate(true)}
-                      className="inline-flex items-center px-6 py-3 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
+                      className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors shadow-sm"
                     >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -235,11 +250,12 @@ export default function MaterialsPage() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         {/* Search & Filters */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 mb-8">
+          <div className="mb-8">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -248,17 +264,17 @@ export default function MaterialsPage() {
               placeholder="Buscar materiais..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
-                      className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
             />
             <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-2">
               {q && (
-                <button onClick={()=>setQ("")} className="px-3 py-2 text-slate-600 hover:text-slate-900">Limpar</button>
+                <button onClick={()=>setQ("")} className="px-4 py-2 text-gray-600 hover:text-[#F66807] transition-colors rounded-lg">Limpar</button>
               )}
             </div>
           </div>
           <div className="mt-4 grid grid-cols-1 md:grid-cols-5 gap-3">
-            <input className="px-3 py-2 border rounded" placeholder="Filtrar por tipo (ex.: vinil, papel)" value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} />
-            <select className="px-3 py-2 border rounded" value={unitFilter} onChange={e=>setUnitFilter(e.target.value as any)}>
+            <input className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]" placeholder="Filtrar por tipo (ex.: vinil, papel)" value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} />
+            <select className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]" value={unitFilter} onChange={e=>setUnitFilter(e.target.value as any)}>
               <option value="">Todas unidades</option>
               <option value="UNIT">Unidade</option>
               <option value="M2">Metro Quadrado</option>
@@ -266,39 +282,70 @@ export default function MaterialsPage() {
               <option value="HOUR">Hora</option>
               <option value="SHEET">Folha</option>
             </select>
-            <select className="px-3 py-2 border rounded" value={supplierFilter} onChange={e=>setSupplierFilter(e.target.value)}>
+            <select className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]" value={supplierFilter} onChange={e=>setSupplierFilter(e.target.value)}>
               <option value="">Todos fornecedores</option>
               {suppliers.map(s => (
                 <option key={s.id} value={String(s.id)}>{s.name}</option>
               ))}
             </select>
-            <select className="px-3 py-2 border rounded" value={activeFilter} onChange={e=>setActiveFilter(e.target.value as any)}>
+            <select className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]" value={activeFilter} onChange={e=>setActiveFilter(e.target.value as any)}>
               <option value="all">Todos</option>
               <option value="active">Ativos</option>
               <option value="inactive">Inativos</option>
             </select>
             <div className="flex gap-2">
-              <select className="flex-1 px-3 py-2 border rounded" value={sortKey} onChange={e=>setSortKey(e.target.value as any)}>
+              <select className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]" value={sortKey} onChange={e=>setSortKey(e.target.value as any)}>
                 <option value="name">Ordenar por Nome</option>
                 <option value="type">Ordenar por Tipo</option>
                 <option value="unitCost">Ordenar por Custo</option>
               </select>
-              <button className="px-3 py-2 border rounded" onClick={()=>setSortDir(d=> d==="asc"?"desc":"asc")}>{sortDir==="asc"?"↑":"↓"}</button>
+              <button className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-white transition-colors" onClick={()=>setSortDir(d=> d==="asc"?"desc":"asc")}>{sortDir==="asc"?"↑":"↓"}</button>
             </div>
           </div>
         </div>
 
         {/* Materials Grid */}
         {filteredSorted.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSorted.map((material) => (
-              <div key={material.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-4">
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+              {paginatedItems.map((material) => (
+              <div key={material.id} className="rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-1">{highlight(material.name, debouncedQ)}</h3>
-                    <p className="text-sm text-slate-600 capitalize">{highlight(material.type||"", typeFilter)}</p>
+                    <h3 className="text-lg font-semibold text-[#341601] mb-2">{highlight(material.name, debouncedQ)}</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        {highlight(material.type||"", typeFilter)}
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        €{Number(material.unitCost).toFixed(4)} / {unitLabels[material.unit]}
+                      </div>
+                      {material.supplier && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                          {material.supplier.name}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 ml-4">
+                    <Link
+                      href={`/materials/${material.id}`}
+                      className="p-2 text-gray-400 hover:text-[#F66807] transition-colors"
+                      title="Editar material"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </Link>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       material.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
@@ -306,54 +353,29 @@ export default function MaterialsPage() {
                     </span>
                   </div>
                 </div>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-600">Custo Unitário</span>
-                    <span className="font-semibold text-slate-900">€{Number(material.unitCost).toFixed(4)}</span>
-                  </div>
-                  {material.supplierUnitCost && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-600">Custo do Fornecedor</span>
-                      <span className="font-semibold text-slate-700">€{Number(material.supplierUnitCost).toFixed(4)}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-600">Unidade</span>
-                    <span className="text-sm font-medium text-slate-900">{unitLabels[material.unit]}</span>
-                  </div>
-                  {material.supplier && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-600">Fornecedor</span>
-                      <span className="text-sm font-medium text-slate-700 bg-slate-100 px-2 py-1 rounded">
-                        {material.supplier.name}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between">
-                  <Link 
-                    href={`/materials/${material.id}`}
-                    className="inline-flex items-center text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
-                  >
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    Ver Detalhes
-                  </Link>
-                  <span className="text-xs text-slate-500">ID {material.id}</span>
-                </div>
               </div>
             ))}
-          </div>
+            </div>
+            <div className="rounded-lg">
+              <SimplePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredSorted.length}
+                onItemsPerPageChange={(items) => {
+                  setItemsPerPage(items);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+          </>
         ) : (
-          <div className="text-center py-12">
+          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
             <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-[#341601] mb-2">
               {q ? 'Nenhum material encontrado' : 'Nenhum material criado'}
             </h3>
             <p className="text-gray-600 mb-6">
@@ -365,7 +387,7 @@ export default function MaterialsPage() {
             {!q && (
                         <button
                           onClick={() => setOpenCreate(true)}
-                          className="inline-flex items-center px-6 py-3 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 transition-colors"
+                          className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors"
                         >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -375,6 +397,7 @@ export default function MaterialsPage() {
             )}
           </div>
         )}
+        </div>
       </div>
 
       {/* Create Modal */}
@@ -385,7 +408,7 @@ export default function MaterialsPage() {
             <div className="border-b border-gray-200 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Novo Material</h2>
+                  <h2 className="text-xl font-semibold text-[#341601]">Novo Material</h2>
                   <p className="text-sm text-gray-600 mt-1">Configure as informações do material</p>
                 </div>
                 <button 
@@ -402,12 +425,12 @@ export default function MaterialsPage() {
             {/* Content */}
             <div className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-[#341601] mb-2">
                   Nome do Material
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   value={form.name}
                   onChange={(e) => setForm({...form, name: e.target.value})}
                   placeholder="Ex: Papel Couché 300g"
@@ -416,12 +439,12 @@ export default function MaterialsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-[#341601] mb-2">
                   Tipo
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                   value={form.type}
                   onChange={(e) => setForm({...form, type: e.target.value})}
                   placeholder="Ex: papel, vinil, pvc"
@@ -431,12 +454,12 @@ export default function MaterialsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-[#341601] mb-2">
                     Fornecedor (opcional)
                   </label>
                   <input
                     list="supplier-suggestions"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                     value={form.supplierName}
                     onChange={(e)=> setForm({ ...form, supplierName: e.target.value, supplierId: "" })}
                     placeholder="Digite para procurar ou criar"
@@ -449,13 +472,13 @@ export default function MaterialsPage() {
                   <p className="text-xs text-gray-500 mt-1">Se já existir, selecione; se não, crio automaticamente</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-[#341601] mb-2">
                     Custo do Fornecedor (opcional)
                   </label>
                   <input
                     type="number"
                     step="0.0001"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                     value={form.supplierUnitCost}
                     onChange={(e) => setForm({...form, supplierUnitCost: e.target.value})}
                     placeholder="0.0000"
@@ -466,7 +489,7 @@ export default function MaterialsPage() {
 
               {/* Cálculo Automático do Custo do Fornecedor */}
               <div className="border-t border-gray-200 pt-4">
-                <p className="text-sm font-medium text-gray-700 mb-3">Cálculo Automático (opcional)</p>
+                <p className="text-sm font-medium text-[#341601] mb-3">Cálculo Automático (opcional)</p>
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -475,7 +498,7 @@ export default function MaterialsPage() {
                     <input
                       type="number"
                       step="0.01"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                       value={form.supplierRollCost}
                       onChange={(e) => setForm({...form, supplierRollCost: e.target.value})}
                       placeholder="Ex: 19.12"
@@ -490,7 +513,7 @@ export default function MaterialsPage() {
                         <input
                           type="number"
                           step="0.001"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                           value={form.supplierRollWidth}
                           onChange={(e) => setForm({...form, supplierRollWidth: e.target.value})}
                           placeholder="Ex: 0.615"
@@ -503,7 +526,7 @@ export default function MaterialsPage() {
                         <input
                           type="number"
                           step="0.001"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                           value={form.supplierRollLength}
                           onChange={(e) => setForm({...form, supplierRollLength: e.target.value})}
                           placeholder="Ex: 5.0"
@@ -519,7 +542,7 @@ export default function MaterialsPage() {
                       <input
                         type="number"
                         step="1"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                         value={form.supplierRollQuantity}
                         onChange={(e) => setForm({...form, supplierRollQuantity: e.target.value})}
                         placeholder="Ex: 500"
@@ -531,11 +554,11 @@ export default function MaterialsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-[#341601] mb-2">
                     Unidade
                   </label>
                   <select
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                     value={form.unit}
                     onChange={(e) => setForm({...form, unit: e.target.value as Material["unit"]})}
                   >
@@ -547,13 +570,13 @@ export default function MaterialsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-[#341601] mb-2">
                     Custo (€)
                   </label>
                   <input
                     type="number"
                     step="0.0001"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                     value={form.unitCost}
                     onChange={(e) => setForm({...form, unitCost: e.target.value})}
                     placeholder="0.0000"
@@ -569,9 +592,9 @@ export default function MaterialsPage() {
                   id="active"
                   checked={form.active}
                   onChange={(e) => setForm({...form, active: e.target.checked})}
-                  className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
+                  className="h-4 w-4 text-[#F66807] focus:ring-[#F66807] border-gray-300 rounded"
                 />
-                <label htmlFor="active" className="ml-2 block text-sm font-medium text-gray-700">
+                <label htmlFor="active" className="ml-2 block text-sm font-medium text-[#341601]">
                   Material ativo
                 </label>
               </div>
@@ -609,13 +632,13 @@ export default function MaterialsPage() {
               const totalCost = unitCostValue + supplierCostValue;
               
               return (
-                <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
+                <div className="border-t border-gray-200 px-6 py-4 bg-[#F6EEE8]">
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-700">Resumo de Custos</p>
+                    <p className="text-sm font-medium text-[#341601]">Resumo de Custos</p>
                     {form.unitCost && (
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-600">Custo Unitário:</span>
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-[#341601]">
                           €{unitCostValue.toFixed(4)} / {form.unit === "M2" ? "m²" : form.unit === "SHEET" ? "folha" : form.unit === "UNIT" ? "unidade" : form.unit.toLowerCase()}
                         </span>
                       </div>
@@ -623,15 +646,15 @@ export default function MaterialsPage() {
                     {finalSupplierCost && (
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-600">Custo do Fornecedor:</span>
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-[#341601]">
                           €{supplierCostValue.toFixed(4)} / {form.unit === "M2" ? "m²" : form.unit === "SHEET" ? "folha" : form.unit === "UNIT" ? "unidade" : form.unit.toLowerCase()}
                         </span>
                       </div>
                     )}
                     {(form.unitCost || finalSupplierCost) && (
                       <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-200">
-                        <span className="text-gray-700 font-medium">Total:</span>
-                        <span className="font-bold text-gray-900 text-base">
+                        <span className="text-[#341601] font-medium">Total:</span>
+                        <span className="font-bold text-[#341601] text-base">
                           €{totalCost.toFixed(4)} / {form.unit === "M2" ? "m²" : form.unit === "SHEET" ? "folha" : form.unit === "UNIT" ? "unidade" : form.unit.toLowerCase()}
                         </span>
                       </div>
@@ -645,13 +668,13 @@ export default function MaterialsPage() {
             <div className="border-t border-gray-200 px-6 py-4">
               <div className="flex justify-end gap-3">
                 <button 
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-6 py-3 border border-gray-300 text-[#341601] rounded-lg hover:bg-white transition-colors"
                   onClick={() => setOpenCreate(false)}
                 >
                   Cancelar
                 </button>
                         <button 
-                          className="px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+                          className="px-6 py-3 bg-[#F66807] text-white rounded-lg hover:bg-[#F66807]/90 transition-colors"
                           onClick={createMaterial}
                           disabled={saving}
                         >

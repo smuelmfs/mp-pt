@@ -59,7 +59,7 @@ export default function ConfigPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#F6EEE8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
@@ -81,7 +81,7 @@ export default function ConfigPage() {
 
   if (!config) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#F6EEE8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <div className="text-red-600 text-lg font-medium">Erro ao carregar configuração</div>
@@ -92,7 +92,7 @@ export default function ConfigPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F6EEE8]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -104,7 +104,7 @@ export default function ConfigPage() {
             <button
               onClick={saveChanges}
               disabled={saving || !hasChanges}
-              className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
                 <>
@@ -141,7 +141,7 @@ export default function ConfigPage() {
                 <input
                   type="number"
                   step="0.01"
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-colors"
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] transition-colors"
                   defaultValue={config.marginDefault ? (Number(config.marginDefault) * 100).toString() : ""}
                   onBlur={(e) => update('marginDefault', Number(e.target.value) / 100)}
                   placeholder="30.00"
@@ -155,7 +155,7 @@ export default function ConfigPage() {
                 <input
                   type="number"
                   step="0.01"
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-colors"
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] transition-colors"
                   defaultValue={config.markupOperational ? (Number(config.markupOperational) * 100).toString() : ""}
                   onBlur={(e) => update('markupOperational', Number(e.target.value) / 100)}
                   placeholder="15.00"
@@ -181,7 +181,7 @@ export default function ConfigPage() {
                 <input
                   type="number"
                   step="0.01"
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-colors"
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] transition-colors"
                   defaultValue={config.roundingStep ? config.roundingStep.toString() : ""}
                   onBlur={(e) => update('roundingStep', e.target.value ? Number(e.target.value) : null)}
                   placeholder="0.05"
@@ -195,7 +195,7 @@ export default function ConfigPage() {
                 <input
                   type="number"
                   step="0.01"
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-colors"
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] transition-colors"
                   defaultValue={config.lossFactor ? (Number(config.lossFactor) * 100).toString() : ""}
                   onBlur={(e) => update('lossFactor', e.target.value ? Number(e.target.value) / 100 : null)}
                   placeholder="3.00"
@@ -220,7 +220,7 @@ export default function ConfigPage() {
                 </label>
                 <input
                   type="number"
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-colors"
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] transition-colors"
                   defaultValue={config.setupTimeMin ? config.setupTimeMin.toString() : ""}
                   onBlur={(e) => update('setupTimeMin', e.target.value ? Number(e.target.value) : null)}
                   placeholder="15"
@@ -234,7 +234,7 @@ export default function ConfigPage() {
                 <input
                   type="number"
                   step="0.01"
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-colors"
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] transition-colors"
                   defaultValue={config.printingHourCost ? config.printingHourCost.toString() : ""}
                   onBlur={(e) => update('printingHourCost', e.target.value ? Number(e.target.value) : null)}
                   placeholder="60.00"
@@ -248,7 +248,7 @@ export default function ConfigPage() {
                 <input
                   type="number"
                   step="0.01"
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-colors"
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] transition-colors"
                   defaultValue={config.vatPercent ? (Number(config.vatPercent) * 100).toString() : ""}
                   onBlur={(e) => update('vatPercent', e.target.value ? Number(e.target.value) / 100 : null)}
                   placeholder="23.00"
@@ -260,7 +260,7 @@ export default function ConfigPage() {
         </Card>
 
         {/* Info Box */}
-        <Card className="bg-gray-50 border-gray-200">
+        <Card className="bg-[#F6EEE8] border-gray-200">
           <CardContent className="pt-6">
             <div className="flex items-start space-x-3">
               <svg className="w-6 h-6 text-gray-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

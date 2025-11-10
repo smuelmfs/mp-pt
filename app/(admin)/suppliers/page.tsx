@@ -3,6 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
+import { SimplePagination } from "@/components/ui/simple-pagination";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type Supplier = { id: number; name: string; active: boolean };
 
@@ -17,6 +26,8 @@ export default function SuppliersPage() {
   const [activeFilter, setActiveFilter] = useState<"all"|"active"|"inactive">("all");
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   async function load() {
     setLoading(true);
@@ -103,8 +114,20 @@ export default function SuppliersPage() {
     return list;
   }, [rows, activeFilter]);
 
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filtered.slice(start, end);
+  }, [filtered, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter, debouncedQ]);
+
   return (
-    <main className="min-h-screen bg-gray-50 p-6">
+    <main className="min-h-screen bg-[#F6EEE8] p-6">
       <ConfirmDialog
         open={!!confirmDelete}
         onOpenChange={(open) => !open && setConfirmDelete(null)}
@@ -119,12 +142,12 @@ export default function SuppliersPage() {
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Fornecedores</h1>
+            <h1 className="text-2xl font-bold text-[#341601]">Fornecedores</h1>
             <p className="text-sm text-gray-600 mt-1">Cadastre, edite e desative fornecedores</p>
           </div>
           <button
             onClick={()=> setOpenCreate(true)}
-            className="inline-flex items-center px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
+            className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white rounded-lg hover:bg-[#F66807]/90 transition-colors font-medium"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -142,45 +165,107 @@ export default function SuppliersPage() {
                 </svg>
               </span>
               <input
-                className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                 placeholder="Buscar fornecedores..."
                 value={q}
                 onChange={(e)=> setQ(e.target.value)}
               />
             </div>
-            <select className="px-3 py-2 border rounded" value={activeFilter} onChange={e=>setActiveFilter(e.target.value as any)}>
+            <select className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]" value={activeFilter} onChange={e=>setActiveFilter(e.target.value as any)}>
               <option value="all">Todos</option>
               <option value="active">Ativos</option>
               <option value="inactive">Inativos</option>
             </select>
           </div>
 
-          <div className="mt-4 divide-y divide-gray-200">
-            {loading ? (
-              <div className="py-10 text-center text-gray-500">Carregando…</div>
-            ) : filtered.length ? (
-              filtered.map(s => (
-                <div key={s.id} className="py-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${s.active? 'bg-green-100 text-green-800':'bg-red-100 text-red-800'}`}>{s.active? 'Ativo':'Inativo'}</span>
-                    <input
-                      defaultValue={s.name}
-                      onBlur={(e)=> { const v=e.target.value.trim(); if (v && v!==s.name) updateSupplier(s.id, { name: v }); }}
-                      className="px-3 py-2 border rounded w-72"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={()=> updateSupplier(s.id, { active: !s.active })} className="px-3 py-2 border rounded">
-                      {s.active? 'Desativar' : 'Ativar'}
-                    </button>
-                    <button onClick={()=> deleteSupplier(s.id)} className="px-3 py-2 border rounded text-red-600 hover:bg-red-50">Excluir</button>
-                  </div>
+          {loading ? (
+            <div className="py-10 text-center text-gray-500">Carregando…</div>
+          ) : (
+            <div className="mt-4">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-[#F6EEE8]">
+                    <TableHead>ID</TableHead>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Ativo</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.length > 0 ? (
+                    <>
+                      {paginatedItems.map(s => (
+                      <TableRow key={s.id}>
+                        <TableCell>{s.id}</TableCell>
+                        <TableCell className="font-medium">{s.name}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            s.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {s.active ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={()=> updateSupplier(s.id, { active: !s.active })}
+                              className="p-2 text-gray-400 hover:text-[#F66807] transition-colors"
+                              title={s.active ? 'Desativar' : 'Ativar'}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                {s.active ? (
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                ) : (
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                )}
+                              </svg>
+                            </button>
+                            <button
+                              onClick={()=> deleteSupplier(s.id)}
+                              className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                              title="Excluir fornecedor"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      ))}
+                    </>
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-12">
+                        <div className="flex flex-col items-center">
+                          <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                          <h3 className="text-lg font-medium text-[#341601] mb-2">Nenhum fornecedor encontrado</h3>
+                          <p className="text-gray-600">Comece criando seu primeiro fornecedor</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+              {filtered.length > 0 && (
+                <div className="border-t border-gray-200">
+                  <SimplePagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    itemsPerPage={itemsPerPage}
+                    totalItems={filtered.length}
+                    onItemsPerPageChange={(items) => {
+                      setItemsPerPage(items);
+                      setCurrentPage(1);
+                    }}
+                  />
                 </div>
-              ))
-            ) : (
-              <div className="py-10 text-center text-gray-500">Nenhum fornecedor encontrado</div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
 
         {openCreate && (
@@ -188,7 +273,7 @@ export default function SuppliersPage() {
             <div className="bg-white rounded-xl w-full max-w-md">
               <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Novo Fornecedor</h2>
+                  <h2 className="text-xl font-semibold text-[#341601]">Novo Fornecedor</h2>
                   <p className="text-sm text-gray-600 mt-1">Cadastre um fornecedor pelo nome</p>
                 </div>
                 <button onClick={()=> setOpenCreate(false)} className="text-gray-400 hover:text-gray-600">
@@ -199,9 +284,9 @@ export default function SuppliersPage() {
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Nome</label>
+                  <label className="block text-sm font-medium text-[#341601] mb-2">Nome</label>
                   <input
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                     placeholder="Ex: INAPA"
                     value={formName}
                     onChange={(e)=> setFormName(e.target.value)}
@@ -209,8 +294,8 @@ export default function SuppliersPage() {
                 </div>
               </div>
               <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
-                <button onClick={()=> setOpenCreate(false)} className="px-4 py-2 rounded border">Cancelar</button>
-                <button onClick={createSupplier} disabled={saving} className="px-4 py-2 rounded bg-black text-white hover:bg-gray-800 disabled:opacity-50">{saving? 'Salvando…':'Salvar'}</button>
+                <button onClick={()=> setOpenCreate(false)} className="px-6 py-3 border border-gray-300 text-[#341601] rounded-lg hover:bg-white transition-colors">Cancelar</button>
+                <button onClick={createSupplier} disabled={saving} className="px-6 py-3 bg-[#F66807] text-white rounded-lg hover:bg-[#F66807]/90 disabled:opacity-50 transition-colors font-medium">{saving? 'Salvando…':'Salvar'}</button>
               </div>
             </div>
           </div>
