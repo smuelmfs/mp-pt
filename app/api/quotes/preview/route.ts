@@ -28,10 +28,38 @@ export async function POST(request: NextRequest) {
     // Aplicar overrides baseados nas escolhas
     const overrides: any = { ...(incomingOverrides || {}) };
     
-    // Aplicar variante de material se selecionada
-    const materialChoice = choices.find(c => c.materialVariantId);
-    if (materialChoice?.materialVariant) {
-      overrides.materialVariantId = materialChoice.materialVariantId;
+    // Se não encontrou ProductOptionChoices, pode ser que os IDs sejam ProductMaterial IDs
+    // (quando o frontend envia material_${pm.id} e extrai apenas o ID numérico)
+    if (choices.length === 0 && choiceIds.length > 0) {
+      // Tentar encontrar ProductMaterials correspondentes aos IDs
+      const productMaterials = await prisma.productMaterial.findMany({
+        where: {
+          id: { in: choiceIds },
+          productId: productId
+        },
+        include: {
+          material: true,
+          variant: true
+        }
+      });
+      
+      if (productMaterials.length > 0) {
+        // Usar o primeiro ProductMaterial encontrado (seleção única)
+        const pm = productMaterials[0];
+        overrides.productMaterialId = pm.id;
+        overrides.materialId = pm.materialId;
+        if (pm.variantId) {
+          overrides.materialVariantId = pm.variantId;
+        }
+      }
+    } else {
+      // Aplicar material/variante de material se selecionada via ProductOptionChoice
+      const materialChoice = choices.find(c => c.materialVariantId);
+      if (materialChoice?.materialVariant) {
+        overrides.materialVariantId = materialChoice.materialVariantId;
+        // Garantir que o material correspondente seja o único considerado
+        overrides.materialId = materialChoice.materialVariant.materialId;
+      }
     }
 
     // Aplicar dimensões se sobrescritas
@@ -47,13 +75,28 @@ export async function POST(request: NextRequest) {
       Object.assign(params, attrsChoice.overrideAttrs);
     }
 
-    // Aplicar acabamentos adicionais
+    // Acabamentos: quando o usuário selecionar acabamentos, usar somente os escolhidos
     const finishChoices = choices.filter(c => c.finishId);
     if (finishChoices.length > 0) {
+      overrides.disableProductFinishes = true;
+      overrides.includeFinishIds = finishChoices.map(c => c.finishId);
+      // qty por unidade vindo das choices é suportado via 'additionalFinishes' (mantém quantidades customizadas)
       overrides.additionalFinishes = finishChoices.map(c => ({
         finishId: c.finishId,
-        qtyPerUnit: c.finishQtyPerUnit || 1
+        qtyPerUnit: c.finishQtyPerUnit || 1,
       }));
+    }
+
+    // Material selecionado via params (fallback caso a escolha não tenha variante)
+    // IMPORTANTE: productMaterialId tem precedência sobre materialId
+    if (!overrides.productMaterialId && params && (params as any).productMaterialId) {
+      overrides.productMaterialId = Number((params as any).productMaterialId);
+    }
+    if (!overrides.materialId && params && (params as any).materialId) {
+      overrides.materialId = Number((params as any).materialId);
+    }
+    if (!overrides.materialId && params && (params as any).selectedMaterialId) {
+      overrides.materialId = Number((params as any).selectedMaterialId);
     }
 
     // Calcular orçamento

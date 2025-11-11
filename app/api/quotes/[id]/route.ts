@@ -44,3 +44,21 @@ export async function PATCH(_req: Request, ctx: { params: any }) {
     return NextResponse.json({ error: "Erro ao atualizar notas", detail: String((error as any)?.message || error) }, { status: 500 });
   }
 }
+
+export async function DELETE(_req: Request, ctx: { params: any }) {
+  const id = await getId(ctx);
+  if (!Number.isFinite(id)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+
+  try {
+    await prisma.$transaction([
+      prisma.quoteItem.deleteMany({ where: { quoteId: id } }),
+      prisma.calcLog.deleteMany({ where: { quoteId: id } }),
+      prisma.quote.delete({ where: { id } }),
+    ]);
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Erro ao excluir orçamento:", error);
+    return NextResponse.json({ error: "Erro ao excluir orçamento", detail: String((error as any)?.message || error) }, { status: 500 });
+  }
+}

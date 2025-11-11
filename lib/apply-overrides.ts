@@ -23,6 +23,8 @@ export interface ChoiceOverride {
 
 export interface ProductOverrides {
   materialVariantId?: number;
+  materialId?: number; // ID do material correspondente à variante
+  productMaterialId?: number; // ID do ProductMaterial (tem precedência sobre materialId)
   additionalFinishes: Array<{
     finishId: number;
     qtyPerUnit: number;
@@ -66,41 +68,71 @@ export async function applyChoiceOverrides(
     additionalFinishes: []
   };
 
-  // Aplicar overrides de cada escolha
-  for (const choice of choices) {
-    // Override de variante de material (apenas a primeira encontrada)
-    if (choice.materialVariantId && !overrides.materialVariantId) {
-      overrides.materialVariantId = choice.materialVariantId;
+  // Se não encontrou ProductOptionChoices, pode ser que os IDs sejam ProductMaterial IDs
+  // (quando o frontend envia material_${pm.id} e extrai apenas o ID numérico)
+  if (choices.length === 0 && choiceIds.length > 0) {
+    // Tentar encontrar ProductMaterials correspondentes aos IDs
+    const productMaterials = await prisma.productMaterial.findMany({
+      where: {
+        id: { in: choiceIds },
+        productId: productId
+      },
+      include: {
+        material: true,
+        variant: true
+      }
+    });
+    
+    if (productMaterials.length > 0) {
+      // Usar o primeiro ProductMaterial encontrado (seleção única)
+      const pm = productMaterials[0];
+      overrides.productMaterialId = pm.id;
+      overrides.materialId = pm.materialId;
+      if (pm.variantId) {
+        overrides.materialVariantId = pm.variantId;
+      }
     }
+  } else {
+    // Aplicar overrides de cada escolha (ProductOptionChoice)
+    for (const choice of choices) {
+      // Override de variante de material (apenas a primeira encontrada)
+      if (choice.materialVariantId && !overrides.materialVariantId) {
+        overrides.materialVariantId = choice.materialVariantId;
+        // Também definir materialId para garantir filtro correto
+        if (choice.materialVariant?.materialId) {
+          overrides.materialId = choice.materialVariant.materialId;
+        }
+      }
 
-    // Override de acabamento adicional
-    if (choice.finishId && choice.finishQtyPerUnit) {
-      overrides.additionalFinishes.push({
-        finishId: choice.finishId,
-        qtyPerUnit: Number(choice.finishQtyPerUnit)
-      });
-    }
+      // Override de acabamento adicional
+      if (choice.finishId && choice.finishQtyPerUnit) {
+        overrides.additionalFinishes.push({
+          finishId: choice.finishId,
+          qtyPerUnit: Number(choice.finishQtyPerUnit)
+        });
+      }
 
-    // Override de dimensões (sobrescreve se for maior)
-    if (choice.widthOverride) {
-      overrides.widthOverride = Math.max(
-        overrides.widthOverride || 0,
-        choice.widthOverride
-      );
-    }
-    if (choice.heightOverride) {
-      overrides.heightOverride = Math.max(
-        overrides.heightOverride || 0,
-        choice.heightOverride
-      );
-    }
+      // Override de dimensões (sobrescreve se for maior)
+      if (choice.widthOverride) {
+        overrides.widthOverride = Math.max(
+          overrides.widthOverride || 0,
+          choice.widthOverride
+        );
+      }
+      if (choice.heightOverride) {
+        overrides.heightOverride = Math.max(
+          overrides.heightOverride || 0,
+          choice.heightOverride
+        );
+      }
 
-    // Override de preço (acumula ajustes percentuais, soma fixos)
-    if (choice.priceAdjustment) {
-      overrides.priceAdjustment = (overrides.priceAdjustment || 0) + Number(choice.priceAdjustment);
-    }
-    if (choice.priceFixed) {
-      overrides.priceFixed = (overrides.priceFixed || 0) + Number(choice.priceFixed);
+      // Override de preço (acumula ajustes percentuais, soma fixos)
+      if (choice.priceAdjustment) {
+        overrides.priceAdjustment = (overrides.priceAdjustment || 0) + Number(choice.priceAdjustment);
+      }
+      if (choice.priceFixed) {
+        overrides.priceFixed = (overrides.priceFixed || 0) + Number(choice.priceFixed);
+      }
     }
   }
 

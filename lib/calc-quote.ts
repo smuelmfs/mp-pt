@@ -156,17 +156,50 @@ export async function calcQuote(productId: number, quantity: number, params: any
 
   // Aplicar overrides se fornecidos
   if (overrides) {
-    // Override de variante de material (usa primeiro material principal se houver flag isMain)
+    // Seleção direta de material por materialId (ex.: quando a escolha troca o material base)
+    // IMPORTANTE: Filtrar por materialId PRIMEIRO, antes de aplicar variante
+    if (overrides.materialId) {
+      const mid = Number(overrides.materialId);
+      if (Number.isFinite(mid)) {
+        const matchIdx = product.materials.findIndex((pm: any) => Number(pm.materialId) === mid);
+        if (matchIdx >= 0) {
+          // manter apenas o material selecionado
+          product.materials = [product.materials[matchIdx]] as any;
+        }
+      }
+    }
+    // Override de variante de material (aplica variante ao material já filtrado)
     if (overrides.materialVariantId) {
-      const materialIndex = product.materials.findIndex((m: any) => (m as any).isMain);
-      if (materialIndex >= 0) {
-        product.materials[materialIndex].variantId = overrides.materialVariantId;
-        const newVariant = await prisma.materialVariant.findUnique({
-          where: { id: overrides.materialVariantId },
-          include: { material: true }
-        });
-        if (newVariant) {
-          product.materials[materialIndex].variant = newVariant;
+      // Se já filtramos por materialId, usar o material filtrado
+      // Caso contrário, tentar encontrar o material correspondente à variante
+      const newVariant = await prisma.materialVariant.findUnique({
+        where: { id: overrides.materialVariantId },
+        include: { material: true }
+      });
+      if (newVariant) {
+        // Se já filtramos por materialId, usar o material filtrado (deve ser apenas 1)
+        if (product.materials.length === 1) {
+          // Aplicar variante ao material já filtrado
+          product.materials[0].variantId = overrides.materialVariantId;
+          product.materials[0].variant = newVariant;
+        } else {
+          // Se não filtramos ainda, encontrar o ProductMaterial correspondente ao material da variante
+          const pmIdx = product.materials.findIndex((pm: any) => Number(pm.materialId) === Number(newVariant.materialId));
+          if (pmIdx >= 0) {
+            product.materials[pmIdx].variantId = overrides.materialVariantId;
+            product.materials[pmIdx].variant = newVariant;
+            // manter apenas o PM correspondente
+            product.materials = [product.materials[pmIdx]] as any;
+          } else {
+            // Fallback: usar primeiro material e aplicar variante
+            const materialIndex = product.materials.findIndex((m: any) => (m as any).isMain);
+            const idx = materialIndex >= 0 ? materialIndex : (product.materials.length > 0 ? 0 : -1);
+            if (idx >= 0) {
+              product.materials[idx].variantId = overrides.materialVariantId;
+              product.materials[idx].variant = newVariant;
+              product.materials = [product.materials[idx]] as any;
+            }
+          }
         }
       }
     }
@@ -211,6 +244,57 @@ export async function calcQuote(productId: number, quantity: number, params: any
     }
   }
 
+  // Inferir material a partir de params.materialOverrides quando a UI só envia overrides por variante (sem materialId explícito)
+  if ((product as any).materials && (product as any).materials.length > 1) {
+    const overridesHasMaterial = !!(overrides as any)?.materialId || !!(overrides as any)?.productMaterialId || !!(overrides as any)?.materialVariantId;
+    const paramsMaterialOverrides = (params as any)?.materialOverrides;
+    if (!overridesHasMaterial && paramsMaterialOverrides && typeof paramsMaterialOverrides === "object") {
+      const variantIds = Object.keys(paramsMaterialOverrides)
+        .map(v => Number(v))
+        .filter((n) => Number.isFinite(n));
+      if (variantIds.length === 1) {
+        const inferredVariantId = variantIds[0];
+        try {
+          const inferredVariant = await prisma.materialVariant.findUnique({
+            where: { id: inferredVariantId },
+            include: { material: true }
+          });
+          if (inferredVariant?.materialId) {
+            // Encontrar ProductMaterial correspondente ao material da variante
+            const pmIdx = (product as any).materials.findIndex((pm: any) => Number(pm.materialId) === Number(inferredVariant.materialId));
+            if (pmIdx >= 0) {
+              // Atribuir a variante inferida ao PM selecionado e manter apenas ele
+              (product as any).materials[pmIdx].variantId = inferredVariant.id;
+              (product as any).materials[pmIdx].variant = inferredVariant;
+              (product as any).materials = [(product as any).materials[pmIdx]] as any;
+            }
+          }
+        } catch {
+          // se não conseguir inferir, segue fluxo normal sem filtrar
+        }
+      }
+    }
+  }
+
+  // Filtro adicional de material com base em params/overrides (quando há múltiplos materiais no produto)
+  // Suporta: materialId (id do Material) ou productMaterialId (id de ProductMaterial)
+  if ((product as any).materials && (product as any).materials.length > 1) {
+    const pickMaterialId = Number(
+      (overrides as any)?.materialId ?? (params as any)?.materialId ?? (params as any)?.selectedMaterialId ?? NaN
+    );
+    const pickPMId = Number(
+      (overrides as any)?.productMaterialId ?? (params as any)?.productMaterialId ?? NaN
+    );
+
+    if (Number.isFinite(pickPMId)) {
+      const match = (product as any).materials.find((pm: any) => Number(pm.id) === pickPMId);
+      if (match) (product as any).materials = [match];
+    } else if (Number.isFinite(pickMaterialId)) {
+      const match = (product as any).materials.find((pm: any) => Number(pm.materialId) === pickMaterialId);
+      if (match) (product as any).materials = [match];
+    }
+  }
+
   // Aplicar mínimo de pedido (quantidade)
   let effectiveQuantity = quantity;
   let minOrderApplied = false;
@@ -227,6 +311,57 @@ export async function calcQuote(productId: number, quantity: number, params: any
   const widthMm = product.widthMm || (product.attributesSchema as any)?.largura_mm || 0;
   const heightMm = product.heightMm || (product.attributesSchema as any)?.altura_mm || 0;
   const areaM2PerUnit = widthMm && heightMm ? (Number(widthMm) * Number(heightMm)) / 1_000_000 : 0;
+
+  // Enforçar seleção única de material antes do cálculo de custos
+  if ((product as any).materials && (product as any).materials.length > 1) {
+    // Tentar derivar um material selecionado definitivo
+    let definitivePMId: number | null = null;
+    let definitiveMaterialId: number | null = null;
+
+    const tryNumber = (v: any) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+
+    // 1) productMaterialId tem precedência absoluta
+    definitivePMId = tryNumber((overrides as any)?.productMaterialId ?? (params as any)?.productMaterialId);
+    // 2) materialId direto
+    if (definitivePMId == null) {
+      definitiveMaterialId = tryNumber(
+        (overrides as any)?.materialId ?? (params as any)?.materialId ?? (params as any)?.selectedMaterialId
+      );
+    }
+    // 3) materialVariantId → materialId
+    if (definitivePMId == null && definitiveMaterialId == null) {
+      const varId = tryNumber((overrides as any)?.materialVariantId);
+      if (varId != null) {
+        const v = await prisma.materialVariant.findUnique({ where: { id: varId }, include: { material: true } });
+        if (v?.materialId) definitiveMaterialId = Number(v.materialId);
+      }
+    }
+    // 4) params.materialOverrides com uma única variante
+    if (definitivePMId == null && definitiveMaterialId == null) {
+      const paramsMaterialOverrides = (params as any)?.materialOverrides;
+      if (paramsMaterialOverrides && typeof paramsMaterialOverrides === "object") {
+        const variantIds = Object.keys(paramsMaterialOverrides)
+          .map(k => Number(k))
+          .filter(n => Number.isFinite(n));
+        if (variantIds.length === 1) {
+          const v = await prisma.materialVariant.findUnique({ where: { id: variantIds[0] }, include: { material: true } });
+          if (v?.materialId) definitiveMaterialId = Number(v.materialId);
+        }
+      }
+    }
+
+    // Aplicar filtro definitivo
+    if (definitivePMId != null) {
+      const match = (product as any).materials.find((pm: any) => Number(pm.id) === definitivePMId);
+      if (match) (product as any).materials = [match];
+    } else if (definitiveMaterialId != null) {
+      const match = (product as any).materials.find((pm: any) => Number(pm.materialId) === definitiveMaterialId);
+      if (match) (product as any).materials = [match];
+    }
+  }
 
   // ===== custos detalhados por item =====
   const items: Array<{
@@ -326,6 +461,8 @@ export async function calcQuote(productId: number, quantity: number, params: any
       const minutes = toNumber((product.printing as any).setupMinutes || (cfg as any).setupTimeMin || 0);
       const hourCost = toNumber((cfg as any).printingHourCost || 0);
       setupCost = (minutes / 60) * hourCost;
+      // Arredondar setup quando PER_STEP
+      setupCost = roundLine(setupCost);
     }
 
     costPrint = Math.max(byQty + setupCost, minFee);
@@ -366,12 +503,16 @@ export async function calcQuote(productId: number, quantity: number, params: any
 
     switch (calcType) {
       case "PER_M2": {
+        // Calcular área total: área por unidade × quantidade × qtyPerUnit
         let q = (areaM2PerUnit * effectiveQuantity) * qtyPU;
+        // Aplicar perda antes do step (conforme planilha)
+        q = q * (1 + finishLoss);
+        // Aplicar step de área após perda (arredondar para cima no step)
         if (baseResolved.areaStepM2) {
           const step = toNumber(baseResolved.areaStepM2 as any);
           if (step > 0) q = Math.ceil(q / step) * step; // step de área
         }
-        finishQuantity = q * (1 + finishLoss); // perda em m² não precisa ceil
+        finishQuantity = q;
         break;
       }
       case "PER_LOT": {
@@ -379,8 +520,10 @@ export async function calcQuote(productId: number, quantity: number, params: any
         break;
       }
       case "PER_HOUR": {
-        // Ajuste: PER_HOUR escala por quantidade (horas por unidade)
-        finishQuantity = (effectiveQuantity * qtyPU) * (1 + finishLoss);
+        // PER_HOUR: qtyPU é horas por unidade, calcular horas totais necessárias
+        // Exemplo: qtyPU = 0.1h/un, qty = 100 → horas = 10h
+        const baseHours = effectiveQuantity * qtyPU;
+        finishQuantity = baseHours * (1 + finishLoss); // perda aplicada às horas
         break;
       }
       default: { // PER_UNIT
@@ -392,11 +535,19 @@ export async function calcQuote(productId: number, quantity: number, params: any
     let line = 0;
     switch (calcType) {
       case "PER_M2":
+        // base já é €/m², finishQuantity já está em m² (com step aplicado)
+        line = base * finishQuantity;
+        break;
       case "PER_HOUR":
+        // base é €/hora, finishQuantity está em horas
+        line = base * finishQuantity;
+        break;
       case "PER_UNIT":
+        // base é €/unidade, finishQuantity está em unidades
         line = base * finishQuantity;
         break;
       case "PER_LOT":
+        // base é custo fixo por lote
         line = base;
         break;
     }
@@ -415,7 +566,7 @@ export async function calcQuote(productId: number, quantity: number, params: any
       refId: pf.finishId,
       name: f.name,
       quantity: calcType === "PER_LOT" ? 1 : finishQuantity,
-      unit: f.unit,
+      unit: calcType === "PER_HOUR" ? "HOUR" : f.unit, // PER_HOUR deve mostrar HOUR como unidade
       unitCost: base,
       totalCost: line,
     });
@@ -424,7 +575,11 @@ export async function calcQuote(productId: number, quantity: number, params: any
   // =========================
   // Subtotais de custo (produção e fornecedor)
   // =========================
-  const productionSubtotal = costMat + costPrint + costFinish;
+  // Quando PER_STEP, arredondar subtotal de produção
+  let productionSubtotal = costMat + costPrint + costFinish;
+  if (isPerStep) {
+    productionSubtotal = roundMoney2(productionSubtotal);
+  }
 
   // Custos de fornecedor com escolha do melhor candidato
   let costSupplier = 0;
@@ -483,6 +638,10 @@ export async function calcQuote(productId: number, quantity: number, params: any
       totalCostBeforeMargin = productionSubtotal;
       break;
   }
+  // Arredondar total antes da margem quando PER_STEP
+  if (isPerStep) {
+    totalCostBeforeMargin = roundMoney2(totalCostBeforeMargin);
+  }
 
   // =========================
   // Regras de margem dinâmica — usar total antes da margem
@@ -522,6 +681,10 @@ export async function calcQuote(productId: number, quantity: number, params: any
     minOrderApplied = true;
     minOrderReason = `Valor mínimo: €${minOrderValueResolved}`;
   }
+  // Arredondar effectiveSubtotal quando PER_STEP
+  if (isPerStep) {
+    effectiveSubtotal = roundMoney2(effectiveSubtotal);
+  }
 
   // =========================
   // Markup / Margem fixa (prioridade Produto > Categoria > Global) — prefs resolvidos podem fornecer margin/markup
@@ -553,19 +716,34 @@ export async function calcQuote(productId: number, quantity: number, params: any
   let final = 0;
   switch (prefs.pricingStrategy) {
     case "COST_MARGIN_ONLY":
+      // Apenas margem (sem markup): subtotal × (1 + margem + ajuste_dinâmico)
       final = effectiveSubtotal * (1 + margin + dynamic);
       break;
     case "MARGIN_TARGET":
-      final = effectiveSubtotal / Math.max(1 - (margin + dynamic), 0.0001);
+      // Margem alvo: preço = subtotal / (1 - margem - ajuste_dinâmico)
+      // Garantir que denominador não seja <= 0
+      const denominator = Math.max(1 - (margin + dynamic), 0.0001);
+      final = effectiveSubtotal / denominator;
       break;
-    default:
+    default: // COST_MARKUP_MARGIN
+      // Markup + Margem: subtotal × (1 + markup) × (1 + margem + ajuste_dinâmico)
       final = effectiveSubtotal * (1 + markup) * (1 + margin + dynamic);
+      break;
   }
 
+  // Aplicar mínimo por peça (se configurado)
   const floorPerPiece = prefs.minPricePerPiece ? (effectiveQuantity * prefs.minPricePerPiece) : 0;
+  if (floorPerPiece > 0 && final < floorPerPiece) {
+    final = floorPerPiece;
+  }
+
+  // Arredondar para o degrau configurado
   let rounded = roundToStep(final, prefs.step);
+  
+  // Se após arredondamento ainda estiver abaixo do mínimo por peça, ajustar
   if (prefs.minPricePerPiece && rounded < floorPerPiece) {
     if (prefs.step && prefs.step > 0) {
+      // Arredondar o mínimo para cima no degrau
       const stepped = Math.ceil(floorPerPiece / prefs.step) * prefs.step;
       rounded = roundMoney2(stepped);
     } else {

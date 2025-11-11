@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Printer, FileText, Calendar, User, Package, Euro, TrendingUp, Building2, Download, FileSpreadsheet, Edit2, Save, X } from "lucide-react";
+import { ArrowLeft, Printer, FileText, Calendar, User, Package, Euro, TrendingUp, Building2, Download, FileSpreadsheet, Edit2, Save, X, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 function money(n: number | string | null | undefined) {
@@ -35,6 +35,8 @@ export default function QuoteDetailPage() {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notesText, setNotesText] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -77,6 +79,27 @@ export default function QuoteDetailPage() {
       toast.error((error as Error)?.message || "Erro ao salvar notas");
     } finally {
       setSavingNotes(false);
+    }
+  }
+
+  async function deleteQuote() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/quotes/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        let detail = "";
+        try {
+          const err = await res.json();
+          detail = err?.error || err?.detail || "";
+        } catch {}
+        throw new Error(detail || "Erro ao excluir orçamento");
+      }
+      toast.success("Orçamento excluído com sucesso!");
+      setTimeout(() => { window.location.href = "/quotes"; }, 800);
+    } catch (error) {
+      console.error("Erro ao excluir orçamento:", error);
+      toast.error((error as Error)?.message || "Erro ao excluir orçamento");
+      setDeleting(false);
     }
   }
 
@@ -224,6 +247,13 @@ export default function QuoteDetailPage() {
               >
                 <Printer className="h-4 w-4 mr-2" />
                 Imprimir
+              </button>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="inline-flex items-center px-6 py-3 border border-red-300 text-red-700 font-medium rounded-lg hover:bg-red-50 transition-colors shadow-sm"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir
               </button>
             </div>
           </div>
@@ -492,6 +522,47 @@ export default function QuoteDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de Confirmação de Exclusão */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl border border-gray-200 max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-[#341601]">Excluir Orçamento</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Tem certeza que deseja excluir o orçamento <span className="font-medium">#{row?.number}</span>?
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm text-red-600 mb-6">
+                Esta ação não pode ser desfeita. Todos os dados relacionados a este orçamento serão permanentemente removidos.
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={deleteQuote}
+                  disabled={deleting}
+                  className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {deleting ? "Excluindo..." : "Sim, Excluir"}
+                </button>
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={deleting}
+                  className="flex-1 inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-[#341601] font-medium rounded-lg hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
