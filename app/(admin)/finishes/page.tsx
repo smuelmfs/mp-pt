@@ -69,8 +69,15 @@ export default function FinishesListPage() {
       toast.error("Nome é obrigatório");
       return;
     }
-    if (!form.baseCost) {
+    if (!form.baseCost || form.baseCost.trim() === "") {
       toast.error("Custo base é obrigatório");
+      return;
+    }
+
+    // Normaliza o baseCost para garantir formato correto
+    const baseCostValue = String(form.baseCost).trim();
+    if (!/^\d+(\.\d{1,4})?$/.test(baseCostValue)) {
+      toast.error("Custo base deve ser um número positivo com até 4 casas decimais (ex: 0.1500)");
       return;
     }
 
@@ -83,16 +90,17 @@ export default function FinishesListPage() {
           name: form.name.trim(),
           category: form.category,
           unit: form.unit,
-          baseCost: form.baseCost,
+          baseCost: baseCostValue,
           calcType: form.calcType,
-          minFee: form.minFee || null,
-          marginDefault: form.marginDefault || null,
+          minFee: form.minFee?.trim() || null,
+          marginDefault: form.marginDefault?.trim() || null,
           active: form.active,
         }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        toast.error("Erro ao criar: " + (j.error?.message || "verifique os campos"));
+        const errorMsg = j.error || j.details?.fieldErrors || "verifique os campos";
+        toast.error("Erro ao criar: " + (typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg)));
         return;
       }
       toast.success("Acabamento criado com sucesso!");
@@ -108,6 +116,8 @@ export default function FinishesListPage() {
         active: true,
       });
       load();
+    } catch (error: any) {
+      toast.error("Erro ao criar: " + (error.message || "Erro desconhecido"));
     } finally {
       setSaving(false);
     }
@@ -471,11 +481,17 @@ export default function FinishesListPage() {
                     Custo Base (€)
                   </label>
                   <input
-                    type="number"
-                    step="0.0001"
+                    type="text"
+                    pattern="^\d+(\.\d{1,4})?$"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                     value={form.baseCost}
-                    onChange={(e) => setForm({...form, baseCost: e.target.value})}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      // Permite apenas números e ponto decimal
+                      if (val === "" || /^\d*\.?\d{0,4}$/.test(val)) {
+                        setForm({...form, baseCost: val});
+                      }
+                    }}
                     placeholder="0.0000"
                   />
                 </div>

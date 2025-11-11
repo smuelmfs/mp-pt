@@ -6,11 +6,14 @@ const CreateSchema = z.object({
   name: z.string().min(2),
   category: z.enum(["LAMINACAO","VERNIZ","CORTE","DOBRA","OUTROS"]),
   unit: z.enum(["UNIT","M2","LOT","HOUR","SHEET"]),
-  baseCost: z.string().regex(/^\d+(\.\d{1,4})?$/),
-  marginDefault: z.string().regex(/^\d+(\.\d{1,4})?$/).optional(),
+  baseCost: z.string().refine((val) => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num >= 0 && /^\d+(\.\d{1,4})?$/.test(val.trim());
+  }, { message: "Custo base deve ser um número positivo com até 4 casas decimais" }),
+  marginDefault: z.string().regex(/^\d+(\.\d{1,4})?$/).optional().nullable(),
   calcType: z.enum(["PER_UNIT","PER_M2","PER_LOT","PER_HOUR"]).default("PER_UNIT"),
-  minFee: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
-  areaStepM2: z.string().regex(/^\d+(\.\d{1,4})?$/).optional(),
+  minFee: z.string().regex(/^\d+(\.\d{1,2})?$/).optional().nullable(),
+  areaStepM2: z.string().regex(/^\d+(\.\d{1,4})?$/).optional().nullable(),
   active: z.boolean().optional().default(true),
   minPerPiece: z.string().regex(/^\d+(\.\d{1,2})?$/).nullable().optional(),
   lossFactor: z.string().regex(/^\d+(\.\d{1,4})?$/).nullable().optional(),
@@ -66,10 +69,24 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const json = await req.json().catch(() => ({}));
-  const parsed = CreateSchema.safeParse(json);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  try {
+    const json = await req.json().catch(() => ({}));
+    
+    // Normaliza baseCost removendo espaços e garantindo formato correto
+    if (json.baseCost) {
+      json.baseCost = String(json.baseCost).trim();
+    }
+    
+    const parsed = CreateSchema.safeParse(json);
+    if (!parsed.success) {
+      const errors = parsed.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+      return NextResponse.json({ error: errors || "Erro de validação", details: parsed.error.flatten() }, { status: 400 });
+    }
 
-  const row = await prisma.finish.create({ data: parsed.data as any });
-  return NextResponse.json(row, { status: 201 });
+    const row = await prisma.finish.create({ data: parsed.data as any });
+    return NextResponse.json(row, { status: 201 });
+  } catch (error: any) {
+    console.error("Erro ao criar acabamento:", error);
+    return NextResponse.json({ error: error.message || "Erro ao criar acabamento" }, { status: 500 });
+  }
 }

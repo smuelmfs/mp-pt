@@ -438,13 +438,17 @@ export async function calcQuote(productId: number, quantity: number, params: any
       (product as any).widthMm && (product as any).heightMm &&
       pm.material.unit === "SHEET"
     ) {
+      // Ajustar bleed e gutter para valores mais realistas
+      // Bleed: 1mm é suficiente para impressão digital (3mm era muito conservador)
+      // Gutter: 1mm é suficiente entre peças (2mm era muito conservador)
+      // Isso permite melhor aproveitamento da folha (ex: 2 A4 em 1 SRA3)
       const imposition = computeImposition({
         productWidthMm: (product as any).widthMm,
         productHeightMm: (product as any).heightMm,
         sheetWidthMm: pm.variant.widthMm,
         sheetHeightMm: pm.variant.heightMm,
-        bleedMm: 3,
-        gutterMm: 2,
+        bleedMm: 1,  // Reduzido de 3mm para 1mm (mais realista para digital)
+        gutterMm: 1, // Reduzido de 2mm para 1mm (suficiente entre peças)
       });
 
       if (imposition.piecesPerSheet > 0) {
