@@ -340,10 +340,13 @@ export default function MarginsPage() {
               <h1 className="text-3xl font-bold text-gray-900">Regras de Margem</h1>
               <p className="text-gray-600 mt-2">Configure regras fixas e dinâmicas para cálculo de margens</p>
             </div>
-            <Button onClick={() => setOpenCreate(true)}>
-              <Plus className="h-4 w-4 mr-2" />
+            <button
+              onClick={() => setOpenCreate(true)}
+              className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white rounded-lg hover:bg-[#F66807]/90 transition-colors font-medium"
+            >
+              <Plus className="h-5 w-5 mr-2" />
               Nova Regra
-            </Button>
+            </button>
           </div>
         </div>
       </div>

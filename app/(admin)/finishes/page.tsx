@@ -233,7 +233,7 @@ export default function FinishesListPage() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          {/* Search & Filters */}
+        {/* Search & Filters */}
           <div className="mb-8">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -306,9 +306,9 @@ export default function FinishesListPage() {
               </button>
             </div>
           </div>
-          </div>
+        </div>
 
-          {/* Finishes Grid */}
+        {/* Finishes Grid */}
         {filteredSorted.length > 0 ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">

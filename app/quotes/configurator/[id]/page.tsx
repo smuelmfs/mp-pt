@@ -192,6 +192,12 @@ export default function ConfiguratorPage() {
       loadConfig();
       loadCustomers();
     }
+    // Preselecionar cliente vindo da URL (?customerId=)
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const cid = sp.get('customerId');
+      if (cid) setCustomerId(cid);
+    } catch (_) {}
   }, [productId]);
 
   useEffect(() => {
@@ -538,8 +544,13 @@ export default function ConfiguratorPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen bg-[#F6EEE8]">
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -558,10 +569,15 @@ export default function ConfiguratorPage() {
 
   if (!config) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Produto não encontrado</h1>
+      <div className="min-h-screen bg-[#F6EEE8]">
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <h1 className="text-2xl font-bold text-[#341601]">Configurador</h1>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="text-center py-12 bg-white rounded-lg border border-gray-200 shadow-sm">
+            <h1 className="text-2xl font-bold text-[#341601] mb-4">Produto não encontrado</h1>
             <p className="text-gray-600">O produto solicitado não está disponível.</p>
           </div>
         </div>
@@ -570,26 +586,30 @@ export default function ConfiguratorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">{config?.product?.name || 'Configurador'}</h1>
+    <div className="min-h-screen bg-[#F6EEE8]">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <h1 className="text-3xl font-bold text-[#341601]">{config?.product?.name || 'Configurador'}</h1>
           <p className="text-gray-600 mt-2">Configure seu produto e veja o preço em tempo real</p>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Configurações */}
           <div className="space-y-6">
             {/* Seleção de Cliente */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Cliente (Opcional)</h3>
+              <h3 className="text-lg font-semibold text-[#341601] mb-3">Cliente (Opcional)</h3>
               <p className="text-sm text-gray-600 mb-3">
                 Selecione um cliente para aplicar preços específicos automaticamente
               </p>
               <select
                 value={customerId}
                 onChange={(e) => setCustomerId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                 disabled={loadingCustomers}
               >
                 <option value="">Sem cliente (preços padrão)</option>
@@ -608,7 +628,7 @@ export default function ConfiguratorPage() {
 
             {config && config.optionGroups && config.optionGroups.length > 0 ? config.optionGroups.map((group) => (
               <div key={group.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                <h3 className="text-lg font-semibold text-[#341601] mb-3">
                   {group.name}
                   {group.required && <span className="text-red-500 ml-1">*</span>}
                   {group.id === 'finishes' && Array.isArray(selectedChoices[group.id]) && selectedChoices[group.id].length > 0 && (
@@ -619,12 +639,12 @@ export default function ConfiguratorPage() {
                 </h3>
                 
                 {group.hasMultipleOptions && !selectedChoices[group.id] && group.id !== 'finishes' && (
-                  <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                  <div className="mb-4 p-3 bg-[#F6EEE8] border border-gray-200 rounded-lg">
                     <div className="flex items-center">
                       <svg className="w-5 h-5 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                       </svg>
-                      <span className="text-sm text-gray-800">
+                      <span className="text-sm text-[#341601]">
                         Escolha uma opção para continuar
                       </span>
                     </div>
@@ -633,7 +653,7 @@ export default function ConfiguratorPage() {
                 
                 <div className="space-y-3">
                   {group.choices && group.choices.length > 0 ? group.choices.map((choice) => (
-                    <label key={choice.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <label key={choice.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-[#F6EEE8] cursor-pointer transition-colors">
                       <input
                         type={group.id === 'finishes' ? 'checkbox' : 'radio'}
                         name={group.id === 'finishes' ? `group-${group.id}-${choice.id}` : `group-${group.id}`}
@@ -646,7 +666,7 @@ export default function ConfiguratorPage() {
                         className="h-4 w-4 text-[#F66807] focus:ring-[#F66807] border-gray-300 mt-1"
                       />
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900">{choice.name}</div>
+                        <div className="font-medium text-[#341601]">{choice.name}</div>
                         {choice.description && (
                           <div className="text-sm text-gray-600 mt-1">{choice.description}</div>
                         )}
@@ -688,7 +708,7 @@ export default function ConfiguratorPage() {
             {/* Quantidade */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold text-gray-900">Quantidade</h3>
+                <h3 className="text-lg font-semibold text-[#341601]">Quantidade</h3>
               </div>
               <div className="grid grid-cols-1 gap-3">
                 <input
@@ -696,7 +716,7 @@ export default function ConfiguratorPage() {
                   value={quantity}
                   onChange={(e) => setQuantity(parseInt(e.target.value) || 100)}
                   min="1"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                 />
                 {config?.quantityPresets && config.quantityPresets.length > 0 && (
                   <div className="flex flex-wrap gap-2">
@@ -721,7 +741,7 @@ export default function ConfiguratorPage() {
             {/* Preview Unitário */}
             {preview ? (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Preço Unitário</h3>
+                <h3 className="text-lg font-semibold text-[#341601] mb-4">Preço Unitário</h3>
                 {calculating ? (
                   <div className="animate-pulse">
                     <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
@@ -729,7 +749,7 @@ export default function ConfiguratorPage() {
                   </div>
                 ) : (
                   <div>
-                    <div className="text-3xl font-bold text-gray-900">
+                    <div className="text-3xl font-bold text-[#341601]">
                       €{preview.priceGross.toFixed(2)}
                     </div>
                     <div className="text-sm text-gray-600">
@@ -743,7 +763,7 @@ export default function ConfiguratorPage() {
               </div>
             ) : (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Preço Unitário</h3>
+                <h3 className="text-lg font-semibold text-[#341601] mb-4">Preço Unitário</h3>
                 <div className="text-center py-8">
                   <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -757,7 +777,7 @@ export default function ConfiguratorPage() {
             {preview && preview.breakdown && preview.breakdown.length > 0 && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Detalhamento dos Custos</h3>
+                  <h3 className="text-lg font-semibold text-[#341601]">Detalhamento dos Custos</h3>
                   {preview.meta && (
                     <div className="flex items-center gap-2 text-xs text-gray-600">
                       {typeof preview.meta.sheets === 'number' && (
@@ -804,7 +824,7 @@ export default function ConfiguratorPage() {
             {/* Grade de Preços */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Grade de Preços</h3>
+                <h3 className="text-lg font-semibold text-[#341601]">Grade de Preços</h3>
                 <button
                   onClick={generateMatrix}
                   disabled={calculating}

@@ -124,35 +124,41 @@ export default function QuotesPage() {
 
   return (
     <main className="min-h-screen bg-[#F6EEE8]">
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-[#341601]">Orçamentos</h1>
-            <p className="text-gray-600 mt-2">Gerencie todos os orçamentos criados</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
-              onClick={loadQuotes}
-              disabled={loadingList}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${loadingList ? 'animate-spin' : ''}`} />
-              Atualizar
-            </Button>
-            <Button asChild className="flex items-center gap-2">
-              <Link href="/quotes/categories">
-                <FileText className="h-4 w-4" />
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-[#341601]">Orçamentos</h1>
+              <p className="text-gray-600 mt-2">Gerencie todos os orçamentos criados</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={loadQuotes}
+                disabled={loadingList}
+                className="inline-flex items-center px-6 py-3 border border-gray-300 text-[#341601] rounded-lg hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`h-5 w-5 mr-2 ${loadingList ? 'animate-spin' : ''}`} />
+                Atualizar
+              </button>
+              <Link 
+                href="/quotes/categories"
+                className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors"
+              >
+                <FileText className="h-5 w-5 mr-2" />
                 Novo Orçamento
               </Link>
-            </Button>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
+          <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Orçamentos</CardTitle>
               <FileText className="h-4 w-4 text-muted-foreground" />
@@ -165,7 +171,7 @@ export default function QuotesPage() {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
               <Euro className="h-4 w-4 text-muted-foreground" />
@@ -180,7 +186,7 @@ export default function QuotesPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Último Orçamento</CardTitle>
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
@@ -197,7 +203,7 @@ export default function QuotesPage() {
         </div>
 
         {/* Filtros e Busca */}
-        <Card>
+        <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -208,19 +214,21 @@ export default function QuotesPage() {
               </div>
               <div className="flex items-center gap-2">
                 {hasActiveFilters && (
-                  <Button variant="outline" size="sm" onClick={clearFilters}>
+                  <button 
+                    onClick={clearFilters}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-[#341601] rounded-lg hover:bg-white transition-colors text-sm font-medium"
+                  >
                     <X className="h-4 w-4 mr-2" />
                     Limpar Filtros
-                  </Button>
+                  </button>
                 )}
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <button 
                   onClick={() => setShowFilters(!showFilters)}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-[#341601] rounded-lg hover:bg-white transition-colors text-sm font-medium"
                 >
                   <Filter className="h-4 w-4 mr-2" />
                   {showFilters ? 'Ocultar' : 'Mostrar'} Filtros
-                </Button>
+                </button>
               </div>
             </div>
           </CardHeader>
@@ -305,7 +313,7 @@ export default function QuotesPage() {
         </Card>
 
         {/* Orçamentos List */}
-        <Card>
+        <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader>
             <CardTitle>Orçamentos {hasActiveFilters ? 'Filtrados' : 'Recentes'}</CardTitle>
             <CardDescription>
@@ -328,17 +336,18 @@ export default function QuotesPage() {
                 <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-[#341601] mb-2">Nenhum orçamento encontrado</h3>
                 <p className="text-gray-600 mb-4">Comece criando seu primeiro orçamento através das categorias.</p>
-                <Button asChild>
-                  <Link href="/quotes/categories">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Criar Primeiro Orçamento
-                  </Link>
-                </Button>
+                <Link 
+                  href="/quotes/categories"
+                  className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors"
+                >
+                  <FileText className="h-5 w-5 mr-2" />
+                  Criar Primeiro Orçamento
+                </Link>
               </div>
             ) : (
               <div className="space-y-4">
                 {rows.map((quote) => (
-                  <div key={quote.id} className="border border-gray-200 rounded-lg p-4 hover:bg-[#F6EEE8] transition-colors">
+                  <div key={quote.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
@@ -365,11 +374,12 @@ export default function QuotesPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/quotes/${quote.id}`}>
-                            Ver Detalhes
-                          </Link>
-                        </Button>
+                        <Link 
+                          href={`/quotes/${quote.id}`}
+                          className="inline-flex items-center px-4 py-2 border border-gray-300 text-[#341601] rounded-lg hover:bg-white transition-colors text-sm font-medium"
+                        >
+                          Ver Detalhes
+                        </Link>
                       </div>
                     </div>
                   </div>

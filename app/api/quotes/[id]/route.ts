@@ -23,3 +23,24 @@ export async function GET(_req: Request, ctx: { params: any }) {
   if (!quote) return NextResponse.json({ error: "Orçamento não encontrado" }, { status: 404 });
   return NextResponse.json(quote);
 }
+
+export async function PATCH(_req: Request, ctx: { params: any }) {
+  const id = await getId(ctx);
+  if (!Number.isFinite(id)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+
+  try {
+    const body = await _req.json().catch(() => ({}));
+    const { notes } = body as { notes?: string | null };
+
+    // Atualiza apenas o campo de notas
+    const quote = await prisma.quote.update({
+      where: { id },
+      data: { notes: notes || null },
+    });
+
+    return NextResponse.json({ ok: true, notes: quote.notes });
+  } catch (error) {
+    console.error("Erro ao atualizar notas:", error);
+    return NextResponse.json({ error: "Erro ao atualizar notas", detail: String((error as any)?.message || error) }, { status: 500 });
+  }
+}

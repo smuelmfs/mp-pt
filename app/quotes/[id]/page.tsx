@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Printer, FileText, Calendar, User, Package, Euro, TrendingUp, Building2, Download, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, Printer, FileText, Calendar, User, Package, Euro, TrendingUp, Building2, Download, FileSpreadsheet, Edit2, Save, X } from "lucide-react";
 import { toast } from "sonner";
 
 function money(n: number | string | null | undefined) {
@@ -32,6 +32,9 @@ export default function QuoteDetailPage() {
 
   const [row, setRow] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [notesText, setNotesText] = useState("");
+  const [savingNotes, setSavingNotes] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -39,10 +42,41 @@ export default function QuoteDetailPage() {
       const res = await fetch(`/api/quotes/${id}`);
       const json = await res.json();
       setRow(json);
+      setNotesText(json.notes || "");
     } catch (error) {
       console.error('Erro ao carregar orçamento:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function saveNotes() {
+    setSavingNotes(true);
+    try {
+      const res = await fetch(`/api/quotes/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: notesText.trim() || null })
+      });
+      
+      if (!res.ok) {
+        let detail = "";
+        try {
+          const err = await res.json();
+          detail = err?.error || err?.detail || "";
+        } catch {}
+        throw new Error(detail || "Erro ao salvar notas");
+      }
+      
+      const data = await res.json();
+      setRow((prev: any) => ({ ...prev, notes: data.notes }));
+      setIsEditingNotes(false);
+      toast.success("Notas salvas com sucesso!");
+    } catch (error) {
+      console.error("Erro ao salvar notas:", error);
+      toast.error((error as Error)?.message || "Erro ao salvar notas");
+    } finally {
+      setSavingNotes(false);
     }
   }
 
@@ -54,18 +88,19 @@ export default function QuoteDetailPage() {
   if (!Number.isFinite(id)) {
     return (
       <main className="min-h-screen bg-[#F6EEE8] flex items-center justify-center">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md bg-white border-gray-200 shadow-sm">
           <CardContent className="pt-6">
             <div className="text-center text-red-600">
               <FileText className="h-12 w-12 mx-auto mb-4 text-red-400" />
               <h2 className="text-lg font-semibold mb-2">ID Inválido</h2>
               <p className="text-sm text-gray-600 mb-4">O ID do orçamento não é válido.</p>
-              <Button asChild>
-                <Link href="/quotes">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Voltar aos Orçamentos
-                </Link>
-              </Button>
+              <Link 
+                href="/quotes"
+                className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                Voltar aos Orçamentos
+              </Link>
             </div>
           </CardContent>
         </Card>
@@ -76,7 +111,7 @@ export default function QuoteDetailPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-[#F6EEE8] flex items-center justify-center">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md bg-white border-gray-200 shadow-sm">
           <CardContent className="pt-6">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#341601] mx-auto mb-4"></div>
@@ -91,18 +126,19 @@ export default function QuoteDetailPage() {
   if (row?.error) {
     return (
       <main className="min-h-screen bg-[#F6EEE8] flex items-center justify-center">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md bg-white border-gray-200 shadow-sm">
           <CardContent className="pt-6">
             <div className="text-center text-red-600">
               <FileText className="h-12 w-12 mx-auto mb-4 text-red-400" />
               <h2 className="text-lg font-semibold mb-2">Erro</h2>
               <p className="text-sm text-gray-600 mb-4">{row.error}</p>
-              <Button asChild>
-                <Link href="/quotes">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Voltar aos Orçamentos
-                </Link>
-              </Button>
+              <Link 
+                href="/quotes"
+                className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                Voltar aos Orçamentos
+              </Link>
             </div>
           </CardContent>
         </Card>
@@ -114,90 +150,94 @@ export default function QuoteDetailPage() {
 
   return (
     <main className="min-h-screen bg-[#F6EEE8]">
-      <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/quotes">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link 
+                href="/quotes"
+                className="inline-flex items-center text-[#341601] hover:text-[#F66807] transition-colors text-sm font-medium"
+              >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Voltar
               </Link>
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-[#341601]">Orçamento #{row.number}</h1>
-              <p className="text-gray-600 mt-1">Detalhes completos do orçamento</p>
+              <div>
+                <h1 className="text-3xl font-bold text-[#341601]">Orçamento Nº {row.number}</h1>
+                <p className="text-gray-600 mt-1">Detalhes completos do orçamento</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/quotes/${id}/export/pdf`);
+                    if (!res.ok) throw new Error("Erro ao gerar PDF");
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `orcamento-${row.number}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    toast.success("PDF gerado com sucesso!");
+                  } catch (error) {
+                    console.error("Erro ao exportar PDF:", error);
+                    toast.error("Erro ao gerar PDF");
+                  }
+                }}
+                className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors shadow-sm"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Exportar PDF
+              </button>
+              <button 
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/quotes/${id}/export/excel`);
+                    if (!res.ok) throw new Error("Erro ao gerar Excel");
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `orcamento-${row.number}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    toast.success("Excel gerado com sucesso!");
+                  } catch (error) {
+                    console.error("Erro ao exportar Excel:", error);
+                    toast.error("Erro ao gerar Excel");
+                  }
+                }}
+                className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors shadow-sm"
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Exportar Excel
+              </button>
+              <button 
+                onClick={() => window.print()}
+                className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors shadow-sm"
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimir
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              onClick={async () => {
-                try {
-                  const res = await fetch(`/api/quotes/${id}/export/pdf`);
-                  if (!res.ok) throw new Error("Erro ao gerar PDF");
-                  const blob = await res.blob();
-                  const url = window.URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `orcamento-${row.number}.pdf`;
-                  document.body.appendChild(a);
-                  a.click();
-                  window.URL.revokeObjectURL(url);
-                  document.body.removeChild(a);
-                  toast.success("PDF gerado com sucesso!");
-                } catch (error) {
-                  console.error("Erro ao exportar PDF:", error);
-                  toast.error("Erro ao gerar PDF");
-                }
-              }}
-              className="flex items-center gap-2"
-            >
-              <FileText className="h-4 w-4" />
-              Exportar PDF
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={async () => {
-                try {
-                  const res = await fetch(`/api/quotes/${id}/export/excel`);
-                  if (!res.ok) throw new Error("Erro ao gerar Excel");
-                  const blob = await res.blob();
-                  const url = window.URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `orcamento-${row.number}.xlsx`;
-                  document.body.appendChild(a);
-                  a.click();
-                  window.URL.revokeObjectURL(url);
-                  document.body.removeChild(a);
-                  toast.success("Excel gerado com sucesso!");
-                } catch (error) {
-                  console.error("Erro ao exportar Excel:", error);
-                  toast.error("Erro ao gerar Excel");
-                }
-              }}
-              className="flex items-center gap-2"
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              Exportar Excel
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => window.print()}
-              className="flex items-center gap-2"
-            >
-              <Printer className="h-4 w-4" />
-              Imprimir
-            </Button>
-          </div>
         </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
 
         {/* Informações Principais */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
+          <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2 text-[#341601]">
                 <Package className="h-5 w-5" />
                 Produto
               </CardTitle>
@@ -217,9 +257,9 @@ export default function QuoteDetailPage() {
           </Card>
 
           {row.customer && (
-            <Card>
+            <Card className="bg-white border-gray-200 shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="text-lg flex items-center gap-2 text-[#341601]">
                   <Building2 className="h-5 w-5" />
                   Cliente
                 </CardTitle>
@@ -247,9 +287,9 @@ export default function QuoteDetailPage() {
             </Card>
           )}
 
-          <Card>
+          <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2 text-[#341601]">
                 <Euro className="h-5 w-5" />
                 Valores
               </CardTitle>
@@ -268,9 +308,9 @@ export default function QuoteDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2 text-[#341601]">
                 <Calendar className="h-5 w-5" />
                 Informações
               </CardTitle>
@@ -291,9 +331,9 @@ export default function QuoteDetailPage() {
         </div>
 
         {/* Margens e Ajustes */}
-        <Card>
+        <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-[#341601]">
               <TrendingUp className="h-5 w-5" />
               Margens e Ajustes Aplicados
               {row?.product?.roundingStrategy === 'PER_STEP' && (
@@ -337,9 +377,9 @@ export default function QuoteDetailPage() {
         </Card>
 
         {/* Detalhamento dos Itens */}
-        <Card>
+        <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Detalhamento dos Itens</CardTitle>
+            <CardTitle className="text-[#341601]">Detalhamento dos Itens</CardTitle>
             <CardDescription>
               Lista completa de todos os itens incluídos no orçamento
             </CardDescription>
@@ -382,6 +422,71 @@ export default function QuoteDetailPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Notas do Orçamento */}
+        <Card className="bg-white border-gray-200 shadow-sm">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-[#341601]">Notas do Orçamento</CardTitle>
+                <CardDescription>
+                  Informações adicionais e observações sobre este orçamento (apenas no sistema)
+                </CardDescription>
+              </div>
+              {!isEditingNotes && (
+                <button
+                  onClick={() => setIsEditingNotes(true)}
+                  className="inline-flex items-center px-4 py-2 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors shadow-sm text-sm"
+                >
+                  <Edit2 className="h-4 w-4 mr-2" />
+                  {row.notes ? "Editar Nota" : "Adicionar Nota"}
+                </button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isEditingNotes ? (
+              <div className="space-y-4">
+                <textarea
+                  value={notesText}
+                  onChange={(e) => setNotesText(e.target.value)}
+                  placeholder="Digite suas notas aqui..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] min-h-[150px] resize-y"
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={saveNotes}
+                    disabled={savingNotes}
+                    className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {savingNotes ? "Salvando..." : "Salvar"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsEditingNotes(false);
+                      setNotesText(row.notes || "");
+                    }}
+                    disabled={savingNotes}
+                    className="inline-flex items-center px-6 py-3 border border-gray-300 text-[#341601] font-medium rounded-lg hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : row.notes ? (
+              <div className="prose max-w-none">
+                <p className="text-gray-700 whitespace-pre-wrap">{row.notes}</p>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">Nenhuma nota adicionada a este orçamento.</p>
               </div>
             )}
           </CardContent>

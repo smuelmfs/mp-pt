@@ -564,6 +564,7 @@ model Quote {
   priceGross    Decimal?  @db.Decimal(12,2) // preço final com IVA
 
   breakdown     Json      // extrato detalhado
+  notes         String?   // notas internas do sistema (não vai para PDF)
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

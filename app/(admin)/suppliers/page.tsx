@@ -127,7 +127,7 @@ export default function SuppliersPage() {
   }, [activeFilter, debouncedQ]);
 
   return (
-    <main className="min-h-screen bg-[#F6EEE8] p-6">
+    <main className="min-h-screen bg-[#F6EEE8]">
       <ConfirmDialog
         open={!!confirmDelete}
         onOpenChange={(open) => !open && setConfirmDelete(null)}
@@ -139,23 +139,29 @@ export default function SuppliersPage() {
         onConfirm={confirmDeleteSupplier}
         loading={deleting}
       />
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-[#341601]">Fornecedores</h1>
-            <p className="text-sm text-gray-600 mt-1">Cadastre, edite e desative fornecedores</p>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-[#341601]">Fornecedores</h1>
+              <p className="text-gray-600 mt-2">Cadastre, edite e desative fornecedores</p>
+            </div>
+            <button
+              onClick={()=> setOpenCreate(true)}
+              className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white rounded-lg hover:bg-[#F66807]/90 transition-colors font-medium"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Novo Fornecedor
+            </button>
           </div>
-          <button
-            onClick={()=> setOpenCreate(true)}
-            className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white rounded-lg hover:bg-[#F66807]/90 transition-colors font-medium"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Novo Fornecedor
-          </button>
         </div>
+      </div>
 
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
           <div className="flex flex-col md:flex-row md:items-center gap-3">
             <div className="relative flex-1">

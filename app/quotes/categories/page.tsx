@@ -49,6 +49,8 @@ interface Pagination {
   totalPages: number;
 }
 
+interface CustomerOption { id: number; name: string }
+
 export default function CategoriesPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +71,25 @@ export default function CategoriesPage() {
   const [selectedPrintingTechnology, setSelectedPrintingTechnology] = useState<string>("");
   const [selectedPrintingFormat, setSelectedPrintingFormat] = useState<string>("");
   const [selectedPrintingColors, setSelectedPrintingColors] = useState<string>("");
+  const [selectedCustomer, setSelectedCustomer] = useState<string>("");
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [activeTab, setActiveTab] = useState<string>("all");
+
+  // Carregar clientes ativos para filtro
+  useEffect(() => {
+    async function loadCustomers() {
+      try {
+        const res = await fetch("/api/admin/customers?activeOnly=true");
+        if (res.ok) {
+          const data = await res.json();
+          const opts = (Array.isArray(data) ? data : [])
+            .map((c: any) => ({ id: c.id, name: c.name })) as CustomerOption[];
+          setCustomers(opts);
+        }
+      } catch (_) {}
+    }
+    loadCustomers();
+  }, []);
 
   useEffect(() => {
     async function loadProducts() {
@@ -98,6 +118,9 @@ export default function CategoriesPage() {
         }
         if (activeTab !== "all") {
           params.append("categoryId", activeTab);
+        }
+        if (selectedCustomer) {
+          params.append("customerId", selectedCustomer);
         }
         
         const response = await fetch(`/api/catalog/products?${params}`);
@@ -132,7 +155,7 @@ export default function CategoriesPage() {
     }
 
     loadProducts();
-  }, [pagination.page, searchQuery, selectedMaterialTypes, selectedFinishCategories, selectedPrintingTechnology, selectedPrintingFormat, selectedPrintingColors, activeTab]);
+  }, [pagination.page, searchQuery, selectedMaterialTypes, selectedFinishCategories, selectedPrintingTechnology, selectedPrintingFormat, selectedPrintingColors, activeTab, selectedCustomer]);
 
   const handlePageChange = (newPage: number) => {
     setPagination(prev => ({ ...prev, page: newPage }));
@@ -145,11 +168,19 @@ export default function CategoriesPage() {
     setSelectedPrintingTechnology("");
     setSelectedPrintingFormat("");
     setSelectedPrintingColors("");
+    setSelectedCustomer("");
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
+    // Limpar filtros de material e acabamento quando a categoria mudar
+    // pois os filtros disponíveis mudarão dinamicamente
+    setSelectedMaterialTypes([]);
+    setSelectedFinishCategories([]);
+    setSelectedPrintingTechnology("");
+    setSelectedPrintingFormat("");
+    setSelectedPrintingColors("");
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
@@ -175,8 +206,8 @@ export default function CategoriesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
+      <main className="min-h-screen bg-[#F6EEE8]">
+        <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
             <div className="flex gap-6">
@@ -189,27 +220,36 @@ export default function CategoriesPage() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <main className="min-h-screen bg-[#F6EEE8]">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div>
+            <h1 className="text-3xl font-bold text-[#341601]">Produtos</h1>
+            <p className="text-gray-600 mt-2">Explore todos os produtos disponíveis</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Produtos</h1>
-          <p className="text-gray-600 mt-2">Explore todos os produtos disponíveis</p>
           
           {/* Abas de Categorias */}
           <div className="mt-6">
-            <div className="border-b border-gray-200">
-              <div className="flex gap-0 overflow-x-auto hide-scrollbar scroll-smooth">
+            <div className="bg-white rounded-lg border border-gray-200 p-1">
+              <div className="flex gap-1 overflow-x-auto hide-scrollbar scroll-smooth">
                 <button
                   onClick={() => handleTabChange("all")}
-                  className={`px-5 py-3 font-medium text-sm border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${
+                  className={`px-5 py-2.5 font-medium text-sm rounded-md transition-all whitespace-nowrap flex-shrink-0 ${
                     activeTab === "all"
-                      ? "border-[#F66807] text-[#F66807] font-semibold"
-                      : "border-transparent text-[#341601] hover:text-[#F66807] hover:border-[#F66807]"
+                      ? "bg-[#F66807] text-white font-semibold shadow-sm"
+                      : "bg-transparent text-[#341601] hover:bg-[#F6EEE8] hover:text-[#F66807]"
                   }`}
                 >
                   Todos
@@ -218,10 +258,10 @@ export default function CategoriesPage() {
                   <button
                     key={category.id}
                     onClick={() => handleTabChange(category.id.toString())}
-                    className={`px-5 py-3 font-medium text-sm border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${
+                    className={`px-5 py-2.5 font-medium text-sm rounded-md transition-all whitespace-nowrap flex-shrink-0 ${
                       activeTab === category.id.toString()
-                        ? "border-[#F66807] text-[#F66807] font-semibold"
-                        : "border-transparent text-gray-600 hover:text-[#F66807] hover:border-gray-300"
+                        ? "bg-[#F66807] text-white font-semibold shadow-sm"
+                        : "bg-transparent text-[#341601] hover:bg-[#F6EEE8] hover:text-[#F66807]"
                     }`}
                   >
                     {category.name}
@@ -237,7 +277,7 @@ export default function CategoriesPage() {
           <aside className="w-64 flex-shrink-0">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Filtros</h2>
+                <h2 className="text-lg font-semibold text-[#341601]">Filtros</h2>
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
@@ -250,7 +290,7 @@ export default function CategoriesPage() {
 
               {/* Busca */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-[#341601] mb-2">
                   Buscar
                 </label>
                 <input
@@ -261,26 +301,46 @@ export default function CategoriesPage() {
                     setPagination(prev => ({ ...prev, page: 1 }));
                   }}
                   placeholder="Nome do produto..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
                 />
+              </div>
+
+              {/* Cliente */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-[#341601] mb-2">
+                  Cliente
+                </label>
+                <select
+                  value={selectedCustomer}
+                  onChange={(e) => {
+                    setSelectedCustomer(e.target.value);
+                    setPagination(prev => ({ ...prev, page: 1 }));
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] text-sm"
+                >
+                  <option value="">Todos os clientes</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id.toString()}>{c.name}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Filtro por Tipo de Material */}
               {filters.materialTypes.length > 0 && (
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <label className="block text-sm font-medium text-[#341601] mb-3">
                     Tipo de Material
                   </label>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {filters.materialTypes.map((type) => (
-                      <label key={type} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                      <label key={type} className="flex items-center space-x-2 cursor-pointer hover:bg-[#F6EEE8] p-2 rounded transition-colors">
                         <input
                           type="checkbox"
                           checked={selectedMaterialTypes.includes(type)}
                           onChange={() => toggleMaterialType(type)}
                           className="h-4 w-4 text-[#F66807] focus:ring-[#F66807] border-gray-300 rounded"
                         />
-                        <span className="text-sm text-gray-700">{type}</span>
+                        <span className="text-sm text-[#341601]">{type}</span>
                       </label>
                     ))}
                   </div>
@@ -290,7 +350,7 @@ export default function CategoriesPage() {
               {/* Filtro por Categoria de Acabamento */}
               {filters.finishCategories.length > 0 && (
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <label className="block text-sm font-medium text-[#341601] mb-3">
                     Categoria de Acabamento
                   </label>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -302,7 +362,7 @@ export default function CategoriesPage() {
                           onChange={() => toggleFinishCategory(category)}
                           className="h-4 w-4 text-[#F66807] focus:ring-[#F66807] border-gray-300 rounded"
                         />
-                        <span className="text-sm text-gray-700">{category}</span>
+                        <span className="text-sm text-[#341601]">{category}</span>
                       </label>
                     ))}
                   </div>
@@ -312,7 +372,7 @@ export default function CategoriesPage() {
               {/* Filtro por Tecnologia de Impressão */}
               {filters.printingTechnologies.length > 0 && (
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <label className="block text-sm font-medium text-[#341601] mb-3">
                     Tecnologia de Impressão
                   </label>
                   <select
@@ -321,7 +381,7 @@ export default function CategoriesPage() {
                       setSelectedPrintingTechnology(e.target.value);
                       setPagination(prev => ({ ...prev, page: 1 }));
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] text-sm"
                   >
                     <option value="">Todas as tecnologias</option>
                     {filters.printingTechnologies.map((tech) => (
@@ -336,7 +396,7 @@ export default function CategoriesPage() {
               {/* Filtro por Formato de Impressão */}
               {filters.printingFormats.length > 0 && (
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <label className="block text-sm font-medium text-[#341601] mb-3">
                     Formato de Impressão
                   </label>
                   <select
@@ -345,7 +405,7 @@ export default function CategoriesPage() {
                       setSelectedPrintingFormat(e.target.value);
                       setPagination(prev => ({ ...prev, page: 1 }));
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] text-sm"
                   >
                     <option value="">Todos os formatos</option>
                     {filters.printingFormats.map((format) => (
@@ -360,7 +420,7 @@ export default function CategoriesPage() {
               {/* Filtro por Cores de Impressão */}
               {filters.printingColors.length > 0 && (
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <label className="block text-sm font-medium text-[#341601] mb-3">
                     Cores de Impressão
                   </label>
                   <select
@@ -369,7 +429,7 @@ export default function CategoriesPage() {
                       setSelectedPrintingColors(e.target.value);
                       setPagination(prev => ({ ...prev, page: 1 }));
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] text-sm"
                   >
                     <option value="">Todas as cores</option>
                     {filters.printingColors.map((colors) => (
@@ -389,14 +449,14 @@ export default function CategoriesPage() {
               {products.map((product) => (
                 <Link
                   key={product.id}
-                  href={`/quotes/configurator/${product.id}`}
+                  href={`/quotes/configurator/${product.id}${selectedCustomer ? `?customerId=${selectedCustomer}` : ""}`}
                   className="block bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-gray-900">{product.name}</h3>
+                      <h3 className="text-xl font-semibold text-[#341601]">{product.name}</h3>
                       <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                        <span className="text-gray-900">{product.category.name}</span>
+                        <span className="text-[#341601] font-medium">{product.category.name}</span>
                         {product.widthMm && product.heightMm && (
                           <span>
                             {product.widthMm}×{product.heightMm} mm
@@ -438,13 +498,13 @@ export default function CategoriesPage() {
             </div>
 
             {products.length === 0 && !loading && (
-              <div className="text-center py-12 bg-white rounded-lg">
+              <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
                 <div className="text-gray-400 mb-4">
                   <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum produto encontrado</h3>
+                <h3 className="text-lg font-medium text-[#341601] mb-2">Nenhum produto encontrado</h3>
                 <p className="text-gray-600">Tente ajustar os filtros para encontrar produtos.</p>
               </div>
             )}
@@ -455,7 +515,7 @@ export default function CategoriesPage() {
                 <button
                   onClick={() => handlePageChange(pagination.page - 1)}
                   disabled={pagination.page === 1}
-                  className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 text-gray-700 font-medium"
+                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white text-[#341601] font-medium"
                 >
                   Anterior
                 </button>
@@ -474,10 +534,10 @@ export default function CategoriesPage() {
                     <button
                       key={pageNum}
                       onClick={() => handlePageChange(pageNum)}
-                      className={`px-4 py-2 border rounded-md font-medium ${
+                      className={`px-4 py-2 border rounded-lg font-medium ${
                         pagination.page === pageNum
                           ? 'bg-[#F66807] text-white border-[#F66807]'
-                          : 'border-gray-300 hover:bg-gray-100 text-gray-700'
+                          : 'border-gray-300 hover:bg-white text-[#341601]'
                       }`}
                     >
                       {pageNum}
@@ -487,7 +547,7 @@ export default function CategoriesPage() {
                 <button
                   onClick={() => handlePageChange(pagination.page + 1)}
                   disabled={pagination.page === pagination.totalPages}
-                  className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 text-gray-700 font-medium"
+                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white text-[#341601] font-medium"
                 >
                   Próxima
                 </button>
@@ -496,6 +556,6 @@ export default function CategoriesPage() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

@@ -59,23 +59,22 @@ export default function ConfigPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F6EEE8]">
+      <main className="min-h-screen bg-[#F6EEE8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                    <div className="h-10 bg-gray-200 rounded"></div>
-                  </div>
-                ))}
-              </div>
+          <div className="space-y-6">
+            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="h-40 bg-gray-200 rounded" />
+              <div className="h-40 bg-gray-200 rounded" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="h-40 bg-gray-200 rounded" />
+              <div className="h-40 bg-gray-200 rounded" />
+              <div className="h-40 bg-gray-200 rounded" />
             </div>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -92,13 +91,13 @@ export default function ConfigPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F6EEE8]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
+    <main className="min-h-screen bg-[#F6EEE8]">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Configuração Global</h1>
+              <h1 className="text-3xl font-bold text-[#341601]">Configuração Global</h1>
               <p className="text-gray-600 mt-2">Configure as regras e parâmetros globais do sistema</p>
             </div>
             <button
@@ -125,15 +124,18 @@ export default function ConfigPage() {
             </button>
           </div>
         </div>
+      </div>
 
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Margens e Markup */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-lg">Margens e Markup</CardTitle>
-            <CardDescription>Configure as margens padrão e markup operacional</CardDescription>
+            <CardTitle>Margens e Markup</CardTitle>
+            <CardDescription>Definições padrão para cálculo de preços</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
                   Margem Padrão (%)
@@ -260,24 +262,34 @@ export default function ConfigPage() {
         </Card>
 
         {/* Info Box */}
-        <Card className="bg-[#F6EEE8] border-gray-200">
-          <CardContent className="pt-6">
-            <div className="flex items-start space-x-3">
-              <svg className="w-6 h-6 text-gray-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <Card className="bg-white border-gray-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <svg className="w-5 h-5 text-[#F66807]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">Como funciona</h3>
-                <ul className="text-sm text-gray-600 space-y-2">
-                  <li><strong>Perda Global:</strong> Percentual extra aplicado em materiais e impressão para cobrir refugos</li>
-                  <li><strong>Custo por Hora:</strong> Usado para calcular custo de setup da impressão</li>
-                  <li><strong>Degrau:</strong> Arredondamento final dos preços (ex: 0.05 = múltiplos de 5 centavos)</li>
-                </ul>
-              </div>
-            </div>
+              Como funciona
+            </CardTitle>
+            <CardDescription>Entenda como as configurações afetam o cálculo de preços</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="text-sm text-gray-700 space-y-3">
+              <li className="flex items-start gap-2">
+                <span className="font-semibold text-[#341601] min-w-[120px]">Perda Global:</span>
+                <span className="text-gray-600">Percentual extra aplicado em materiais e impressão para cobrir refugos</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-semibold text-[#341601] min-w-[120px]">Custo por Hora:</span>
+                <span className="text-gray-600">Usado para calcular custo de setup da impressão</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-semibold text-[#341601] min-w-[120px]">Degrau:</span>
+                <span className="text-gray-600">Arredondamento final dos preços (ex: 0.05 = múltiplos de 5 centavos)</span>
+              </li>
+            </ul>
           </CardContent>
         </Card>
       </div>
-    </div>
+    </main>
   );
 }
