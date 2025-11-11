@@ -60,7 +60,7 @@ export default function ProductDetail() {
   });
 
   // toast para feedback
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [localToast, setLocalToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [removingDimension, setRemovingDimension] = useState<number | null>(null);
   const [removingQuantity, setRemovingQuantity] = useState<number | null>(null);
   const [addingQuantity, setAddingQuantity] = useState(false);
@@ -70,13 +70,13 @@ export default function ProductDetail() {
   const router = useRouter();
 
   function showSuccessToast(message: string) {
-    setToast({ type: 'success', message });
-    setTimeout(() => setToast(null), 3000);
+    setLocalToast({ type: 'success', message });
+    setTimeout(() => setLocalToast(null), 3000);
   }
 
   function showErrorToast(message: string) {
-    setToast({ type: 'error', message });
-    setTimeout(() => setToast(null), 3000);
+    setLocalToast({ type: 'error', message });
+    setTimeout(() => setLocalToast(null), 3000);
   }
 
   async function load() {
@@ -1328,15 +1328,15 @@ export default function ProductDetail() {
       </div>
 
       {/* Toast */}
-      {toast && (
+      {localToast && (
         <div className="fixed top-4 right-4 z-50">
           <div className={`px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 ${
-            toast.type === 'success' 
+            localToast.type === 'success' 
               ? 'bg-green-500 text-white' 
               : 'bg-red-500 text-white'
           }`}>
             <div className="flex-shrink-0">
-              {toast.type === 'success' ? (
+              {localToast.type === 'success' ? (
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
@@ -1346,7 +1346,7 @@ export default function ProductDetail() {
                 </svg>
               )}
             </div>
-            <span className="font-medium">{toast.message}</span>
+            <span className="font-medium">{localToast.message}</span>
           </div>
         </div>
       )}

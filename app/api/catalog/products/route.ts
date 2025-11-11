@@ -154,8 +154,8 @@ export async function GET(req: Request) {
 
     // Extrair tipos de material únicos usados pelos produtos da categoria
     const materialTypesSet = new Set<string>();
-    categoryProducts.forEach(product => {
-      product.materials.forEach(pm => {
+    categoryProducts.forEach((product: typeof categoryProducts[0]) => {
+      product.materials.forEach((pm: typeof product.materials[0]) => {
         if (pm.material.type) {
           materialTypesSet.add(pm.material.type);
         }
@@ -165,8 +165,8 @@ export async function GET(req: Request) {
 
     // Extrair categorias de acabamento únicas usadas pelos produtos da categoria
     const finishCategoriesSet = new Set<string>();
-    categoryProducts.forEach(product => {
-      product.finishes.forEach(pf => {
+    categoryProducts.forEach((product: typeof categoryProducts[0]) => {
+      product.finishes.forEach((pf: typeof product.finishes[0]) => {
         if (pf.finish.category) {
           finishCategoriesSet.add(pf.finish.category);
         }
@@ -178,7 +178,7 @@ export async function GET(req: Request) {
     const printingTechnologiesSet = new Set<string>();
     const printingFormatsSet = new Set<string>();
     const printingColorsSet = new Set<string>();
-    categoryProducts.forEach(product => {
+    categoryProducts.forEach((product: typeof categoryProducts[0]) => {
       if (product.printing) {
         if (product.printing.technology) {
           printingTechnologiesSet.add(product.printing.technology);
@@ -214,7 +214,7 @@ export async function GET(req: Request) {
         printingTechnologies: printingTechnologies,
         printingFormats: printingFormats,
         printingColors: printingColorsList,
-        categories: categories.map(c => ({ id: c.id, name: c.name }))
+        categories: categories.map((c: typeof categories[0]) => ({ id: c.id, name: c.name }))
       }
     };
 

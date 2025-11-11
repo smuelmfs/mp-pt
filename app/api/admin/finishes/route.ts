@@ -54,7 +54,7 @@ export async function GET(req: Request) {
   });
   
   // Serializa Decimal para string
-  const serialized = rows.map(row => ({
+  const serialized = rows.map((row: typeof rows[0]) => ({
     ...row,
     baseCost: row.baseCost.toString(),
     minFee: row.minFee ? row.minFee.toString() : null,

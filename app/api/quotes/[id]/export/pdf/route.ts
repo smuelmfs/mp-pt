@@ -102,13 +102,13 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     yPos += 10;
 
     // Tabela de Itens
-    const itemsData = quote.items.map((item, idx) => [
+    const itemsData = quote.items.map((item: typeof quote.items[0], idx: number) => [
       (idx + 1).toString(),
       item.name || "-",
       item.quantity ? Number(item.quantity).toFixed(2) : "-",
       item.unit || "-",
-      item.unitCost ? formatMoney(item.unitCost) : "-",
-      formatMoney(item.totalCost)
+      item.unitCost ? formatMoney(Number(item.unitCost)) : "-",
+      formatMoney(Number(item.totalCost))
     ]);
 
     (autoTable as any)(doc, {
@@ -163,22 +163,22 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     doc.setTextColor(246, 104, 7); // #F66807
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
-    doc.text(`Subtotal: ${formatMoney(quote.subtotal)}`, margin, yPos);
+    doc.text(`Subtotal: ${formatMoney(Number(quote.subtotal))}`, margin, yPos);
     yPos += 8;
     
     if (quote.vatAmount) {
       doc.setFontSize(12);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(52, 22, 1); // #341601
-      doc.text(`IVA (23%): ${formatMoney(quote.vatAmount)}`, margin, yPos);
+      doc.text(`IVA (23%): ${formatMoney(Number(quote.vatAmount))}`, margin, yPos);
       yPos += 8;
       doc.setFont("helvetica", "bold");
       doc.setFontSize(16);
       doc.setTextColor(246, 104, 7); // #F66807
-      doc.text(`TOTAL COM IVA: ${formatMoney(quote.priceGross)}`, margin, yPos);
+      doc.text(`TOTAL COM IVA: ${formatMoney(Number(quote.priceGross))}`, margin, yPos);
     } else {
       doc.setFontSize(16);
-      doc.text(`TOTAL: ${formatMoney(quote.finalPrice)}`, margin, yPos);
+      doc.text(`TOTAL: ${formatMoney(Number(quote.finalPrice))}`, margin, yPos);
     }
 
     // Rodapé

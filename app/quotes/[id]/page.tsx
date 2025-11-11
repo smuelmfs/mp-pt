@@ -483,7 +483,7 @@ export default function QuoteDetailPage() {
               <div className="space-y-4">
                 <textarea
                   value={notesText}
-                  onChange={(e) => setNotesText(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNotesText(e.target.value)}
                   placeholder="Digite suas notas aqui..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] min-h-[150px] resize-y"
                 />

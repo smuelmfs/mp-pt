@@ -23,7 +23,7 @@ export async function GET() {
   
   // Garantir que a contagem está correta
   const categoriesWithCount = await Promise.all(
-    rows.map(async (category) => {
+    rows.map(async (category: typeof rows[0]) => {
       const productCount = await prisma.product.count({
         where: { categoryId: category.id }
       });

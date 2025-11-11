@@ -23,7 +23,7 @@ export async function GET(req: Request) {
     orderBy: [{ priority: "asc" }],
   });
   // Serializa Decimal para string
-  const serialized = rows.map(row => ({
+  const serialized = rows.map((row: typeof rows[0]) => ({
     ...row,
     unitPrice: row.unitPrice.toString(),
   }));

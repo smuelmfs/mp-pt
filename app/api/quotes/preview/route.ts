@@ -28,8 +28,7 @@ export async function POST(request: NextRequest) {
     // Aplicar overrides baseados nas escolhas
     const overrides: any = { ...(incomingOverrides || {}) };
     
-    // Se não encontrou ProductOptionChoices, pode ser que os IDs sejam ProductMaterial IDs
-    // (quando o frontend envia material_${pm.id} e extrai apenas o ID numérico)
+    // Se não encontrou ProductOptionChoices, tentar detectar tipos diretos (ProductMaterial, ProductFinish, ProductDimension)
     if (choices.length === 0 && choiceIds.length > 0) {
       // Tentar encontrar ProductMaterials correspondentes aos IDs
       const productMaterials = await prisma.productMaterial.findMany({
@@ -43,48 +42,103 @@ export async function POST(request: NextRequest) {
         }
       });
       
+      // Tentar encontrar ProductFinishes correspondentes aos IDs
+      const productFinishes = await prisma.productFinish.findMany({
+        where: {
+          id: { in: choiceIds },
+          productId: productId
+        },
+        include: {
+          finish: true
+        }
+      });
+      
+      // Tentar encontrar ProductDimensions correspondentes aos IDs
+      const productDimensions = await prisma.productDimension.findMany({
+        where: {
+          id: { in: choiceIds },
+          productId: productId,
+          active: true
+        }
+      });
+      
+      // Aplicar materiais encontrados
       if (productMaterials.length > 0) {
-        // Usar o primeiro ProductMaterial encontrado (seleção única)
-        const pm = productMaterials[0];
+        const pm = productMaterials[0]; // Seleção única
         overrides.productMaterialId = pm.id;
         overrides.materialId = pm.materialId;
         if (pm.variantId) {
           overrides.materialVariantId = pm.variantId;
         }
       }
+      
+      // Aplicar acabamentos encontrados
+      if (productFinishes.length > 0) {
+        overrides.disableProductFinishes = true;
+        overrides.includeFinishIds = productFinishes.map((pf: typeof productFinishes[0]) => pf.finishId);
+        overrides.additionalFinishes = productFinishes.map((pf: typeof productFinishes[0]) => ({
+          finishId: pf.finishId,
+          qtyPerUnit: Number(pf.qtyPerUnit) || 1,
+        }));
+      }
+      
+      // Aplicar dimensões encontradas
+      if (productDimensions.length > 0) {
+        const dim = productDimensions[0]; // Seleção única
+        overrides.widthOverride = dim.widthMm;
+        overrides.heightOverride = dim.heightMm;
+      }
     } else {
       // Aplicar material/variante de material se selecionada via ProductOptionChoice
-      const materialChoice = choices.find(c => c.materialVariantId);
+      const materialChoice = choices.find((c: typeof choices[0]) => c.materialVariantId);
       if (materialChoice?.materialVariant) {
         overrides.materialVariantId = materialChoice.materialVariantId;
-        // Garantir que o material correspondente seja o único considerado
         overrides.materialId = materialChoice.materialVariant.materialId;
       }
+      
+      // Aplicar dimensões se sobrescritas via ProductOptionChoice
+      const dimensionChoice = choices.find((c: typeof choices[0]) => c.widthOverride || c.heightOverride);
+      if (dimensionChoice) {
+        if (dimensionChoice.widthOverride) overrides.widthOverride = dimensionChoice.widthOverride;
+        if (dimensionChoice.heightOverride) overrides.heightOverride = dimensionChoice.heightOverride;
+      }
+      
+      // Acabamentos: quando o usuário selecionar acabamentos, usar somente os escolhidos
+      const finishChoices = choices.filter((c: typeof choices[0]) => c.finishId);
+      if (finishChoices.length > 0) {
+        overrides.disableProductFinishes = true;
+        overrides.includeFinishIds = finishChoices.map((c: typeof finishChoices[0]) => c.finishId);
+        overrides.additionalFinishes = finishChoices.map((c: typeof finishChoices[0]) => ({
+          finishId: c.finishId,
+          qtyPerUnit: c.finishQtyPerUnit || 1,
+        }));
+      }
     }
-
-    // Aplicar dimensões se sobrescritas
-    const dimensionChoice = choices.find(c => c.widthOverride || c.heightOverride);
-    if (dimensionChoice) {
-      if (dimensionChoice.widthOverride) overrides.widthOverride = dimensionChoice.widthOverride;
-      if (dimensionChoice.heightOverride) overrides.heightOverride = dimensionChoice.heightOverride;
-    }
-
+    
     // Aplicar overrideAttrs se existir
-    const attrsChoice = choices.find(c => c.overrideAttrs);
+    const attrsChoice = choices.find((c: typeof choices[0]) => c.overrideAttrs);
     if (attrsChoice?.overrideAttrs) {
       Object.assign(params, attrsChoice.overrideAttrs);
     }
-
-    // Acabamentos: quando o usuário selecionar acabamentos, usar somente os escolhidos
-    const finishChoices = choices.filter(c => c.finishId);
-    if (finishChoices.length > 0) {
-      overrides.disableProductFinishes = true;
-      overrides.includeFinishIds = finishChoices.map(c => c.finishId);
-      // qty por unidade vindo das choices é suportado via 'additionalFinishes' (mantém quantidades customizadas)
-      overrides.additionalFinishes = finishChoices.map(c => ({
-        finishId: c.finishId,
-        qtyPerUnit: c.finishQtyPerUnit || 1,
-      }));
+    
+    // Aplicar dimensões via params.dimensionOverrides (fallback)
+    if (params && (params as any).dimensionOverrides && !overrides.widthOverride && !overrides.heightOverride) {
+      const dimOverrides = (params as any).dimensionOverrides;
+      // Se há dimensão padrão ou dimensão específica selecionada
+      if (dimOverrides.default) {
+        overrides.widthOverride = dimOverrides.default.widthMm;
+        overrides.heightOverride = dimOverrides.default.heightMm;
+      } else if (typeof dimOverrides === 'object') {
+        // Pegar a primeira dimensão não-padrão
+        const dimKeys = Object.keys(dimOverrides).filter((k: string) => k !== 'default');
+        if (dimKeys.length > 0) {
+          const firstDim = dimOverrides[dimKeys[0]];
+          if (firstDim && firstDim.widthMm && firstDim.heightMm) {
+            overrides.widthOverride = firstDim.widthMm;
+            overrides.heightOverride = firstDim.heightMm;
+          }
+        }
+      }
     }
 
     // Material selecionado via params (fallback caso a escolha não tenha variante)
@@ -106,7 +160,7 @@ export async function POST(request: NextRequest) {
     let priceAdjustment = 0;
     let priceFixed = 0;
     
-    choices.forEach(choice => {
+    choices.forEach((choice: typeof choices[0]) => {
       if (choice.priceAdjustment) {
         priceAdjustment += parseFloat(choice.priceAdjustment.toString());
       }
@@ -146,11 +200,11 @@ export async function POST(request: NextRequest) {
       finalPrice: roundedFinal,
       breakdown: result.items,
       meta: {
-        sheets: result.items.find(i => i.type === 'MATERIAL')?.quantity || 0,
-        tiros: result.items.find(i => i.type === 'PRINTING')?.quantity || 0,
-        area: result.items.find(i => i.type === 'FINISH')?.quantity || 0
+        sheets: result.items.find((i: typeof result.items[0]) => i.type === 'MATERIAL')?.quantity || 0,
+        tiros: result.items.find((i: typeof result.items[0]) => i.type === 'PRINTING')?.quantity || 0,
+        area: result.items.find((i: typeof result.items[0]) => i.type === 'FINISH')?.quantity || 0
       },
-      appliedChoices: choices.map(c => ({
+      appliedChoices: choices.map((c: typeof choices[0]) => ({
         id: c.id,
         name: c.name,
         overrides: {

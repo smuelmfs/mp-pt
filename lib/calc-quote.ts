@@ -244,6 +244,51 @@ export async function calcQuote(productId: number, quantity: number, params: any
     }
   }
 
+  // Enforçar seleção de acabamentos antes do cálculo de custos
+  // Se há acabamentos selecionados (via includeFinishIds ou additionalFinishes), usar apenas esses
+  // Se não há seleção e há múltiplos acabamentos, não mostrar nenhum (evita mostrar todos quando nenhum foi selecionado)
+  if (overrides) {
+    const hasSelectedFinishes = (overrides.includeFinishIds && Array.isArray(overrides.includeFinishIds) && overrides.includeFinishIds.length > 0) ||
+                                (overrides.additionalFinishes && Array.isArray(overrides.additionalFinishes) && overrides.additionalFinishes.length > 0);
+    
+    if (hasSelectedFinishes && (product as any).finishes && (product as any).finishes.length > 0) {
+      const selectedFinishIds = new Set<number>();
+      
+      // Coletar IDs de acabamentos selecionados
+      if (overrides.includeFinishIds && Array.isArray(overrides.includeFinishIds)) {
+        overrides.includeFinishIds.forEach((id: any) => {
+          const fid = Number(id);
+          if (Number.isFinite(fid)) selectedFinishIds.add(fid);
+        });
+      }
+      if (overrides.additionalFinishes && Array.isArray(overrides.additionalFinishes)) {
+        overrides.additionalFinishes.forEach((add: any) => {
+          const fid = Number(add.finishId);
+          if (Number.isFinite(fid)) selectedFinishIds.add(fid);
+        });
+      }
+      
+      // Filtrar para manter apenas os acabamentos selecionados
+      if (selectedFinishIds.size > 0) {
+        (product as any).finishes = (product as any).finishes.filter((pf: any) => 
+          selectedFinishIds.has(Number(pf.finishId))
+        );
+      }
+    } else if (!hasSelectedFinishes) {
+      // Se não há seleção explícita:
+      // - Se há apenas 1 acabamento, considerar como padrão e manter
+      // - Se há múltiplos acabamentos, não mostrar nenhum (evita mostrar todos quando nenhum foi selecionado)
+      if ((product as any).finishes && (product as any).finishes.length > 1) {
+        (product as any).finishes = [];
+      }
+      // Se há apenas 1 acabamento, manter (é considerado padrão)
+    }
+  } else if ((product as any).finishes && (product as any).finishes.length > 1) {
+    // Se não há overrides e há múltiplos acabamentos, não mostrar nenhum
+    (product as any).finishes = [];
+  }
+  // Se não há overrides e há apenas 1 acabamento, manter (é considerado padrão)
+
   // Inferir material a partir de params.materialOverrides quando a UI só envia overrides por variante (sem materialId explícito)
   if ((product as any).materials && (product as any).materials.length > 1) {
     const overridesHasMaterial = !!(overrides as any)?.materialId || !!(overrides as any)?.productMaterialId || !!(overrides as any)?.materialVariantId;
@@ -360,6 +405,10 @@ export async function calcQuote(productId: number, quantity: number, params: any
     } else if (definitiveMaterialId != null) {
       const match = (product as any).materials.find((pm: any) => Number(pm.materialId) === definitiveMaterialId);
       if (match) (product as any).materials = [match];
+    } else {
+      // Se não há seleção explícita e há múltiplos materiais, usar apenas o primeiro
+      // (evita mostrar todos os materiais quando nenhum foi selecionado)
+      (product as any).materials = [(product as any).materials[0]];
     }
   }
 

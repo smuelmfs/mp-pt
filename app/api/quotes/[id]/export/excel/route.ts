@@ -101,7 +101,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       ["#", "Item", "Quantidade", "Unidade", "Custo Unitário", "Total"]
     ];
 
-    quote.items.forEach((item, idx) => {
+    quote.items.forEach((item: typeof quote.items[0], idx: number) => {
       itemsData.push([
         (idx + 1).toString(),
         item.name || "-",

@@ -23,9 +23,9 @@ const CreateChoiceSchema = z.object({
   widthOverride: z.number().int().nullable().optional(),
   heightOverride: z.number().int().nullable().optional(),
   overrideAttrs: z.record(z.string(), z.any()).nullable().optional(),
-  // Ajustes de preço
-  priceAdjustFixed: z.number().nullable().optional(),
-  priceAdjustPercent: z.number().nullable().optional(),
+  // Ajustes de preço (usar nomes do schema Prisma: priceFixed e priceAdjustment)
+  priceFixed: z.number().nullable().optional(),
+  priceAdjustment: z.number().nullable().optional(),
 });
 
 const UpdateChoiceSchema = CreateChoiceSchema.partial().omit({ groupId: true });
@@ -77,6 +77,7 @@ export async function POST(req: Request, ctx: { params: any }) {
     data: {
       ...rest,
       overrideAttrs: overrideAttrs === null ? undefined : overrideAttrs
+      // Prisma aceita números diretamente para campos Decimal
     }
   });
 
@@ -108,9 +109,17 @@ export async function PATCH(req: Request, ctx: { params: any }) {
   }
 
   // Remover campos null para evitar erros de tipo
-  const cleanData = Object.fromEntries(
-    Object.entries(parsed.data).filter(([_, v]) => v !== null)
+  // Prisma aceita números diretamente para campos Decimal
+  const { overrideAttrs, ...rest } = parsed.data;
+  
+  const cleanData: any = Object.fromEntries(
+    Object.entries(rest).filter(([_, v]) => v !== null && v !== undefined)
   );
+  
+  // Adicionar overrideAttrs se presente (pode ser null explicitamente)
+  if (overrideAttrs !== undefined) {
+    cleanData.overrideAttrs = overrideAttrs === null ? undefined : overrideAttrs;
+  }
   
   const updatedChoice = await prisma.productOptionChoice.update({
     where: { id: choiceId },

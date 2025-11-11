@@ -50,10 +50,10 @@ export async function GET(req: Request) {
 
   // hotfix: fetch supplierUnitCost via raw per material
   const payload = await Promise.all(data.map(async (m:any) => {
-    const raw = await prisma.$queryRawUnsafe<any[]>(
+    const raw = await prisma.$queryRawUnsafe(
       `SELECT "supplierUnitCost"::text as "supplierUnitCost" FROM "Material" WHERE "id" = $1`,
       m.id
-    );
+    ) as Array<{ supplierUnitCost: string | null }>;
     const supplierUnitCostText = raw?.[0]?.supplierUnitCost ?? null;
     return {
       ...m,

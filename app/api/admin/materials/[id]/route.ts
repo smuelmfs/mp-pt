@@ -34,17 +34,17 @@ export async function GET(_req: Request, ctx: { params: any }) {
   });
   if (!m) return NextResponse.json({ error: "Material não encontrado" }, { status: 404 });
   // hotfix: fetch supplierUnitCost via raw to avoid client cache issues
-  const rawCosts = await prisma.$queryRawUnsafe<any[]>(
+  const rawCosts = await prisma.$queryRawUnsafe(
     `SELECT "supplierUnitCost"::text as "supplierUnitCost" FROM "Material" WHERE "id" = $1`,
     id
-  );
+  ) as Array<{ supplierUnitCost: string | null }>;
   const supplierUnitCostText = rawCosts?.[0]?.supplierUnitCost ?? null;
 
   const payload: any = {
     ...m,
     unitCost: m.unitCost != null ? (m.unitCost as unknown as any).toString?.() ?? String(m.unitCost) : null,
     supplierUnitCost: supplierUnitCostText,
-    variants: (m.variants || []).map(v => ({
+    variants: (m.variants || []).map((v: typeof m.variants[0]) => ({
       ...v,
       packPrice: v.packPrice != null ? (v.packPrice as unknown as any).toString?.() ?? String(v.packPrice) : null,
       unitPrice: v.unitPrice != null ? (v.unitPrice as unknown as any).toString?.() ?? String(v.unitPrice) : null,
