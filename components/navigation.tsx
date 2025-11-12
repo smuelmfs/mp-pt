@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -39,15 +39,78 @@ import {
   TrendingUp,
   Cog
 } from "lucide-react";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [userData, setUserData] = useState<{
+    name: string;
+    email: string;
+    role: string | null;
+  } | null>(null);
   const pathname = usePathname();
+
+  const loadUserData = useCallback(async () => {
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        const idToken = await user.getIdToken(true); // Forçar refresh do token
+        const res = await fetch("/api/me", {
+          headers: {
+            "Authorization": `Bearer ${idToken}`,
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUserData({
+            name: data.name || user.displayName || user.email?.split("@")[0] || "Usuário",
+            email: data.email || user.email || "",
+            role: data.role || null,
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados do usuário:", error);
+      }
+    } else {
+      setUserData(null);
+    }
+  }, []);
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    
+    // Carregar dados do usuário inicialmente
+    loadUserData();
+    
+    // Escutar mudanças no estado de autenticação
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        await loadUserData();
+      } else {
+        setUserData(null);
+      }
+    });
+
+    // Escutar evento customizado de atualização de perfil
+    const handleProfileUpdate = () => {
+      // Recarregar dados completos quando o perfil for atualizado
+      loadUserData();
+    };
+
+    window.addEventListener('userProfileUpdated', handleProfileUpdate);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('userProfileUpdated', handleProfileUpdate);
+    };
+  }, [loadUserData]);
+
+  // Não mostrar navbar na página de login
+  if (pathname === "/login") {
+    return null;
+  }
 
   const isAdmin = pathname.startsWith('/products') || 
                   pathname.startsWith('/materials') || 
@@ -138,14 +201,22 @@ export function Navigation() {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('/api/dev/logout', {
-        method: 'POST',
-      });
-      if (response.ok) {
-        window.location.href = '/login';
-      }
+      // Importar Firebase Auth dinamicamente (client-side only)
+      const { signOut } = await import("firebase/auth");
+      const { auth } = await import("@/lib/firebase");
+      
+      await signOut(auth);
+      document.cookie = "firebase-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      window.location.href = '/login';
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
+      // Fallback: tentar logout de desenvolvimento
+      try {
+        await fetch('/api/dev/logout', { method: 'POST' });
+        window.location.href = '/login';
+      } catch (fallbackError) {
+        console.error('Erro no logout de fallback:', fallbackError);
+      }
     }
   };
 
@@ -247,9 +318,9 @@ export function Navigation() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-[#F6EEE8]">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src="/placeholder-user.jpg" alt="User" />
+                    <AvatarImage src="/placeholder-user.jpg" alt={userData?.name || "User"} />
                     <AvatarFallback className="bg-[#F6EEE8] text-[#341601]">
-                      <User className="h-4 w-4" />
+                      {userData?.name ? userData.name.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -257,12 +328,26 @@ export function Navigation() {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none text-[#341601]">Usuário</p>
-                    <p className="text-xs leading-none text-[#341601]/70">
-                      MyPrint.pt
+                    <p className="text-sm font-medium leading-none text-[#341601]">
+                      {userData?.name || "Usuário"}
                     </p>
+                    <p className="text-xs leading-none text-[#341601]/70">
+                      {userData?.email || "MyPrint.pt"}
+                    </p>
+                    {userData?.role && (
+                      <Badge variant="secondary" className="mt-1 w-fit text-xs">
+                        {userData.role === "ADMIN" ? "Administrador" : "Comercial"}
+                      </Badge>
+                    )}
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild className="text-[#341601] hover:bg-[#F6EEE8]">
+                  <Link href="/profile">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Meu Perfil</span>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-[#341601] hover:bg-[#F6EEE8]">
                   <LogOut className="mr-2 h-4 w-4" />

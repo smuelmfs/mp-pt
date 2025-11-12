@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { calcQuote } from "@/lib/calc-quote";
 import { applyChoiceOverrides, applyPriceOverrides } from "@/lib/apply-overrides";
+import { verifyIdToken } from "@/lib/auth";
 
 async function getChoiceLabels(choiceIds: number[]) {
   if (!choiceIds.length) return {};
@@ -21,7 +22,7 @@ async function getChoiceLabels(choiceIds: number[]) {
   }, {} as Record<number, { name: string; group: string }>);
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const productId = Number(body.productId);
   const quantity  = Number(body.quantity ?? 1000);
@@ -44,11 +45,38 @@ export async function POST(req: Request) {
   const c = await calcQuote(productId, quantity, params, overrides);
   const finalResult = applyPriceOverrides(c, choiceOverrides);
 
-  const user = await prisma.user.upsert({
-    where: { email: "demo@local" },
-    update: {},
-    create: { name: "Comercial Demo", email: "demo@local" },
-  });
+  // Obter usuário do Firebase Auth
+  let user;
+  try {
+    const authHeader = req.headers.get("authorization");
+    const idToken = authHeader?.replace("Bearer ", "");
+    
+    if (idToken) {
+      const decodedToken = await verifyIdToken(idToken);
+      const userEmail = decodedToken.email || "unknown@local";
+      const userName = decodedToken.name || decodedToken.email?.split("@")[0] || "Usuário";
+      
+      user = await prisma.user.upsert({
+        where: { email: userEmail },
+        update: { name: userName },
+        create: { name: userName, email: userEmail },
+      });
+    } else {
+      // Fallback para usuário demo se não houver token
+      user = await prisma.user.upsert({
+        where: { email: "demo@local" },
+        update: {},
+        create: { name: "Comercial Demo", email: "demo@local" },
+      });
+    }
+  } catch (error) {
+    // Fallback para usuário demo em caso de erro
+    user = await prisma.user.upsert({
+      where: { email: "demo@local" },
+      update: {},
+      create: { name: "Comercial Demo", email: "demo@local" },
+    });
+  }
 
   const quote = await prisma.quote.create({
     data: {

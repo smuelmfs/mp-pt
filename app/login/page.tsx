@@ -5,247 +5,219 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
-  Calculator, 
-  User, 
-  Settings, 
-  LogOut, 
-  CheckCircle, 
-  AlertCircle,
-  Building2,
-  FileText,
-  Package,
-  Printer,
-  Scissors,
-  TrendingUp,
-  Layers,
-  Cog
+  Mail,
+  Lock
 } from "lucide-react";
+import { signInWithEmailAndPassword, onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 function LoginForm() {
   const sp = useSearchParams();
   const router = useRouter();
-  const redirect = sp.get("redirect") || "/";
+  const redirect = sp.get("redirect");
 
-  const [role, setRole] = useState<"ADMIN"|"COMMERCIAL"|"">("");
-  const [currentRole, setCurrentRole] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
-  async function loadMe() {
-    const res = await fetch("/api/me");
-    const j = await res.json();
-    setCurrentRole(j.role || null);
-  }
+  // Desabilitar scroll na página de login
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
 
-  useEffect(() => { loadMe(); }, []);
+  // Monitorar estado de autenticação
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      if (user) {
+        // Obter token e verificar role
+        try {
+          const idToken = await user.getIdToken();
+          const res = await fetch("/api/auth/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken }),
+          });
+          if (res.ok) {
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+              const data = await res.json();
+              setUserRole(data.role);
+              // Armazenar token em cookie (será verificado no backend)
+              document.cookie = `firebase-token=${idToken}; path=/; max-age=3600; SameSite=Lax; Secure`;
+            }
+          }
+        } catch (error) {
+          console.error("Erro ao verificar token:", error);
+        }
+      } else {
+        setUserRole(null);
+        document.cookie = "firebase-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router, redirect]);
 
   async function login() {
-    if (!role) { 
-      toast.error("Escolha um papel"); 
-      return; 
+    if (!email || !password) {
+      toast.error("Preencha email e senha");
+      return;
     }
-    
+
     setLoading(true);
     try {
-      const res = await fetch("/api/dev/auth", {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const idToken = await userCredential.user.getIdToken();
+      
+      // Verificar token no backend
+      const res = await fetch("/api/auth/verify", {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ role }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
       });
+
       if (res.ok) {
-        toast.success("Login realizado com sucesso!");
-        router.replace(redirect);
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const data = await res.json();
+          // Armazenar token em cookie (será verificado no backend)
+          document.cookie = `firebase-token=${idToken}; path=/; max-age=3600; SameSite=Lax; Secure`;
+          setUserRole(data.role);
+          toast.success("Login realizado com sucesso!");
+          
+          // Redirecionar baseado no role ou redirect
+          if (redirect) {
+            router.replace(redirect);
+          } else if (data.role === "ADMIN") {
+            router.replace("/products");
+          } else {
+            router.replace("/quotes");
+          }
+        } else {
+          toast.error("Resposta inválida do servidor");
+        }
       } else {
-        toast.error("Falha ao logar");
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const error = await res.json();
+          toast.error(error.error || "Erro ao verificar autenticação");
+        } else {
+          toast.error("Erro ao verificar autenticação");
+        }
       }
-    } catch (error) {
-      toast.error("Erro ao fazer login");
+    } catch (error: any) {
+      // Tratar erros específicos do Firebase Auth com mensagens amigáveis
+      let errorMessage = "Erro ao fazer login";
+      
+      if (error.code) {
+        switch (error.code) {
+          case "auth/invalid-credential":
+          case "auth/wrong-password":
+          case "auth/user-not-found":
+            errorMessage = "Email ou senha incorretos";
+            break;
+          case "auth/invalid-email":
+            errorMessage = "Email inválido";
+            break;
+          case "auth/user-disabled":
+            errorMessage = "Esta conta foi desativada";
+            break;
+          case "auth/too-many-requests":
+            errorMessage = "Muitas tentativas. Tente novamente mais tarde";
+            break;
+          case "auth/network-request-failed":
+            errorMessage = "Erro de conexão. Verifique sua internet";
+            break;
+          default:
+            errorMessage = error.message || "Erro ao fazer login";
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Log apenas em desenvolvimento e de forma discreta
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Erro de autenticação:", error.code || error.message);
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   }
-
-  async function logout() {
-    setLoading(true);
-    try {
-      await fetch("/api/dev/logout", { method: "POST" });
-      toast.success("Logout realizado com sucesso!");
-      loadMe();
-    } catch (error) {
-      toast.error("Erro ao fazer logout");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const commercialFeatures = [
-    { name: "Orçamentos", href: "/quotes", icon: FileText },
-    { name: "Categorias", href: "/quotes/categories", icon: Layers },
-  ];
-
-  const adminFeatures = [
-    { name: "Produtos", href: "/products", icon: Package },
-    { name: "Materiais", href: "/materials", icon: Building2 },
-    { name: "Impressões", href: "/printing", icon: Printer },
-    { name: "Acabamentos", href: "/finishes", icon: Scissors },
-    { name: "Margens", href: "/margins", icon: TrendingUp },
-    { name: "Categorias", href: "/categories", icon: Layers },
-    { name: "Configurações", href: "/config", icon: Cog },
-  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left side - Login Form */}
-          <Card className="w-full">
-            <CardHeader className="text-center">
-              <div className="flex justify-center mb-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#F66807]">
-                  <Calculator className="h-6 w-6 text-white" />
+    <div className="fixed inset-0 bg-gradient-to-br from-[#F66807] via-[#FF8C42] to-[#FFB366] flex items-center justify-center p-4 overflow-hidden" style={{ height: '100vh', width: '100vw' }}>
+      <div className="w-full max-w-md">
+        <Card className="w-full shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
+          <CardHeader className="text-center pb-4 pt-8">
+            <div className="flex justify-center">
+              <img 
+                src="/logo.svg" 
+                alt="MyPrint.pt" 
+                className="h-20 w-auto" 
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6 px-8 pb-8">
+            {/* Login Form */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-[#341601] font-medium">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10 bg-white border-gray-300 text-gray-900 focus:border-[#F66807] focus:ring-[#F66807] h-11 placeholder:text-gray-500 placeholder:opacity-100"
+                    disabled={loading}
+                  />
                 </div>
               </div>
-              <CardTitle className="text-2xl font-bold">MP-PT</CardTitle>
-              <CardDescription>
-                Sistema de Orçamentos para Impressão Digital
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Current Status */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium">Status atual:</span>
-                </div>
-                <Badge variant={currentRole ? "default" : "secondary"}>
-                  {currentRole ? currentRole : "Não autenticado"}
-                </Badge>
-              </div>
-
-              {/* Role Selection */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Escolha seu perfil:</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Button
-                    variant={role === "COMMERCIAL" ? "default" : "outline"}
-                    className="h-auto p-4 flex flex-col items-center space-y-2"
-                    onClick={() => setRole("COMMERCIAL")}
-                  >
-                    <User className="h-6 w-6" />
-                    <div className="text-center">
-                      <div className="font-semibold">Comercial</div>
-                      <div className="text-xs text-muted-foreground">Criar orçamentos</div>
-                    </div>
-                  </Button>
-                  
-                  <Button
-                    variant={role === "ADMIN" ? "default" : "outline"}
-                    className="h-auto p-4 flex flex-col items-center space-y-2"
-                    onClick={() => setRole("ADMIN")}
-                  >
-                    <Settings className="h-6 w-6" />
-                    <div className="text-center">
-                      <div className="font-semibold">Administrador</div>
-                      <div className="text-xs text-muted-foreground">Configurar sistema</div>
-                    </div>
-                  </Button>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-[#341601] font-medium">Senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 bg-white border-gray-300 text-gray-900 focus:border-[#F66807] focus:ring-[#F66807] h-11 placeholder:text-gray-500 placeholder:opacity-100"
+                    disabled={loading}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") login();
+                    }}
+                  />
                 </div>
               </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                <Button 
-                  onClick={login} 
-                  disabled={!role || loading}
-                  className="flex-1"
-                >
-                  {loading ? "Entrando..." : "Continuar"}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={logout}
-                  disabled={loading}
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sair
-                </Button>
-              </div>
-
-              {/* Development Notice */}
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-xs">
-                  Modo de desenvolvimento. Após integrar Firebase Auth, esta página será substituída pela autenticação real.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-
-          {/* Right side - Features Preview */}
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Funcionalidades</h2>
-              <p className="text-gray-600">Explore as diferentes áreas do sistema</p>
             </div>
 
-            {/* Commercial Features */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-lg">
-                  <User className="h-5 w-5 mr-2 text-gray-600" />
-                  Área Comercial
-                </CardTitle>
-                <CardDescription>
-                  Criar e gerenciar orçamentos para clientes
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {commercialFeatures.map((feature) => (
-                    <a
-                      key={feature.href}
-                      href={feature.href}
-                      className="flex items-center p-2 rounded-md hover:bg-gray-50 transition-colors"
-                    >
-                      <feature.icon className="h-4 w-4 mr-3 text-gray-500" />
-                      <span className="text-sm font-medium">{feature.name}</span>
-                    </a>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Admin Features */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-lg">
-                  <Settings className="h-5 w-5 mr-2 text-gray-600" />
-                  Área Administrativa
-                </CardTitle>
-                <CardDescription>
-                  Configurar produtos, materiais e regras do sistema
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {adminFeatures.map((feature) => (
-                    <a
-                      key={feature.href}
-                      href={feature.href}
-                      className="flex items-center p-2 rounded-md hover:bg-gray-50 transition-colors"
-                    >
-                      <feature.icon className="h-4 w-4 mr-3 text-gray-500" />
-                      <span className="text-sm font-medium">{feature.name}</span>
-                    </a>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+            {/* Action Buttons */}
+            <div className="pt-2">
+              <Button 
+                onClick={login} 
+                disabled={loading || !email || !password}
+                className="w-full bg-[#F66807] hover:bg-[#E55A00] text-white h-11 font-semibold shadow-md"
+              >
+                {loading ? "Entrando..." : "Entrar"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -254,10 +226,10 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-gradient-to-br from-[#F66807] via-[#FF8C42] to-[#FFB366] flex items-center justify-center overflow-hidden">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-48 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-32"></div>
+          <div className="h-8 bg-white/20 rounded w-48 mb-4"></div>
+          <div className="h-4 bg-white/20 rounded w-32"></div>
         </div>
       </div>
     }>

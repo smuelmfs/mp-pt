@@ -17,8 +17,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt">
-      <body className={`${nunito.variable} font-sans antialiased`} suppressHydrationWarning>
+    <html lang="pt" className="h-full">
+      <body className={`${nunito.variable} font-sans antialiased h-full`} suppressHydrationWarning>
         <Navigation />
         <main className="min-h-screen bg-[#F6EEE8]">
           {children}

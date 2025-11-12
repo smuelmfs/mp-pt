@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { authenticatedFetch } from "@/lib/api-client";
 
 interface ProductConfig {
   product: {
@@ -474,7 +475,7 @@ export default function ConfiguratorPage() {
         }
       });
 
-      const response = await fetch('/api/quote/save', {
+      const response = await authenticatedFetch('/api/quote/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

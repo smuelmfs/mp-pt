@@ -14,20 +14,34 @@ const ADMIN_PATHS = [
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const role = req.cookies.get("role")?.value; // "ADMIN" | "COMMERCIAL"
-
-  // protege as rotas de admin
-  if (ADMIN_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
-    if (role !== "ADMIN") {
+  
+  // Verificar se há token Firebase ou cookie de desenvolvimento
+  const hasFirebaseToken = req.cookies.get("firebase-token")?.value;
+  const devRole = req.cookies.get("role")?.value;
+  
+  // Se não há nenhum token, verificar se precisa autenticação
+  if (!hasFirebaseToken && !devRole) {
+    // Protege as rotas de admin - redireciona para login se não autenticado
+    if (ADMIN_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
       const url = req.nextUrl.clone();
       url.pathname = "/login";
       url.searchParams.set("redirect", pathname);
       return NextResponse.redirect(url);
     }
-
+  } else if (devRole) {
+    // Modo desenvolvimento: verificar role diretamente
+    if (ADMIN_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+      if (devRole !== "ADMIN") {
+        const url = req.nextUrl.clone();
+        url.pathname = "/login";
+        url.searchParams.set("redirect", pathname);
+        return NextResponse.redirect(url);
+      }
+    }
   }
+  // Se tem token Firebase, a verificação de role será feita no frontend/API
+  // O middleware apenas verifica a presença do token
 
-  // Rotas comerciais (quotes) ficam abertas para COMMERCIAL e ADMIN
   return NextResponse.next();
 }
 
@@ -37,4 +51,5 @@ export const config = {
     "/((?!api|_next|favicon.ico|assets|static).*)",
   ],
 };
+
 
