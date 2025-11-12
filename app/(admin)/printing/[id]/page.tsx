@@ -6,6 +6,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Trash2 } from "lucide-react";
+import { PageLoading } from "@/components/ui/loading";
 
 export default function PrintingDetailPage() {
   const params = useParams<{ id: string }>();
@@ -110,25 +111,7 @@ export default function PrintingDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F6EEE8]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(9)].map((_, i) => (
-                  <div key={i} className="space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                    <div className="h-10 bg-gray-200 rounded"></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <PageLoading message="Carregando impressão..." />;
   }
 
   if (row?.error) {

@@ -129,6 +129,40 @@ export async function GET(_req: Request, ctx: { params: any }) {
       });
     }
 
+    // Grupo de Impressão (se houver impressão configurada)
+    if (product.printing) {
+      const printingChoices = [
+        {
+          id: 'printing_none',
+          name: 'Sem impressão',
+          description: 'Não incluir impressão no orçamento',
+          printing: null
+        },
+        {
+          id: `printing_${product.printing.id}`,
+          name: product.printing.formatLabel || `Impressão ${product.printing.colors || product.printing.technology || ''}`.trim(),
+          description: `Impressão: ${product.printing.formatLabel || product.printing.technology || ''} ${product.printing.colors || ''}`.trim(),
+          printing: {
+            id: product.printing.id,
+            technology: product.printing.technology,
+            formatLabel: product.printing.formatLabel,
+            colors: product.printing.colors,
+            sides: product.printing.sides
+          }
+        }
+      ];
+      
+      optionGroups.push({
+        id: 'printing',
+        name: 'Impressão',
+        kind: 'RADIO',
+        required: false,
+        multiSelect: false,
+        hasMultipleOptions: true,
+        choices: printingChoices
+      });
+    }
+
     // Grupo de Acabamentos (se houver acabamentos configurados)
     if (product.finishes && product.finishes.length > 0) {
       optionGroups.push({

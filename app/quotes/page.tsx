@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { CalendarDays, FileText, Euro, RefreshCw, Search, Filter, X } from "lucide-react";
+import { Loading, ListSkeleton } from "@/components/ui/loading";
 
 type QuoteRow = {
   id: number; 
@@ -126,38 +127,43 @@ export default function QuotesPage() {
     <main className="min-h-screen bg-[#F6EEE8]">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-[#341601]">Orçamentos</h1>
-              <p className="text-gray-600 mt-2">Gerencie todos os orçamentos criados</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#341601]">Orçamentos</h1>
+              <p className="text-gray-600 mt-2 text-sm sm:text-base">Gerencie todos os orçamentos criados</p>
             </div>
-            <div className="flex items-center gap-3">
-              <button 
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <Button
                 onClick={loadQuotes}
                 disabled={loadingList}
-                className="inline-flex items-center px-6 py-3 border border-gray-300 text-[#341601] rounded-lg hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="outline"
+                size="lg"
+                className="text-sm sm:text-base"
               >
-                <RefreshCw className={`h-5 w-5 mr-2 ${loadingList ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 sm:h-5 sm:w-5 mr-2 ${loadingList ? 'animate-spin' : ''}`} />
                 Atualizar
-              </button>
-              <Link 
-                href="/quotes/categories"
-                className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors"
+              </Button>
+              <Button 
+                asChild
+                size="lg"
+                className="text-sm sm:text-base"
               >
-                <FileText className="h-5 w-5 mr-2" />
-                Novo Orçamento
-              </Link>
+                <Link href="/quotes/categories">
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  Novo Orçamento
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Orçamentos</CardTitle>
@@ -274,7 +280,7 @@ export default function QuotesPage() {
                     <select
                       value={selectedProduct}
                       onChange={(e) => setSelectedProduct(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F66807]"
+                      className="w-full px-3 py-2 border-2 border-gray-300 bg-white text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] hover:border-gray-400 transition-colors"
                     >
                       <option value="">Todos os produtos</option>
                       {products.map((product) => (
@@ -325,45 +331,39 @@ export default function QuotesPage() {
           </CardHeader>
           <CardContent>
             {loadingList ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                  Carregando orçamentos...
-                </div>
-              </div>
+              <ListSkeleton count={5} />
             ) : rows.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-[#341601] mb-2">Nenhum orçamento encontrado</h3>
                 <p className="text-gray-600 mb-4">Comece criando seu primeiro orçamento através das categorias.</p>
-                <Link 
-                  href="/quotes/categories"
-                  className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors"
-                >
-                  <FileText className="h-5 w-5 mr-2" />
-                  Criar Primeiro Orçamento
-                </Link>
+                <Button asChild>
+                  <Link href="/quotes/categories">
+                    <FileText className="h-5 w-5 mr-2" />
+                    Criar Primeiro Orçamento
+                  </Link>
+                </Button>
               </div>
             ) : (
               <div className="space-y-4">
                 {rows.map((quote) => (
-                  <div key={quote.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <Badge variant="outline" className="font-mono">
+                  <div key={quote.id} className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                          <Badge variant="outline" className="font-mono text-xs sm:text-sm">
                             #{quote.number}
                           </Badge>
-                          <span className="text-sm text-gray-600">
+                          <span className="text-xs sm:text-sm text-gray-600">
                             {formatDate(quote.createdAt)}
                           </span>
                         </div>
-                        <h3 className="font-medium text-[#341601] mb-1">
+                        <h3 className="font-medium text-[#341601] mb-2 text-sm sm:text-base break-words">
                           {quote.product?.name || 'Produto não especificado'}
                         </h3>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
                           {quote.customer && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700">
+                            <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs">
                               Cliente: {quote.customer.name}
                             </span>
                           )}
@@ -373,10 +373,10 @@ export default function QuotesPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 sm:ml-4">
                         <Link 
                           href={`/quotes/${quote.id}`}
-                          className="inline-flex items-center px-4 py-2 border border-gray-300 text-[#341601] rounded-lg hover:bg-white transition-colors text-sm font-medium"
+                          className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-[#341601] rounded-lg hover:bg-white transition-colors text-xs sm:text-sm font-medium w-full sm:w-auto"
                         >
                           Ver Detalhes
                         </Link>

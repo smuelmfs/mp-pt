@@ -426,7 +426,15 @@ export async function calcQuote(productId: number, quantity: number, params: any
   }
 
   let costPrint = 0;
-  if (product.printing) {
+  // Verificar se a impressão deve ser incluída
+  // A impressão só deve ser incluída se:
+  // 1. O produto tiver impressão configurada (product.printing)
+  // 2. Não houver override para desabilitar (disablePrinting)
+  // IMPORTANTE: Por padrão, se o produto tem impressão configurada, ela é incluída automaticamente
+  // Para desabilitar, use overrides.disablePrinting = true ou params.disablePrinting = true
+  const disablePrinting = overrides?.disablePrinting === true || params?.disablePrinting === true;
+  
+  if (product.printing && !disablePrinting) {
     let unitPriceBase = toNumber(product.printing.unitPrice);
     unitPriceBase = resolvePrintingUnitPrice((product as any).printing, unitPriceBase, { sides: (product as any).printing?.sides ?? null });
     const yieldVal = product.printing.yield ?? 1;
@@ -455,10 +463,20 @@ export async function calcQuote(productId: number, quantity: number, params: any
     costPrint = Math.max(byQty + setupCost, minFee);
     costPrint = roundLine(costPrint);
 
+    // Formatar o nome da impressão corretamente
+    let printingName = "Impressão";
+    if (product.printing.colors) {
+      printingName = `Impressão ${product.printing.colors}`;
+    } else if (product.printing.formatLabel) {
+      printingName = `Impressão ${product.printing.formatLabel}`;
+    } else if (product.printing.technology) {
+      printingName = `Impressão ${product.printing.technology}`;
+    }
+    
     items.push({
       type: "PRINTING",
       refId: product.printingId ?? undefined,
-      name: `Impressão ${product.printing.colors ?? ""}`.trim(),
+      name: printingName.trim(),
       quantity: tirosWithLoss,
       unit: "UNIT",
       unitCost: unitPriceBase,
@@ -625,7 +643,7 @@ export async function calcQuote(productId: number, quantity: number, params: any
   // =========================
   // Regras de margem dinâmica — usar total antes da margem
   // =========================
-  async function bestDynamic(where: any) {
+  const bestDynamic = async (where: any) => {
     return prisma.marginRuleDynamic.findFirst({
       where: {
         active: true,
@@ -635,7 +653,7 @@ export async function calcQuote(productId: number, quantity: number, params: any
       },
       orderBy: [{ priority: "asc" }],
     });
-  }
+  };
   let dynamic = 0;
   // Ordem de prioridade: CUSTOMER > CUSTOMER_GROUP > PRODUCT > CATEGORY > GLOBAL
   const dynCustomer = customerId ? await bestDynamic({ scope: "CUSTOMER", /* customerId in breakdown filter via overrides */ }) : null;

@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { User, Mail, Lock, Save, ArrowLeft } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { updatePassword, updateProfile, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { PageLoading } from "@/components/ui/loading";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -186,18 +187,7 @@ export default function ProfilePage() {
   }
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-[#F6EEE8] flex items-center justify-center">
-        <Card className="w-full max-w-2xl bg-white border-gray-200 shadow-sm">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#341601] mx-auto mb-4"></div>
-              <p className="text-gray-600">Carregando perfil...</p>
-            </div>
-          </CardContent>
-        </Card>
-      </main>
-    );
+    return <PageLoading message="Carregando perfil..." />;
   }
 
   if (!userData) {
@@ -206,21 +196,21 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen bg-[#F6EEE8]">
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="mb-6">
           <Button
             variant="ghost"
             onClick={() => router.back()}
-            className="mb-4"
+            className="mb-4 text-sm sm:text-base"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar
           </Button>
-          <h1 className="text-3xl font-bold text-[#341601]">Meu Perfil</h1>
-          <p className="text-gray-600 mt-2">Gerencie suas informações pessoais e senha</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#341601]">Meu Perfil</h1>
+          <p className="text-gray-600 mt-2 text-sm sm:text-base">Gerencie suas informações pessoais e senha</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-[#341601]">

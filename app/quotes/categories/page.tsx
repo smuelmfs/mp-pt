@@ -2,6 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PageLoading, ListSkeleton } from "@/components/ui/loading";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Product {
   id: number;
@@ -74,6 +81,16 @@ export default function CategoriesPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [activeTab, setActiveTab] = useState<string>("all");
+  
+  // Estados para seleção múltipla de produtos
+  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  
+  // Estados para modal de cliente
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [customerType, setCustomerType] = useState<"existing" | "manual">("existing");
+  const [manualCustomerName, setManualCustomerName] = useState("");
+  const [multiQuoteCustomerId, setMultiQuoteCustomerId] = useState<string>("");
 
   // Carregar clientes ativos para filtro
   useEffect(() => {
@@ -204,44 +221,201 @@ export default function CategoriesPage() {
 
   const hasActiveFilters = searchQuery || selectedMaterialTypes.length > 0 || selectedFinishCategories.length > 0 || selectedPrintingTechnology || selectedPrintingFormat || selectedPrintingColors;
 
+  // Funções para seleção múltipla
+  const toggleProductSelection = (productId: number) => {
+    setSelectedProducts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleStartMultiQuote = () => {
+    if (selectedProducts.size === 0) {
+      alert("Selecione pelo menos um produto para criar o orçamento");
+      return;
+    }
+    if (selectedProducts.size === 1) {
+      alert("Para usar o modo de seleção múltipla, é necessário selecionar pelo menos 2 produtos. Selecione apenas 1 produto, use o modo normal de orçamento.");
+      return;
+    }
+    // Abrir modal para selecionar cliente
+    setShowCustomerModal(true);
+  };
+
+  const handleConfirmCustomerAndStart = () => {
+    if (customerType === "manual" && !manualCustomerName.trim()) {
+      alert("Por favor, preencha o nome do cliente/solicitante");
+      return;
+    }
+
+    const productsArray = Array.from(selectedProducts);
+    const finalCustomerId = customerType === "existing" ? multiQuoteCustomerId : "";
+    const finalCustomerName = customerType === "manual" ? manualCustomerName.trim() : "";
+
+    // Salvar produtos selecionados e informações do cliente no sessionStorage
+    sessionStorage.setItem('multiQuoteProducts', JSON.stringify(productsArray));
+    sessionStorage.setItem('multiQuoteCustomerId', finalCustomerId);
+    sessionStorage.setItem('multiQuoteCustomerName', finalCustomerName);
+    sessionStorage.setItem('multiQuoteCustomerType', customerType);
+    sessionStorage.setItem('multiQuoteCurrentIndex', '0');
+    
+    // Fechar modal e redirecionar
+    setShowCustomerModal(false);
+    window.location.href = `/quotes/configurator/${productsArray[0]}${finalCustomerId ? `?customerId=${finalCustomerId}` : ''}`;
+  };
+
   if (loading) {
-    return (
-      <main className="min-h-screen bg-[#F6EEE8]">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
-            <div className="flex gap-6">
-              <div className="w-64 h-96 bg-gray-200 rounded"></div>
-              <div className="flex-1 space-y-4">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-20 bg-gray-200 rounded"></div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-    );
+    return <PageLoading message="Carregando produtos..." />;
   }
 
   return (
     <main className="min-h-screen bg-[#F6EEE8]">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div>
-            <h1 className="text-3xl font-bold text-[#341601]">Produtos</h1>
-            <p className="text-gray-600 mt-2">Explore todos os produtos disponíveis</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#341601]">Produtos</h1>
+              <p className="text-gray-600 mt-2 text-sm sm:text-base">Explore todos os produtos disponíveis</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setIsMultiSelectMode(!isMultiSelectMode);
+                  if (!isMultiSelectMode) {
+                    setSelectedProducts(new Set());
+                  }
+                }}
+                className={`inline-flex items-center px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                  isMultiSelectMode
+                    ? 'bg-[#F66807] text-white hover:bg-[#E55A00]'
+                    : 'bg-gray-100 text-[#341601] hover:bg-gray-200'
+                }`}
+              >
+                {isMultiSelectMode ? '✓ Modo Seleção' : 'Selecionar Múltiplos'}
+              </button>
+              {isMultiSelectMode && selectedProducts.size > 1 && (
+                <Button
+                  onClick={handleStartMultiQuote}
+                  size="sm"
+                >
+                  Orçar {selectedProducts.size} Produtos
+                </Button>
+              )}
+              {isMultiSelectMode && selectedProducts.size === 1 && (
+                <div className="text-xs text-gray-500 px-2 py-1 italic">
+                  Selecione pelo menos 2 produtos para orçamento múltiplo
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Modal de Seleção de Cliente */}
+      <Dialog open={showCustomerModal} onOpenChange={setShowCustomerModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[#341601] text-xl font-bold">Informações do Cliente</DialogTitle>
+            <DialogDescription className="text-gray-600 mt-2">
+              Para quem é este orçamento? Selecione um cliente cadastrado ou informe o nome do solicitante.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <RadioGroup value={customerType} onValueChange={(value) => setCustomerType(value as "existing" | "manual")} className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center space-x-3">
+                  <RadioGroupItem value="existing" id="existing" />
+                  <Label htmlFor="existing" className="font-semibold text-[#341601] cursor-pointer text-base">
+                    Cliente Cadastrado
+                  </Label>
+                </div>
+                {customerType === "existing" && (
+                  <div className="ml-8 mt-3">
+                    <Select
+                      value={multiQuoteCustomerId}
+                      onValueChange={(value) => setMultiQuoteCustomerId(value)}
+                    >
+                      <SelectTrigger className="w-full h-11 border-2 border-gray-300 bg-white text-gray-900 shadow-sm hover:border-gray-400">
+                        <SelectValue placeholder="Selecione um cliente" />
+                      </SelectTrigger>
+                      <SelectContent 
+                        className="max-h-[200px]" 
+                        position="popper"
+                        sideOffset={4}
+                        align="start"
+                      >
+                        {customers.map((c) => (
+                          <SelectItem key={c.id} value={c.id.toString()}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center space-x-3">
+                  <RadioGroupItem value="manual" id="manual" />
+                  <Label htmlFor="manual" className="font-semibold text-[#341601] cursor-pointer text-base">
+                    Informar Nome do Solicitante
+                  </Label>
+                </div>
+                {customerType === "manual" && (
+                  <div className="ml-8 mt-3">
+                    <Input
+                      type="text"
+                      placeholder="Nome do cliente ou solicitante"
+                      value={manualCustomerName}
+                      onChange={(e) => setManualCustomerName(e.target.value)}
+                      className="w-full h-11"
+                    />
+                    <p className="text-xs text-gray-500 mt-2 ml-1">
+                      Este nome será registrado no orçamento para identificação
+                    </p>
+                  </div>
+                )}
+              </div>
+            </RadioGroup>
+
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200">
+              <Button
+                variant="outline"
+                onClick={() => setShowCustomerModal(false)}
+                className="w-full sm:w-auto min-w-[120px]"
+                size="lg"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleConfirmCustomerAndStart}
+                disabled={
+                  (customerType === "existing" && !multiQuoteCustomerId) ||
+                  (customerType === "manual" && !manualCustomerName.trim())
+                }
+                className="w-full sm:w-auto min-w-[160px]"
+                size="lg"
+              >
+                Iniciar Orçamento
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="mb-6 sm:mb-8">
           
           {/* Abas de Categorias */}
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             <div className="bg-white rounded-lg border border-gray-200 p-1">
               <div className="flex gap-1 overflow-x-auto hide-scrollbar scroll-smooth">
                 <button
@@ -272,10 +446,10 @@ export default function CategoriesPage() {
           </div>
         </div>
 
-        <div className="flex gap-6">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
           {/* Filtros Laterais */}
-          <aside className="w-64 flex-shrink-0">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
+          <aside className="w-full lg:w-64 flex-shrink-0">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 lg:sticky lg:top-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-[#341601]">Filtros</h2>
                 {hasActiveFilters && (
@@ -316,7 +490,7 @@ export default function CategoriesPage() {
                     setSelectedCustomer(e.target.value);
                     setPagination(prev => ({ ...prev, page: 1 }));
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] text-sm"
+                  className="w-full px-3 py-2 border-2 border-gray-300 bg-white text-gray-900 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] hover:border-gray-400 transition-colors text-sm"
                 >
                   <option value="">Todos os clientes</option>
                   {customers.map((c) => (
@@ -381,7 +555,7 @@ export default function CategoriesPage() {
                       setSelectedPrintingTechnology(e.target.value);
                       setPagination(prev => ({ ...prev, page: 1 }));
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] text-sm"
+                    className="w-full px-3 py-2 border-2 border-gray-300 bg-white text-gray-900 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] hover:border-gray-400 transition-colors text-sm"
                   >
                     <option value="">Todas as tecnologias</option>
                     {filters.printingTechnologies.map((tech) => (
@@ -405,7 +579,7 @@ export default function CategoriesPage() {
                       setSelectedPrintingFormat(e.target.value);
                       setPagination(prev => ({ ...prev, page: 1 }));
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] text-sm"
+                    className="w-full px-3 py-2 border-2 border-gray-300 bg-white text-gray-900 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] hover:border-gray-400 transition-colors text-sm"
                   >
                     <option value="">Todos os formatos</option>
                     {filters.printingFormats.map((format) => (
@@ -429,7 +603,7 @@ export default function CategoriesPage() {
                       setSelectedPrintingColors(e.target.value);
                       setPagination(prev => ({ ...prev, page: 1 }));
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] text-sm"
+                    className="w-full px-3 py-2 border-2 border-gray-300 bg-white text-gray-900 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] hover:border-gray-400 transition-colors text-sm"
                   >
                     <option value="">Todas as cores</option>
                     {filters.printingColors.map((colors) => (
@@ -444,57 +618,93 @@ export default function CategoriesPage() {
           </aside>
 
           {/* Produtos */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="grid gap-4">
-              {products.map((product) => (
-                <Link
-                  key={product.id}
-                  href={`/quotes/configurator/${product.id}${selectedCustomer ? `?customerId=${selectedCustomer}` : ""}`}
-                  className="block bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-[#341601]">{product.name}</h3>
-                      <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                        <span className="text-[#341601] font-medium">{product.category.name}</span>
-                        {product.widthMm && product.heightMm && (
-                          <span>
-                            {product.widthMm}×{product.heightMm} mm
-                          </span>
+              {products.map((product) => {
+                const isSelected = selectedProducts.has(product.id);
+                return (
+                  <div
+                    key={product.id}
+                    className={`relative bg-white rounded-lg shadow-sm border-2 transition-all ${
+                      isMultiSelectMode
+                        ? isSelected
+                          ? 'border-[#F66807] bg-orange-50 cursor-pointer'
+                          : 'border-gray-200 hover:border-gray-300 cursor-pointer'
+                        : 'border-gray-200 hover:shadow-md'
+                    }`}
+                    onClick={() => {
+                      if (isMultiSelectMode) {
+                        toggleProductSelection(product.id);
+                      }
+                    }}
+                  >
+                    {isMultiSelectMode && (
+                      <div className="absolute top-4 right-4 z-10">
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                          isSelected
+                            ? 'bg-[#F66807] border-[#F66807]'
+                            : 'bg-white border-gray-300'
+                        }`}>
+                          {isSelected && (
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <div className="p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg sm:text-xl font-semibold text-[#341601] break-words">{product.name}</h3>
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs sm:text-sm text-gray-600">
+                            <span className="text-[#341601] font-medium">{product.category.name}</span>
+                            {product.widthMm && product.heightMm && (
+                              <span>
+                                {product.widthMm}×{product.heightMm} mm
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
+                            {product.printing && (
+                              <div className="flex items-center gap-1">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
+                                  {product.printing.technology}
+                                  {product.printing.formatLabel && ` - ${product.printing.formatLabel}`}
+                                  {product.printing.colors && ` (${product.printing.colors})`}
+                                </span>
+                              </div>
+                            )}
+                            {product.materials && product.materials.length > 0 && (
+                              <div className="flex items-center gap-1">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
+                                  {product.materials[0].material.type}
+                                </span>
+                              </div>
+                            )}
+                            {product.finishes && product.finishes.length > 0 && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700">
+                                {product.finishes.map(f => f.finish.name).join(", ")}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {!isMultiSelectMode && (
+                          <Link
+                            href={`/quotes/configurator/${product.id}${selectedCustomer ? `?customerId=${selectedCustomer}` : ""}`}
+                            className="text-gray-400 ml-4 hover:text-[#F66807] transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </Link>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        {product.printing && (
-                          <div className="flex items-center gap-1">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
-                              {product.printing.technology}
-                              {product.printing.formatLabel && ` - ${product.printing.formatLabel}`}
-                              {product.printing.colors && ` (${product.printing.colors})`}
-                            </span>
-                          </div>
-                        )}
-                        {product.materials && product.materials.length > 0 && (
-                          <div className="flex items-center gap-1">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
-                              {product.materials[0].material.type}
-                            </span>
-                          </div>
-                        )}
-                        {product.finishes && product.finishes.length > 0 && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700">
-                            {product.finishes.map(f => f.finish.name).join(", ")}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-gray-400 ml-4">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
                     </div>
                   </div>
-                </Link>
-              ))}
+                );
+              })}
             </div>
 
             {products.length === 0 && !loading && (

@@ -160,35 +160,22 @@ export default function PrintingListPage() {
   }
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-[#F6EEE8] p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="h-40 bg-gray-200 rounded-lg"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </main>
-    );
+    return <PageLoading message="Carregando impressões..." />;
   }
 
   return (
     <main className="min-h-screen bg-[#F6EEE8]">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-[#341601]">Impressões</h1>
-              <p className="text-gray-600 mt-2">Configure as tecnologias e métodos de impressão disponíveis</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#341601]">Impressões</h1>
+              <p className="text-gray-600 mt-2 text-sm sm:text-base">Configure as tecnologias e métodos de impressão disponíveis</p>
             </div>
             <button
               onClick={() => setOpenCreate(true)}
-              className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors shadow-sm"
+              className="inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors shadow-sm text-sm sm:text-base w-full sm:w-auto"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -200,7 +187,7 @@ export default function PrintingListPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         {/* Search & Filters */}
           <div className="mb-8">
@@ -223,7 +210,7 @@ export default function PrintingListPage() {
               )}
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <select
               className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
               value={technologyFilter}

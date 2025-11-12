@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { authenticatedFetch } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
 
 interface ProductConfig {
   product: {
@@ -47,6 +48,13 @@ interface ProductConfig {
         heightMm: number;
         description?: string | null;
       };
+      printing?: {
+        id: number;
+        technology: string;
+        formatLabel?: string | null;
+        colors?: string | null;
+        sides?: number | null;
+      } | null;
       qtyPerUnit?: number;
       wasteFactor?: number;
     }>;
@@ -107,6 +115,12 @@ export default function ConfiguratorPage() {
   const [customers, setCustomers] = useState<Array<{ id: number; name: string }>>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [sourcingMode, setSourcingMode] = useState<"INTERNAL" | "SUPPLIER" | "HYBRID">("INTERNAL");
+  
+  // Estados para modo multi-quote
+  const [multiQuoteProducts, setMultiQuoteProducts] = useState<number[]>([]);
+  const [currentProductIndex, setCurrentProductIndex] = useState<number>(0);
+  const [isMultiQuoteMode, setIsMultiQuoteMode] = useState<boolean>(false);
+  const [savedProducts, setSavedProducts] = useState<any[]>([]);
 
   function showSuccessToast(message: string) {
     setToast({ type: 'success', message });
@@ -117,6 +131,38 @@ export default function ConfiguratorPage() {
     setToast({ type: 'error', message });
     setTimeout(() => setToast(null), 3000);
   }
+
+  // Verificar se está em modo multi-quote e carregar produtos salvos
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedProducts = sessionStorage.getItem('multiQuoteProducts');
+      const storedIndex = sessionStorage.getItem('multiQuoteCurrentIndex');
+      const storedSaved = sessionStorage.getItem('multiQuoteSavedProducts');
+      const storedCustomerId = sessionStorage.getItem('multiQuoteCustomerId');
+      const storedCustomerName = sessionStorage.getItem('multiQuoteCustomerName');
+      const storedCustomerType = sessionStorage.getItem('multiQuoteCustomerType');
+      
+      if (storedProducts) {
+        const products = JSON.parse(storedProducts);
+        const index = storedIndex ? parseInt(storedIndex) : 0;
+        setMultiQuoteProducts(products);
+        setCurrentProductIndex(index);
+        setIsMultiQuoteMode(true);
+        
+        if (storedSaved) {
+          setSavedProducts(JSON.parse(storedSaved));
+        }
+        
+        // Carregar informações do cliente do modal
+        if (storedCustomerType === 'existing' && storedCustomerId && !customerId) {
+          setCustomerId(storedCustomerId);
+        } else if (storedCustomerType === 'manual' && storedCustomerName) {
+          // Para cliente manual, não precisamos do customerId, mas vamos salvar o nome
+          // O nome será usado na API de salvamento
+        }
+      }
+    }
+  }, [customerId]);
 
   useEffect(() => {
     async function loadConfig() {
@@ -267,6 +313,11 @@ export default function ConfiguratorPage() {
               };
             }
           }
+        } else if (groupId === 'printing' && typeof choiceIdOrArray === 'string') {
+          // Para impressão (seleção única)
+          // Se selecionou "Sem impressão", não adicionar nada
+          // Se selecionou uma impressão, não precisa fazer nada especial aqui
+          // A lógica de cálculo vai verificar se há impressão selecionada
         } else if (groupId === 'finishes' && Array.isArray(choiceIdOrArray)) {
           // Para acabamentos (seleção múltipla)
           choiceIdOrArray.forEach(choiceId => {
@@ -283,6 +334,10 @@ export default function ConfiguratorPage() {
         }
       });
 
+      // Verificar se impressão foi selecionada
+      const printingChoice = selectedChoices['printing'];
+      const disablePrinting = printingChoice === 'printing_none' || !printingChoice;
+      
       const response = await fetch('/api/quotes/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -293,11 +348,13 @@ export default function ConfiguratorPage() {
           params: {
             materialOverrides,
             finishOverrides,
-            dimensionOverrides
+            dimensionOverrides,
+            disablePrinting: disablePrinting
           },
           overrides: {
             customerId: customerId ? Number(customerId) : undefined,
-            sourcingMode
+            sourcingMode,
+            disablePrinting: disablePrinting
           }
         })
       });
@@ -401,12 +458,200 @@ export default function ConfiguratorPage() {
     }
   }
 
-  async function saveQuote() {
+  // Salvar configuração do produto atual (para multi-quote)
+  function saveCurrentProductConfig() {
+    if (!config || !preview || !config.optionGroups) return null;
+    
+    const choiceIds: number[] = [];
+    const materialOverrides: any = {};
+    const finishOverrides: any = {};
+    const dimensionOverrides: any = {};
+    
+    Object.entries(selectedChoices).forEach(([groupId, choiceIdOrArray]) => {
+      const group = config.optionGroups.find(g => g.id === groupId);
+      
+      if (!group?.choices) return;
+      
+      if (groupId === 'materials' && typeof choiceIdOrArray === 'string') {
+        const choice = group.choices.find(c => c.id === choiceIdOrArray);
+        if (choice?.materialVariant) {
+          choiceIds.push(parseInt(choiceIdOrArray.replace('material_', '')));
+          materialOverrides[choice.materialVariant.id] = {
+            qtyPerUnit: choice.qtyPerUnit,
+            wasteFactor: choice.wasteFactor
+          };
+        }
+      } else if (groupId === 'dimensions' && typeof choiceIdOrArray === 'string') {
+        const choice = group.choices.find(c => c.id === choiceIdOrArray);
+        if (choice?.dimension) {
+          if (choiceIdOrArray === 'dimension_default') {
+            dimensionOverrides['default'] = {
+              widthMm: choice.dimension.widthMm,
+              heightMm: choice.dimension.heightMm
+            };
+          } else {
+            choiceIds.push(parseInt(choiceIdOrArray.replace('dimension_', '')));
+            dimensionOverrides[choice.dimension.id] = {
+              widthMm: choice.dimension.widthMm,
+              heightMm: choice.dimension.heightMm
+            };
+          }
+        }
+      } else if (groupId === 'printing' && typeof choiceIdOrArray === 'string') {
+        // Para impressão (seleção única)
+        // Se selecionou "Sem impressão", não adicionar nada
+        // Se selecionou uma impressão, não precisa fazer nada especial aqui
+        // A lógica de cálculo vai verificar se há impressão selecionada
+      } else if (groupId === 'finishes' && Array.isArray(choiceIdOrArray)) {
+        choiceIdOrArray.forEach(choiceId => {
+          const choice = group.choices.find(c => c.id === choiceId);
+          if (choice?.finish) {
+            choiceIds.push(parseInt(choiceId.replace('finish_', '')));
+            finishOverrides[choice.finish.id] = {
+              qtyPerUnit: choice.finish.qtyPerUnit,
+              calcType: choice.finish.calcType,
+              costOverride: choice.finish.costOverride
+            };
+          }
+        });
+      }
+    });
+
+    // Verificar se impressão foi selecionada
+    const printingChoice = selectedChoices['printing'];
+    const disablePrinting = printingChoice === 'printing_none' || !printingChoice;
+
+    return {
+      productId: parseInt(productId),
+      productName: config.product.name,
+      quantity,
+      choiceIds,
+      customerId: customerId ? Number(customerId) : undefined,
+      sourcingMode,
+      params: {
+        materialOverrides,
+        finishOverrides,
+        dimensionOverrides,
+        disablePrinting: disablePrinting
+      },
+      preview: {
+        priceNet: preview.priceNet,
+        vatAmount: preview.vatAmount,
+        priceGross: preview.priceGross,
+        subtotal: preview.subtotal,
+        finalPrice: preview.finalPrice
+      }
+    };
+  }
+
+  // Navegar para o próximo produto
+  async function goToNextProduct() {
+    if (!isMultiQuoteMode || currentProductIndex >= multiQuoteProducts.length - 1) return;
+    
+    const productConfig = saveCurrentProductConfig();
+    if (!productConfig) {
+      showErrorToast('Erro ao salvar configuração do produto');
+      return;
+    }
+
+    // Salvar configuração atual
+    const currentSaved = savedProducts.length > 0 ? [...savedProducts] : [];
+    // Verificar se já existe configuração para este produto (atualizar se existir)
+    const existingIndex = currentSaved.findIndex((p: any) => p.productId === parseInt(productId));
+    if (existingIndex >= 0) {
+      currentSaved[existingIndex] = productConfig;
+    } else {
+      currentSaved.push(productConfig);
+    }
+    setSavedProducts(currentSaved);
+    sessionStorage.setItem('multiQuoteSavedProducts', JSON.stringify(currentSaved));
+
+    // Ir para o próximo produto
+    const nextIndex = currentProductIndex + 1;
+    setCurrentProductIndex(nextIndex);
+    sessionStorage.setItem('multiQuoteCurrentIndex', nextIndex.toString());
+    
+    window.location.href = `/quotes/configurator/${multiQuoteProducts[nextIndex]}${customerId ? `?customerId=${customerId}` : ''}`;
+  }
+
+  // Salvar orçamento completo (todos os produtos)
+  async function saveMultiQuote() {
     if (!config || !preview || !config.optionGroups) return;
     
     setSaving(true);
     try {
-      // Converter escolhas para formato esperado pela API
+      // Salvar configuração do produto atual
+      const currentConfig = saveCurrentProductConfig();
+      if (!currentConfig) {
+        showErrorToast('Erro ao salvar configuração do produto');
+        setSaving(false);
+        return;
+      }
+
+      // Combinar produtos salvos com o atual, evitando duplicatas
+      const currentSaved = savedProducts.length > 0 ? [...savedProducts] : [];
+      const existingIndex = currentSaved.findIndex((p: any) => p.productId === parseInt(productId));
+      if (existingIndex >= 0) {
+        currentSaved[existingIndex] = currentConfig;
+      } else {
+        currentSaved.push(currentConfig);
+      }
+      
+      const allProducts = currentSaved;
+
+      // Obter informações do cliente do sessionStorage
+      const storedCustomerId = typeof window !== 'undefined' ? sessionStorage.getItem('multiQuoteCustomerId') : null;
+      const storedCustomerName = typeof window !== 'undefined' ? sessionStorage.getItem('multiQuoteCustomerName') : null;
+      const storedCustomerType = typeof window !== 'undefined' ? sessionStorage.getItem('multiQuoteCustomerType') : null;
+      
+      // Criar orçamento com múltiplos produtos
+      const response = await authenticatedFetch('/api/quote/save-multi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          products: allProducts,
+          customerId: storedCustomerId ? Number(storedCustomerId) : undefined,
+          customerName: storedCustomerType === 'manual' && storedCustomerName ? storedCustomerName : undefined
+        })
+      });
+      
+      const data = await response.json();
+      if (data.ok) {
+        // Limpar sessionStorage
+        sessionStorage.removeItem('multiQuoteProducts');
+        sessionStorage.removeItem('multiQuoteCurrentIndex');
+        sessionStorage.removeItem('multiQuoteSavedProducts');
+        sessionStorage.removeItem('multiQuoteCustomerId');
+        sessionStorage.removeItem('multiQuoteCustomerName');
+        sessionStorage.removeItem('multiQuoteCustomerType');
+        
+        showSuccessToast(`Orçamento ${data.quoteNumber} criado com sucesso!`);
+        setTimeout(() => {
+          window.location.href = `/quotes/${data.id}`;
+        }, 1500);
+      } else {
+        showErrorToast(data.error || 'Erro ao salvar orçamento');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar orçamento:', error);
+      showErrorToast('Erro ao salvar orçamento');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Função original saveQuote (para modo single)
+  async function saveQuote() {
+    if (!config || !preview || !config.optionGroups) return;
+    
+    // Se estiver em modo multi-quote, usar saveMultiQuote
+    if (isMultiQuoteMode) {
+      await saveMultiQuote();
+      return;
+    }
+    
+    setSaving(true);
+    try {
       const choiceIds: number[] = [];
       const materialOverrides: any = {};
       const finishOverrides: any = {};
@@ -418,7 +663,6 @@ export default function ConfiguratorPage() {
         if (!group?.choices) return;
         
         if (groupId === 'materials' && typeof choiceIdOrArray === 'string') {
-          // Para materiais (seleção única)
           const choice = group.choices.find(c => c.id === choiceIdOrArray);
           if (choice?.materialVariant) {
             choiceIds.push(parseInt(choiceIdOrArray.replace('material_', '')));
@@ -428,17 +672,14 @@ export default function ConfiguratorPage() {
             };
           }
         } else if (groupId === 'dimensions' && typeof choiceIdOrArray === 'string') {
-          // Para dimensões (seleção única) - incluindo dimensão padrão
           const choice = group.choices.find(c => c.id === choiceIdOrArray);
           if (choice?.dimension) {
             if (choiceIdOrArray === 'dimension_default') {
-              // Dimensão padrão - não adiciona ao choiceIds, mas salva as dimensões
               dimensionOverrides['default'] = {
                 widthMm: choice.dimension.widthMm,
                 heightMm: choice.dimension.heightMm
               };
             } else {
-              // Dimensão extra - adiciona ao choiceIds
               choiceIds.push(parseInt(choiceIdOrArray.replace('dimension_', '')));
               dimensionOverrides[choice.dimension.id] = {
                 widthMm: choice.dimension.widthMm,
@@ -447,7 +688,6 @@ export default function ConfiguratorPage() {
             }
           }
         } else if (groupId === 'finishes' && Array.isArray(choiceIdOrArray)) {
-          // Para acabamentos (seleção múltipla)
           choiceIdOrArray.forEach(choiceId => {
             const choice = group.choices.find(c => c.id === choiceId);
             if (choice?.finish) {
@@ -582,31 +822,54 @@ export default function ConfiguratorPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Configurações */}
           <div className="space-y-6">
-            {/* Seleção de Cliente */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-[#341601] mb-3">Cliente (Opcional)</h3>
-              <p className="text-sm text-gray-600 mb-3">
-                Selecione um cliente para aplicar preços específicos automaticamente
-              </p>
-              <select
-                value={customerId}
-                onChange={(e) => setCustomerId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
-                disabled={loadingCustomers}
-              >
-                <option value="">Sem cliente (preços padrão)</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.name}
-                  </option>
-                ))}
-              </select>
-              {customerId && (
-                <p className="text-xs text-green-600 mt-2">
-                  ✓ Preços específicos do cliente serão aplicados
+            {/* Seleção de Cliente - Ocultar em modo multi-quote */}
+            {!isMultiQuoteMode && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-[#341601] mb-3">Cliente (Opcional)</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Selecione um cliente para aplicar preços específicos automaticamente
                 </p>
-              )}
-            </div>
+                <select
+                  value={customerId}
+                  onChange={(e) => setCustomerId(e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-gray-300 bg-white text-gray-900 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] hover:border-gray-400 transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  disabled={loadingCustomers}
+                >
+                  <option value="">Sem cliente (preços padrão)</option>
+                  {customers.map((customer) => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.name}
+                    </option>
+                  ))}
+                </select>
+                {customerId && (
+                  <p className="text-xs text-green-600 mt-2">
+                    ✓ Preços específicos do cliente serão aplicados
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {/* Informação do Cliente em modo multi-quote */}
+            {isMultiQuoteMode && (
+              <div className="bg-blue-50 rounded-lg shadow-sm border border-blue-200 p-6">
+                <h3 className="text-lg font-semibold text-[#341601] mb-2">Cliente do Orçamento</h3>
+                <p className="text-sm text-gray-700">
+                  {(() => {
+                    if (typeof window === 'undefined') return 'Carregando...';
+                    const storedCustomerName = sessionStorage.getItem('multiQuoteCustomerName');
+                    const storedCustomerId = sessionStorage.getItem('multiQuoteCustomerId');
+                    if (storedCustomerName) {
+                      return storedCustomerName;
+                    } else if (storedCustomerId && customers.length > 0) {
+                      const customer = customers.find(c => String(c.id) === storedCustomerId);
+                      return customer ? customer.name : 'Cliente selecionado';
+                    }
+                    return 'Não especificado';
+                  })()}
+                </p>
+              </div>
+            )}
 
             {config && config.optionGroups && config.optionGroups.length > 0 ? config.optionGroups.map((group) => (
               <div key={group.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -620,7 +883,7 @@ export default function ConfiguratorPage() {
                   )}
                 </h3>
                 
-                {group.hasMultipleOptions && !selectedChoices[group.id] && group.id !== 'finishes' && (
+                {group.hasMultipleOptions && !selectedChoices[group.id] && group.id !== 'finishes' && group.id !== 'printing' && (
                   <div className="mb-4 p-3 bg-[#F6EEE8] border border-gray-200 rounded-lg">
                     <div className="flex items-center">
                       <svg className="w-5 h-5 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -670,6 +933,17 @@ export default function ConfiguratorPage() {
                             {choice.dimension.description && ` • ${choice.dimension.description}`}
                           </div>
                         )}
+                        {choice.printing && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            Impressão: {choice.printing.formatLabel || choice.printing.technology || ''} {choice.printing.colors || ''}
+                            {choice.printing.sides && ` • ${choice.printing.sides} face(s)`}
+                          </div>
+                        )}
+                        {choice.id === 'printing_none' && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            Nenhuma impressão será incluída no orçamento
+                          </div>
+                        )}
                       </div>
                     </label>
                   )) : (
@@ -698,19 +972,20 @@ export default function ConfiguratorPage() {
                   value={quantity}
                   onChange={(e) => setQuantity(parseInt(e.target.value) || 100)}
                   min="1"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
+                  className="w-full px-3 py-2 border-2 border-gray-300 bg-white text-gray-900 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] hover:border-gray-400 transition-colors"
                 />
                 {config?.quantityPresets && config.quantityPresets.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {config.quantityPresets.map((p) => (
-                      <button
+                      <Button
                         key={p.id}
                         onClick={() => setQuantity(p.quantity)}
-                        className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${quantity === p.quantity ? 'bg-[#F66807] text-white border-[#F66807]' : 'bg-white text-[#341601] border-gray-300 hover:bg-[#F6EEE8]'}`}
+                        variant={quantity === p.quantity ? "default" : "outline"}
+                        size="sm"
                         title={p.label || String(p.quantity)}
                       >
                         {p.label || p.quantity}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 )}
@@ -807,13 +1082,13 @@ export default function ConfiguratorPage() {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-[#341601]">Grade de Preços</h3>
-                <button
+                <Button
                   onClick={generateMatrix}
                   disabled={calculating}
-                  className="px-4 py-2 bg-[#F66807] text-white rounded-md hover:bg-[#F66807]/90 disabled:opacity-50 font-medium"
+                  size="sm"
                 >
                   {calculating ? 'Calculando...' : 'Gerar Grade'}
-                </button>
+                </Button>
               </div>
               
               {matrix && matrix.length > 0 ? (
@@ -846,13 +1121,44 @@ export default function ConfiguratorPage() {
 
             {/* Botão Salvar */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <button
-                onClick={saveQuote}
-                disabled={!preview || saving}
-                className="w-full px-6 py-3 bg-[#F66807] text-white rounded-md hover:bg-[#F66807]/90 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-              >
-                {saving ? 'Salvando...' : 'Salvar Orçamento'}
-              </button>
+              {isMultiQuoteMode && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-blue-900">
+                      Produto {currentProductIndex + 1} de {multiQuoteProducts.length}
+                    </span>
+                    <span className="text-xs text-blue-700">
+                      {config?.product?.name || 'Carregando...'}
+                    </span>
+                  </div>
+                  <div className="w-full bg-blue-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all"
+                      style={{ width: `${((currentProductIndex + 1) / multiQuoteProducts.length) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+              
+              {isMultiQuoteMode && currentProductIndex < multiQuoteProducts.length - 1 ? (
+                <Button
+                  onClick={goToNextProduct}
+                  disabled={!preview || saving}
+                  className="w-full"
+                  size="lg"
+                >
+                  Próximo Produto →
+                </Button>
+              ) : (
+                <Button
+                  onClick={saveQuote}
+                  disabled={!preview || saving}
+                  className="w-full"
+                  size="lg"
+                >
+                  {saving ? 'Salvando...' : isMultiQuoteMode ? 'Salvar Orçamento Completo' : 'Salvar Orçamento'}
+                </Button>
+              )}
             </div>
           </div>
         </div>

@@ -38,7 +38,8 @@ export async function POST(req: NextRequest) {
   const overrides = {
     ...choiceOverrides,
     customerId: customerId && Number.isFinite(customerId) ? customerId : undefined,
-    sourcingMode: body.sourcingMode || "INTERNAL"
+    sourcingMode: body.sourcingMode || "INTERNAL",
+    disablePrinting: params?.disablePrinting === true || body.disablePrinting === true
   };
   const c = await calcQuote(productId, quantity, params, overrides);
   const finalResult = applyPriceOverrides(c, choiceOverrides);

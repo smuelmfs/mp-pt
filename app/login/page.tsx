@@ -201,7 +201,8 @@ function LoginForm() {
               <Button 
                 onClick={login} 
                 disabled={loading || !email || !password}
-                className="w-full bg-[#F66807] hover:bg-[#E55A00] text-white h-11 font-semibold shadow-md"
+                className="w-full h-11"
+                size="lg"
               >
                 {loading ? "Entrando..." : "Entrar"}
               </Button>
