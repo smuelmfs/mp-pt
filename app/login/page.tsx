@@ -155,7 +155,8 @@ function LoginForm() {
               <img 
                 src="/logo.svg" 
                 alt="MyPrint.pt" 
-                className="h-20 w-auto" 
+                className="h-20 w-auto"
+                style={{ maxWidth: '215px' }}
               />
             </div>
           </CardHeader>
