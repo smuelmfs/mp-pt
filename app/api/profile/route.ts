@@ -42,13 +42,10 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const { name } = body;
 
-    // Atualizar displayName no Firebase Auth
     if (name) {
       await adminAuth.updateUser(decodedToken.uid, {
         displayName: name,
       });
-      // Forçar atualização dos claims customizados também (se necessário)
-      // Os claims são atualizados separadamente se houver mudança de role
     }
 
     return NextResponse.json({

@@ -34,9 +34,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "productId é obrigatório (number)" }, { status: 400 });
   }
 
-  // Aplicar overrides das escolhas
   const choiceOverrides = await applyChoiceOverrides(productId, choiceIds);
-  // Preparar overrides completos incluindo cliente
   const overrides = {
     ...choiceOverrides,
     customerId: customerId && Number.isFinite(customerId) ? customerId : undefined,
@@ -45,7 +43,6 @@ export async function POST(req: NextRequest) {
   const c = await calcQuote(productId, quantity, params, overrides);
   const finalResult = applyPriceOverrides(c, choiceOverrides);
 
-  // Obter usuário do Firebase Auth
   let user;
   try {
     const authHeader = req.headers.get("authorization");
@@ -62,7 +59,6 @@ export async function POST(req: NextRequest) {
         create: { name: userName, email: userEmail },
       });
     } else {
-      // Fallback para usuário demo se não houver token
       user = await prisma.user.upsert({
         where: { email: "demo@local" },
         update: {},
@@ -70,7 +66,6 @@ export async function POST(req: NextRequest) {
       });
     }
   } catch (error) {
-    // Fallback para usuário demo em caso de erro
     user = await prisma.user.upsert({
       where: { email: "demo@local" },
       update: {},

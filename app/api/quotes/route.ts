@@ -15,7 +15,6 @@ export async function GET(req: Request) {
 
   const where: any = {};
 
-  // Busca por texto
   if (q) {
     where.OR = [
       { number: { contains: q, mode: "insensitive" } },
@@ -25,17 +24,14 @@ export async function GET(req: Request) {
     ];
   }
 
-  // Filtro por cliente
   if (customerId && Number.isFinite(Number(customerId))) {
     where.customerId = Number(customerId);
   }
 
-  // Filtro por produto
   if (productId && Number.isFinite(Number(productId))) {
     where.productId = Number(productId);
   }
 
-  // Filtro por data
   if (dateFrom || dateTo) {
     where.createdAt = {};
     if (dateFrom) {
@@ -79,7 +75,6 @@ export async function POST(req: NextRequest) {
 
   const c = await calcQuote(productId, quantity, params);
 
-  // Obter usuário do Firebase Auth
   let user;
   try {
     const authHeader = req.headers.get("authorization");
@@ -96,7 +91,6 @@ export async function POST(req: NextRequest) {
         create: { name: userName, email: userEmail },
       });
     } else {
-      // Fallback para usuário demo se não houver token
       user = await prisma.user.upsert({
         where: { email: "demo@local" },
         update: {},
@@ -104,7 +98,6 @@ export async function POST(req: NextRequest) {
       });
     }
   } catch (error) {
-    // Fallback para usuário demo em caso de erro
     user = await prisma.user.upsert({
       where: { email: "demo@local" },
       update: {},

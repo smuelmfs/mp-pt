@@ -128,24 +128,20 @@ export default function ConfiguratorPage() {
         }
         const data = await response.json();
         
-        // Validar estrutura de dados
         if (!data || typeof data !== 'object') {
           console.error('Resposta inválida do servidor');
           return;
         }
         
-        // Validar se product existe
         if (!data.product || typeof data.product !== 'object' || !data.product.name) {
           console.error('Dados de produto inválidos');
           return;
         }
         
-        // Garantir que optionGroups existe e é um array
         if (!Array.isArray(data.optionGroups)) {
           data.optionGroups = [];
         }
         
-        // Garantir que cada grupo tem um array de choices
         data.optionGroups.forEach((group: any) => {
           if (!Array.isArray(group.choices)) {
             group.choices = [];
@@ -154,12 +150,10 @@ export default function ConfiguratorPage() {
         
         setConfig(data);
         
-        // Selecionar primeira opção apenas se não houver múltiplas opções
         const defaultChoices: Record<string, string> = {};
         if (data.optionGroups && Array.isArray(data.optionGroups)) {
           data.optionGroups.forEach((group: any) => {
             if (group.required && group.choices && group.choices.length > 0) {
-              // Só seleciona automaticamente se não houver múltiplas opções
               if (!group.hasMultipleOptions) {
                 defaultChoices[group.id] = group.choices[0].id;
               }
@@ -193,7 +187,6 @@ export default function ConfiguratorPage() {
       loadConfig();
       loadCustomers();
     }
-    // Preselecionar cliente vindo da URL (?customerId=)
     try {
       const sp = new URLSearchParams(window.location.search);
       const cid = sp.get('customerId');
@@ -203,16 +196,13 @@ export default function ConfiguratorPage() {
 
   useEffect(() => {
     if (config && config.optionGroups) {
-      // Verificar se todas as opções obrigatórias estão selecionadas
       const allRequiredSelected = config.optionGroups.every(group => {
         if (!group.required) return true;
         
         const selection = selectedChoices[group.id];
         if (group.id === 'finishes') {
-          // Para acabamentos, verificar se há pelo menos uma seleção
           return Array.isArray(selection) && selection.length > 0;
         } else {
-          // Para materiais, verificar se há uma seleção
           return selection && selection !== '';
         }
       });
@@ -225,7 +215,6 @@ export default function ConfiguratorPage() {
     }
   }, [config, selectedChoices, quantity]);
 
-  // Recalcular quando cliente ou sourcing mudarem, sem alterar o tamanho do array do effect acima
   useEffect(() => {
     if (!config || !config.optionGroups) return;
     const hasSelections = Object.keys(selectedChoices).length > 0;
@@ -239,7 +228,6 @@ export default function ConfiguratorPage() {
     
     setCalculating(true);
     try {
-      // Converter escolhas para formato esperado pela API
       const choiceIds: number[] = [];
       const materialOverrides: any = {};
       const finishOverrides: any = {};
@@ -328,7 +316,6 @@ export default function ConfiguratorPage() {
     
     setCalculating(true);
     try {
-      // Converter escolhas para formato esperado pela API
       const choiceIds: number[] = [];
       const materialOverrides: any = {};
       const finishOverrides: any = {};
@@ -494,9 +481,7 @@ export default function ConfiguratorPage() {
       
       const data = await response.json();
       if (data.ok) {
-        // Mostrar toast de sucesso
         showSuccessToast(`Orçamento ${data.quoteNumber} criado com sucesso!`);
-        // Redirecionar para o orçamento salvo após um pequeno delay
         setTimeout(() => {
           window.location.href = `/quotes/${data.id}`;
         }, 1500);
@@ -515,26 +500,22 @@ export default function ConfiguratorPage() {
     setSelectedChoices(prev => {
       const currentSelection = prev[groupId];
       
-      // Se for um grupo de múltipla seleção (acabamentos)
       if (groupId === 'finishes') {
         const currentArray = Array.isArray(currentSelection) ? currentSelection : [];
         const isSelected = currentArray.includes(choiceId);
         
         if (isSelected) {
-          // Remover da seleção
           return {
             ...prev,
             [groupId]: currentArray.filter(id => id !== choiceId)
           };
         } else {
-          // Adicionar à seleção
           return {
             ...prev,
             [groupId]: [...currentArray, choiceId]
           };
         }
       } else {
-        // Para grupos de seleção única (materiais)
         return {
           ...prev,
           [groupId]: choiceId

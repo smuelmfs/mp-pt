@@ -48,10 +48,9 @@ export default function ProfilePage() {
         return;
       }
 
-      // Forçar reload do usuário no Firebase para pegar dados atualizados
       await user.reload();
       
-      const idToken = await user.getIdToken(true); // Forçar refresh do token
+      const idToken = await user.getIdToken(true);
       const res = await fetch("/api/me", {
         headers: {
           "Authorization": `Bearer ${idToken}`,
@@ -87,24 +86,18 @@ export default function ProfilePage() {
     try {
       const user = auth.currentUser;
       
-      // Atualizar nome no Firebase Auth (client-side)
       if (formData.name && formData.name !== user.displayName) {
         await updateProfile(user, {
           displayName: formData.name,
         });
-        // Forçar reload dos dados do usuário no Firebase
         await user.reload();
       }
 
-      // Atualizar email no Firebase Auth
       if (formData.email && formData.email !== user.email) {
-        // Nota: Mudança de email requer verificação, então vamos apenas atualizar o displayName
-        // O email será atualizado via API do backend se necessário
         toast.info("Para alterar o email, entre em contato com o administrador");
       }
 
-      // Atualizar no backend (server-side) - isso garante sincronização
-      const idToken = await user.getIdToken(true); // Forçar refresh do token
+      const idToken = await user.getIdToken(true);
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: {
@@ -117,16 +110,13 @@ export default function ProfilePage() {
       });
 
       if (res.ok) {
-        // Aguardar um pouco para garantir que o Firebase Admin atualizou
         await new Promise(resolve => setTimeout(resolve, 200));
         
-        // Recarregar dados do usuário
         await user.reload();
         await loadUserData();
         
         toast.success("Perfil atualizado com sucesso!");
         
-        // Disparar evento customizado para atualizar navegação
         window.dispatchEvent(new CustomEvent('userProfileUpdated'));
       } else {
         const error = await res.json();
@@ -160,7 +150,6 @@ export default function ProfilePage() {
     try {
       const user = auth.currentUser;
       
-      // Reautenticar o usuário
       const credential = EmailAuthProvider.credential(
         user.email,
         passwordData.currentPassword
@@ -168,7 +157,6 @@ export default function ProfilePage() {
       
       await reauthenticateWithCredential(user, credential);
       
-      // Atualizar senha
       await updatePassword(user, passwordData.newPassword);
       
       toast.success("Senha alterada com sucesso!");
@@ -227,7 +215,6 @@ export default function ProfilePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Informações do Perfil */}
           <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-[#341601]">
@@ -286,7 +273,6 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Alteração de Senha */}
           <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-[#341601]">

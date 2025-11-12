@@ -56,7 +56,7 @@ export function Navigation() {
     const user = auth.currentUser;
     if (user) {
       try {
-        const idToken = await user.getIdToken(true); // Forçar refresh do token
+        const idToken = await user.getIdToken(true);
         const res = await fetch("/api/me", {
           headers: {
             "Authorization": `Bearer ${idToken}`,
@@ -81,10 +81,8 @@ export function Navigation() {
   useEffect(() => {
     setIsMounted(true);
     
-    // Carregar dados do usuário inicialmente
     loadUserData();
     
-    // Escutar mudanças no estado de autenticação
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         await loadUserData();
@@ -93,9 +91,7 @@ export function Navigation() {
       }
     });
 
-    // Escutar evento customizado de atualização de perfil
     const handleProfileUpdate = () => {
-      // Recarregar dados completos quando o perfil for atualizado
       loadUserData();
     };
 
@@ -107,12 +103,11 @@ export function Navigation() {
     };
   }, [loadUserData]);
 
-  // Não mostrar navbar na página de login
   if (pathname === "/login") {
     return null;
   }
 
-  const isAdmin = pathname.startsWith('/products') || 
+  const isAdminRoute = pathname.startsWith('/products') || 
                   pathname.startsWith('/materials') || 
                   pathname.startsWith('/printing') || 
                   pathname.startsWith('/finishes') || 
@@ -122,10 +117,9 @@ export function Navigation() {
                   pathname.startsWith('/customers') ||
                   pathname.startsWith('/suppliers');
 
-  const isCommercial = pathname.startsWith('/quotes') || 
-                      pathname.startsWith('/quotes/categories') || 
-                      pathname.startsWith('/quotes/configurator') ||
-                      pathname === '/';
+  const isAdminUser = userData?.role === "ADMIN";
+  const showAdminNav = isAdminUser || isAdminRoute;
+  const showCommercialNav = !showAdminNav;
 
   const commercialNavItems = [
     {
@@ -201,7 +195,6 @@ export function Navigation() {
 
   const handleLogout = async () => {
     try {
-      // Importar Firebase Auth dinamicamente (client-side only)
       const { signOut } = await import("firebase/auth");
       const { auth } = await import("@/lib/firebase");
       
@@ -210,7 +203,6 @@ export function Navigation() {
       window.location.href = '/login';
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
-      // Fallback: tentar logout de desenvolvimento
       try {
         await fetch('/api/dev/logout', { method: 'POST' });
         window.location.href = '/login';
@@ -247,7 +239,6 @@ export function Navigation() {
     <header className="sticky top-0 z-50 w-full border-b border-[#F6EEE8] bg-white/95 backdrop-blur-md shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center justify-between">
-          {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-3 group">
               <img 
@@ -258,12 +249,10 @@ export function Navigation() {
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
             <NavigationMenu>
               <NavigationMenuList>
-                {/* Comercial Navigation */}
-                {!isAdmin && (
+                {showCommercialNav && (
                   <>
                     {commercialNavItems.map((item) => (
                       <NavigationMenuItem key={item.href}>
@@ -285,8 +274,7 @@ export function Navigation() {
                   </>
                 )}
 
-                {/* Admin Navigation */}
-                {isAdmin && (
+                {showAdminNav && (
                   <>
                     {adminNavItems.map((item) => (
                       <NavigationMenuItem key={item.href}>
@@ -311,9 +299,7 @@ export function Navigation() {
             </NavigationMenu>
           </div>
 
-          {/* Right side */}
           <div className="flex items-center space-x-3">
-            {/* User menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-[#F6EEE8]">
@@ -356,7 +342,6 @@ export function Navigation() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Mobile menu button */}
             <Button
               variant="ghost"
               size="sm"
@@ -372,12 +357,10 @@ export function Navigation() {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
         {isMobileMenuOpen && (
           <div className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 border-t border-[#F6EEE8]">
-              {/* Comercial Navigation */}
-              {!isAdmin && (
+              {showCommercialNav && (
                 <>
                   {commercialNavItems.map((item) => (
                     <Link
@@ -397,8 +380,7 @@ export function Navigation() {
                 </>
               )}
 
-              {/* Admin Navigation */}
-              {isAdmin && (
+              {showAdminNav && (
                 <>
                   {adminNavItems.map((item) => (
                     <Link
