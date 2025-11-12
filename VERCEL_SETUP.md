@@ -70,12 +70,27 @@ Após configurar as variáveis:
 Este erro ocorre quando o Prisma não gera os binários corretos para o ambiente Linux da Vercel.
 
 **Solução:**
-O problema já foi corrigido no código. O `schema.prisma` agora inclui `binaryTargets = ["native", "rhel-openssl-3.0.x"]` e o `package.json` tem um script `postinstall` que gera o Prisma Client automaticamente.
+O problema foi corrigido no código com as seguintes mudanças:
 
-Se o erro persistir após um novo deploy:
-1. Certifique-se de que fez commit das mudanças no `prisma/schema.prisma` e `package.json`
+1. **`prisma/schema.prisma`**: Adicionado `binaryTargets = ["native", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]` no generator
+2. **`package.json`**: Adicionado script `postinstall: "prisma generate"` e atualizado `build` para incluir `prisma generate`
+3. **`vercel.json`**: Criado para garantir que o Prisma seja gerado durante o build na Vercel
+4. **`next.config.ts`**: Configurado `outputFileTracingIncludes` para incluir os binários do Prisma no bundle
+
+**Passos para resolver:**
+1. Certifique-se de que fez commit de TODAS as mudanças:
+   - `prisma/schema.prisma`
+   - `package.json`
+   - `vercel.json`
+   - `next.config.ts`
 2. Faça um novo deploy na Vercel
-3. O Prisma Client será gerado automaticamente durante o build
+3. Verifique os logs do build para confirmar que `prisma generate` foi executado
+4. O Prisma Client será gerado automaticamente durante o build com os binários corretos para Linux
+
+**Se o erro persistir:**
+- Verifique os logs do build na Vercel para ver se `prisma generate` está sendo executado
+- Certifique-se de que todas as mudanças foram commitadas e enviadas para o repositório
+- Tente fazer um redeploy forçado (deletar e criar novo deployment)
 
 ### Dados não carregam
 
