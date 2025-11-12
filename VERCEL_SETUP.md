@@ -65,6 +65,18 @@ Após configurar as variáveis:
 - Verifique se o banco Neon está ativo (não em pausa)
 - Verifique as configurações de firewall do Neon (deve permitir conexões de qualquer IP)
 
+### Erro: "Prisma Client could not locate the Query Engine for runtime 'rhel-openssl-3.0.x'"
+
+Este erro ocorre quando o Prisma não gera os binários corretos para o ambiente Linux da Vercel.
+
+**Solução:**
+O problema já foi corrigido no código. O `schema.prisma` agora inclui `binaryTargets = ["native", "rhel-openssl-3.0.x"]` e o `package.json` tem um script `postinstall` que gera o Prisma Client automaticamente.
+
+Se o erro persistir após um novo deploy:
+1. Certifique-se de que fez commit das mudanças no `prisma/schema.prisma` e `package.json`
+2. Faça um novo deploy na Vercel
+3. O Prisma Client será gerado automaticamente durante o build
+
 ### Dados não carregam
 
 - Verifique os logs da Vercel em **Deployments** → **Functions** → **View Function Logs**
