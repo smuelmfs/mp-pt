@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     
     const parsed = CreateSchema.safeParse(json);
     if (!parsed.success) {
-      const errors = parsed.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+      const errors = parsed.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
       return NextResponse.json({ error: errors || "Erro de validação", details: parsed.error.flatten() }, { status: 400 });
     }
 

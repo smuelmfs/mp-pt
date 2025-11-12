@@ -150,6 +150,12 @@ export default function ProfilePage() {
     try {
       const user = auth.currentUser;
       
+      if (!user || !user.email) {
+        toast.error("Usuário não autenticado");
+        setChangingPassword(false);
+        return;
+      }
+      
       const credential = EmailAuthProvider.credential(
         user.email,
         passwordData.currentPassword
