@@ -1,4 +1,3 @@
-// Utilitários de autenticação para uso no cliente
 import { User } from "firebase/auth";
 
 export interface UserInfo {
@@ -9,9 +8,6 @@ export interface UserInfo {
   authenticated: boolean;
 }
 
-/**
- * Obtém informações do usuário autenticado
- */
 export async function getCurrentUser(): Promise<UserInfo | null> {
   try {
     const res = await fetch("/api/me");
@@ -34,17 +30,11 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
   }
 }
 
-/**
- * Verifica se o usuário tem role específico
- */
 export async function hasRole(requiredRole: "ADMIN" | "COMMERCIAL"): Promise<boolean> {
   const user = await getCurrentUser();
   return user?.role === requiredRole;
 }
 
-/**
- * Verifica se o usuário é admin
- */
 export async function isAdmin(): Promise<boolean> {
   return await hasRole("ADMIN");
 }

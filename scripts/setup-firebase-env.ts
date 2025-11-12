@@ -1,7 +1,3 @@
-// Script para configurar variáveis de ambiente do Firebase
-// Uso: npx tsx scripts/setup-firebase-env.ts <caminho-do-json>
-// Exemplo: npx tsx scripts/setup-firebase-env.ts "C:\Users\RED MARKETING\Downloads\myprint-pt-firebase-adminsdk-fbsvc-138f449022.json"
-
 import * as fs from "fs";
 import * as path from "path";
 
@@ -25,16 +21,13 @@ function main() {
 
     const envPath = path.join(process.cwd(), ".env.local");
     
-    // Ler .env.local existente se houver
     let existingEnv = "";
     if (fs.existsSync(envPath)) {
       existingEnv = fs.readFileSync(envPath, "utf-8");
     }
 
-    // Preparar conteúdo do .env.local
     const envLines: string[] = [];
     
-    // Adicionar linhas existentes que não são do Firebase
     if (existingEnv) {
       const lines = existingEnv.split("\n");
       for (const line of lines) {
@@ -44,13 +37,11 @@ function main() {
       }
     }
 
-    // Adicionar configuração do Firebase Admin SDK
     envLines.push("");
     envLines.push("# Firebase Admin SDK");
     envLines.push(`FIREBASE_SERVICE_ACCOUNT_KEY=${JSON.stringify(serviceAccount)}`);
     envLines.push("");
 
-    // Adicionar configuração do Firebase Client SDK (precisa ser preenchida manualmente)
     envLines.push("# Firebase Client SDK (obtenha no Firebase Console > Project Settings > General > Your apps)");
     envLines.push("NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key_here");
     envLines.push(`NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${serviceAccount.project_id}.firebaseapp.com`);
@@ -60,7 +51,6 @@ function main() {
     envLines.push("NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id");
     envLines.push("");
 
-    // Escrever arquivo
     fs.writeFileSync(envPath, envLines.join("\n"), "utf-8");
 
     console.log("✅ Arquivo .env.local criado/atualizado com sucesso!");

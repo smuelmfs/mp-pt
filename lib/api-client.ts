@@ -1,4 +1,3 @@
-// Helper para fazer requisições autenticadas
 import { auth } from "./firebase";
 
 export async function authenticatedFetch(

@@ -25,7 +25,6 @@ function LoginForm() {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  // Desabilitar scroll na página de login
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
@@ -33,12 +32,10 @@ function LoginForm() {
     };
   }, []);
 
-  // Monitorar estado de autenticação
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
-        // Obter token e verificar role
         try {
           const idToken = await user.getIdToken();
           const res = await fetch("/api/auth/verify", {
@@ -51,7 +48,6 @@ function LoginForm() {
             if (contentType && contentType.includes("application/json")) {
               const data = await res.json();
               setUserRole(data.role);
-              // Armazenar token em cookie (será verificado no backend)
               document.cookie = `firebase-token=${idToken}; path=/; max-age=3600; SameSite=Lax; Secure`;
             }
           }
@@ -78,7 +74,6 @@ function LoginForm() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const idToken = await userCredential.user.getIdToken();
       
-      // Verificar token no backend
       const res = await fetch("/api/auth/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -89,12 +84,10 @@ function LoginForm() {
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
           const data = await res.json();
-          // Armazenar token em cookie (será verificado no backend)
           document.cookie = `firebase-token=${idToken}; path=/; max-age=3600; SameSite=Lax; Secure`;
           setUserRole(data.role);
           toast.success("Login realizado com sucesso!");
           
-          // Redirecionar baseado no role ou redirect
           if (redirect) {
             router.replace(redirect);
           } else if (data.role === "ADMIN") {
@@ -115,7 +108,6 @@ function LoginForm() {
         }
       }
     } catch (error: any) {
-      // Tratar erros específicos do Firebase Auth com mensagens amigáveis
       let errorMessage = "Erro ao fazer login";
       
       if (error.code) {
@@ -144,7 +136,6 @@ function LoginForm() {
         errorMessage = error.message;
       }
       
-      // Log apenas em desenvolvimento e de forma discreta
       if (process.env.NODE_ENV === 'development') {
         console.log("Erro de autenticação:", error.code || error.message);
       }
@@ -169,7 +160,6 @@ function LoginForm() {
             </div>
           </CardHeader>
           <CardContent className="space-y-6 px-8 pb-8">
-            {/* Login Form */}
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-[#341601] font-medium">Email</Label>
@@ -206,7 +196,6 @@ function LoginForm() {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="pt-2">
               <Button 
                 onClick={login} 

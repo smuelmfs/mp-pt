@@ -1,11 +1,6 @@
-// Script para definir role de um usuário no Firebase
-// Uso: npx tsx scripts/set-user-role.ts <email> <role>
-// Exemplo: npx tsx scripts/set-user-role.ts admin@example.com ADMIN
-
 import * as dotenv from "dotenv";
 import * as path from "path";
 
-// Carregar variáveis de ambiente do .env.local
 dotenv.config({ path: path.join(process.cwd(), ".env.local") });
 
 import { adminAuth } from "../lib/auth";
