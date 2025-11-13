@@ -14,6 +14,44 @@ import {
 import { signInWithEmailAndPassword, onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
+const ADMIN_PATHS = [
+  "/materials",
+  "/printing",
+  "/finishes",
+  "/products",
+  "/margins",
+  "/customers",
+  "/suppliers",
+  "/categories",
+  "/config",
+];
+
+const normalizePath = (path: string) => {
+  if (!path) {
+    return "/";
+  }
+  const trimmed = path.trim();
+  if (!trimmed) {
+    return "/";
+  }
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    try {
+      const url = new URL(trimmed);
+      return url.pathname || "/";
+    } catch {
+      return "/";
+    }
+  }
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+};
+
+const isAdminPath = (path: string) => {
+  const normalized = normalizePath(path).split("?")[0];
+  return ADMIN_PATHS.some((adminPath) => 
+    normalized === adminPath || normalized.startsWith(`${adminPath}/`)
+  );
+};
+
 function LoginForm() {
   const sp = useSearchParams();
   const router = useRouter();
@@ -88,12 +126,21 @@ function LoginForm() {
           setUserRole(data.role);
           toast.success("Login realizado com sucesso!");
           
-          if (redirect) {
-            router.replace(redirect);
-          } else if (data.role === "ADMIN") {
-            router.replace("/products");
+          const normalizedRedirect = redirect ? normalizePath(redirect) : null;
+          const redirectIsAdminPath = normalizedRedirect ? isAdminPath(normalizedRedirect) : false;
+
+          if (data.role === "ADMIN") {
+            if (normalizedRedirect && redirectIsAdminPath) {
+              router.replace(normalizedRedirect);
+            } else {
+              router.replace("/products");
+            }
           } else {
-            router.replace("/quotes");
+            if (normalizedRedirect && !redirectIsAdminPath) {
+              router.replace(normalizedRedirect);
+            } else {
+              router.replace("/quotes");
+            }
           }
         } else {
           toast.error("Resposta inválida do servidor");

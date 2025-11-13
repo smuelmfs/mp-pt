@@ -1,0 +1,17 @@
+Olá! Sim, consigo fazer o deploy no cPanel. 
+
+O sistema está feito em:
+- Next.js 16 (React + TypeScript)
+- PostgreSQL (banco de dados)
+- Firebase (autenticação)
+- Node.js 18+
+
+Para fazer o deploy preciso de:
+1. Acesso ao cPanel com Node.js disponível
+2. Credenciais do banco PostgreSQL (connection string)
+3. Credenciais do Firebase (6 variáveis de ambiente)
+
+O processo é: instalar dependências → configurar variáveis → build → iniciar servidor.
+
+Quando quiseres dar acesso, analiso tudo e faço o deploy. Está tudo documentado no projeto, por isso consigo fazer sem problemas! 👍
+

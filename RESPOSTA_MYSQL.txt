@@ -1,0 +1,27 @@
+Sim, é possível mudar de PostgreSQL para MySQL, mas dá algum trabalho (não é extremamente complicado, mas também não é trivial).
+
+O que precisa ser feito:
+
+1. **Mudar o schema do Prisma** (1 linha: provider = "mysql")
+2. **Adaptar 7 queries SQL nativas** que usam sintaxe PostgreSQL (cerca de 30-60 min)
+   - Trocar $1, $2 por ? (placeholders MySQL)
+   - Remover ::text, ::numeric (casting PostgreSQL)
+   - Uma query específica precisa ser reescrita (usa função PostgreSQL de enum)
+3. **Recriar as migrações** do banco (1-2 horas)
+4. **Testar tudo** (1-2 horas)
+
+Tempo total estimado: 3-5 horas de trabalho.
+
+Principais mudanças:
+- JSONB → JSON (MySQL não tem JSONB, mas Prisma trata isso automaticamente)
+- Queries SQL com sintaxe diferente ($1 → ?, ::text → CAST, etc.)
+- Migrações precisam ser recriadas
+
+A boa notícia é que:
+- Prisma suporta MySQL nativamente
+- Tipos DECIMAL funcionam igual
+- Enums funcionam igual
+- A maior parte do código funciona automaticamente
+
+Recomendação: Se o cPanel oferece PostgreSQL, seria mais fácil manter PostgreSQL. Se só oferece MySQL, a migração é totalmente viável.
+

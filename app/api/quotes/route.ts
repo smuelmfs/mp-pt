@@ -3,8 +3,45 @@ import { prisma } from "@/lib/prisma";
 import { calcQuote } from "@/lib/calc-quote";
 import { verifyIdToken } from "@/lib/auth";
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
+async function ensureCommercialAccess(req: NextRequest) {
+  const devRole = req.cookies.get("role")?.value;
+  if (devRole === "COMMERCIAL") {
+    return { role: "COMMERCIAL" as const };
+  }
+
+  const authHeader = req.headers.get("authorization");
+  const headerToken = authHeader?.replace("Bearer ", "");
+  const cookieToken = req.cookies.get("firebase-token")?.value;
+  const idToken = headerToken || cookieToken;
+
+  if (!idToken) {
+    return {
+      error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }),
+    };
+  }
+
+  try {
+    const decoded = await verifyIdToken(idToken);
+    if (decoded.role !== "COMMERCIAL") {
+      return {
+        error: NextResponse.json({ error: "Acesso restrito ao time comercial" }, { status: 403 }),
+      };
+    }
+    return { role: "COMMERCIAL" as const, decoded };
+  } catch {
+    return {
+      error: NextResponse.json({ error: "Sessão inválida" }, { status: 401 }),
+    };
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const guard = await ensureCommercialAccess(req);
+  if ("error" in guard) {
+    return guard.error;
+  }
+
+  const { searchParams } = req.nextUrl;
   const page = Math.max(1, Number(searchParams.get("page") || 1));
   const pageSize = Math.min(50, Math.max(5, Number(searchParams.get("pageSize") || 10)));
   const q = (searchParams.get("q") || "").trim();
@@ -64,6 +101,11 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: NextRequest) {
+  const guard = await ensureCommercialAccess(req);
+  if ("error" in guard) {
+    return guard.error;
+  }
+
   const body = await req.json().catch(() => ({}));
   const productId = Number(body.productId);
   const quantity  = Number(body.quantity ?? 1000);
@@ -76,28 +118,16 @@ export async function POST(req: NextRequest) {
   const c = await calcQuote(productId, quantity, params);
 
   let user;
-  try {
-    const authHeader = req.headers.get("authorization");
-    const idToken = authHeader?.replace("Bearer ", "");
-    
-    if (idToken) {
-      const decodedToken = await verifyIdToken(idToken);
-      const userEmail = decodedToken.email || "unknown@local";
-      const userName = decodedToken.name || decodedToken.email?.split("@")[0] || "Usuário";
-      
-      user = await prisma.user.upsert({
-        where: { email: userEmail },
-        update: { name: userName },
-        create: { name: userName, email: userEmail },
-      });
-    } else {
-      user = await prisma.user.upsert({
-        where: { email: "demo@local" },
-        update: {},
-        create: { name: "Comercial Demo", email: "demo@local" },
-      });
-    }
-  } catch (error) {
+  if (guard.decoded?.email) {
+    const userEmail = guard.decoded.email;
+    const userName = guard.decoded.name || guard.decoded.email?.split("@")[0] || "Usuário";
+
+    user = await prisma.user.upsert({
+      where: { email: userEmail },
+      update: { name: userName },
+      create: { name: userName, email: userEmail },
+    });
+  } else {
     user = await prisma.user.upsert({
       where: { email: "demo@local" },
       update: {},
