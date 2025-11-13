@@ -6,6 +6,9 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Trash2 } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function MaterialDetail() {
   const params = useParams<{ id: string }>();
@@ -19,6 +22,7 @@ export default function MaterialDetail() {
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [supplierType, setSupplierType] = useState<"existing" | "new" | "none">("none");
   const router = useRouter();
 
   // formulário de variante
@@ -38,6 +42,12 @@ export default function MaterialDetail() {
     const json = await res.json();
     setRow(json);
     setFormData(json);
+    // Define o tipo de fornecedor baseado nos dados carregados
+    if (json.supplier?.id) {
+      setSupplierType("existing");
+    } else {
+      setSupplierType("none");
+    }
     setLoading(false);
   }
 
@@ -50,10 +60,17 @@ export default function MaterialDetail() {
     setSaving(true);
     try {
       const payload: any = { ...formData };
-      // resolver supplierName em supplierId (criar se necessário)
-      const typedName: string | undefined = (payload as any).supplierName;
-      if (typedName && !payload.hasOwnProperty('supplierId')) {
-        const existing = suppliers.find((s:any)=> String(s.name).toLowerCase() === String(typedName).toLowerCase());
+      // resolver supplierId baseado no tipo selecionado
+      if (supplierType === "none") {
+        payload.supplierId = null;
+        payload.supplierUnitCost = null;
+      } else if (supplierType === "existing" && (payload as any).supplierId) {
+        payload.supplierId = Number((payload as any).supplierId);
+      } else if (supplierType === "existing" && !(payload as any).supplierId) {
+        payload.supplierId = null;
+      } else if (supplierType === "new" && (payload as any).supplierName) {
+        const typedName: string = (payload as any).supplierName.trim();
+        const existing = suppliers.find((s:any)=> String(s.name).toLowerCase() === typedName.toLowerCase());
         if (existing) {
           payload.supplierId = existing.id;
         } else {
@@ -68,25 +85,7 @@ export default function MaterialDetail() {
         delete payload.supplierName;
       }
 
-      // Calcula supplierUnitCost automaticamente se fornecido custo do rolo
-      const rollCost = payload.supplierRollCost ? Number(String(payload.supplierRollCost).replace(',', '.')) : null;
-      if (rollCost && rollCost > 0) {
-        if (payload.unit === "M2" && payload.supplierRollWidth && payload.supplierRollLength) {
-          const w = Number(String(payload.supplierRollWidth).replace(',', '.'));
-          const l = Number(String(payload.supplierRollLength).replace(',', '.'));
-          if (w > 0 && l > 0) {
-            payload.supplierUnitCost = (rollCost / (w * l)).toFixed(4);
-          }
-        } else if (payload.unit === "SHEET" && payload.supplierRollQuantity) {
-          const qty = Number(payload.supplierRollQuantity);
-          if (qty > 0) {
-            payload.supplierUnitCost = (rollCost / qty).toFixed(4);
-          }
-        } else if (payload.unit === "UNIT") {
-          payload.supplierUnitCost = rollCost.toFixed(4);
-        }
-      }
-      // Remove campos auxiliares antes de enviar
+      // Remove campos auxiliares antes de enviar (se existirem)
       delete payload.supplierRollCost;
       delete payload.supplierRollWidth;
       delete payload.supplierRollLength;
@@ -98,6 +97,13 @@ export default function MaterialDetail() {
         body: JSON.stringify(payload),
       });
       setHasChanges(false);
+      // Recarregar fornecedores caso um novo tenha sido criado
+      if (supplierType === "new") {
+        fetch("/api/admin/suppliers?activeOnly=1")
+          .then(r => r.json())
+          .then(setSuppliers)
+          .catch(() => {});
+      }
       load();
     } catch (error) {
       console.error("Erro ao salvar:", error);
@@ -123,27 +129,7 @@ export default function MaterialDetail() {
   const costSummary = useMemo(() => {
     if (!row) return null;
     
-    // Calcula o custo do fornecedor se houver campos de rolo preenchidos
-    let calculatedSupplierCost: string | null = null;
-    const rollCost = formData.supplierRollCost ? Number(String(formData.supplierRollCost).replace(',', '.')) : null;
-    if (rollCost && rollCost > 0) {
-      if (row.unit === "M2" && formData.supplierRollWidth && formData.supplierRollLength) {
-        const w = Number(String(formData.supplierRollWidth).replace(',', '.'));
-        const l = Number(String(formData.supplierRollLength).replace(',', '.'));
-        if (w > 0 && l > 0) {
-          calculatedSupplierCost = (rollCost / (w * l)).toFixed(4);
-        }
-      } else if (row.unit === "SHEET" && formData.supplierRollQuantity) {
-        const qty = Number(formData.supplierRollQuantity);
-        if (qty > 0) {
-          calculatedSupplierCost = (rollCost / qty).toFixed(4);
-        }
-      } else if (row.unit === "UNIT") {
-        calculatedSupplierCost = rollCost.toFixed(4);
-      }
-    }
-    
-    const finalSupplierCost = calculatedSupplierCost || (formData.supplierUnitCost ? String(formData.supplierUnitCost) : (row.supplierUnitCost ? String(row.supplierUnitCost) : null));
+    const finalSupplierCost = formData.supplierUnitCost ? String(formData.supplierUnitCost) : (row.supplierUnitCost ? String(row.supplierUnitCost) : null);
     const unitCostValue = Number(formData.unitCost || row.unitCost || 0);
     const supplierCostValue = finalSupplierCost ? Number(finalSupplierCost) : 0;
     const totalCost = unitCostValue + supplierCostValue;
@@ -367,90 +353,109 @@ export default function MaterialDetail() {
               </select>
             </div>
 
-            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Fornecedor</label>
-                <input
-                  list="supplier-suggestions-edit"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
-                  defaultValue={row?.supplier?.name || ""}
-                  onBlur={(e)=> patch({ supplierName: e.target.value })}
-                  placeholder="Digite para procurar ou criar"
-                />
-                <datalist id="supplier-suggestions-edit">
-                  {suppliers.map((s:any)=> (
-                    <option key={s.id} value={s.name} />
-                  ))}
-                </datalist>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Custo do Fornecedor (€)</label>
-                <input
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
-                  defaultValue={row.supplierUnitCost != null ? String(row.supplierUnitCost) : ""}
-                  onBlur={(e) => patch({ supplierUnitCost: e.target.value || null })}
-                  placeholder="0.0000"
-                />
-                <p className="text-xs text-gray-500 mt-1">Ou use cálculo automático abaixo</p>
-              </div>
+            <div className="md:col-span-3">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Fornecedor (opcional)
+              </label>
+              <RadioGroup 
+                value={supplierType} 
+                onValueChange={(value) => {
+                  setSupplierType(value as "existing" | "new" | "none");
+                  if (value === "none") {
+                    patch({ supplierId: null, supplierName: "", supplierUnitCost: null });
+                  } else if (value === "existing") {
+                    if (row?.supplier?.id) {
+                      patch({ supplierId: String(row.supplier.id), supplierName: "" });
+                    } else {
+                      patch({ supplierId: "", supplierName: "" });
+                    }
+                  } else {
+                    patch({ supplierId: "", supplierName: "" });
+                  }
+                }} 
+                className="space-y-4"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value="none" id="supplier-none-edit" />
+                    <Label htmlFor="supplier-none-edit" className="font-semibold text-[#341601] cursor-pointer text-base">
+                      Sem Fornecedor
+                    </Label>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value="existing" id="supplier-existing-edit" />
+                    <Label htmlFor="supplier-existing-edit" className="font-semibold text-[#341601] cursor-pointer text-base">
+                      Fornecedor Cadastrado
+                    </Label>
+                  </div>
+                  {supplierType === "existing" && (
+                    <div className="ml-8 mt-3">
+                      <Select
+                        value={formData.supplierId ? String(formData.supplierId) : ""}
+                        onValueChange={(value) => patch({ supplierId: value, supplierName: "" })}
+                      >
+                        <SelectTrigger className="w-full h-11 border-2 border-gray-300 bg-white text-gray-900 shadow-sm hover:border-gray-400">
+                          <SelectValue placeholder="Selecione um fornecedor" />
+                        </SelectTrigger>
+                        <SelectContent 
+                          className="max-h-[200px]" 
+                          position="popper"
+                          sideOffset={4}
+                          align="start"
+                        >
+                          {suppliers.map((s) => (
+                            <SelectItem key={s.id} value={s.id.toString()}>
+                              {s.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value="new" id="supplier-new-edit" />
+                    <Label htmlFor="supplier-new-edit" className="font-semibold text-[#341601] cursor-pointer text-base">
+                      Novo Fornecedor
+                    </Label>
+                  </div>
+                  {supplierType === "new" && (
+                    <div className="ml-8 mt-3">
+                      <input
+                        type="text"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] h-11"
+                        value={formData.supplierName || ""}
+                        onChange={(e) => patch({ supplierName: e.target.value, supplierId: "" })}
+                        placeholder="Nome do novo fornecedor"
+                      />
+                      <p className="text-xs text-gray-500 mt-2 ml-1">
+                        O fornecedor será criado automaticamente ao salvar o material
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </RadioGroup>
             </div>
 
-            {/* Cálculo Automático na Edição */}
-            <div className="md:col-span-3 border-t border-gray-200 pt-4">
-              <p className="text-sm font-medium text-gray-700 mb-3">Cálculo Automático do Custo do Fornecedor (opcional)</p>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Custo do Rolo/Pack (€)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
-                    defaultValue=""
-                    onBlur={(e) => patch({ supplierRollCost: e.target.value || null })}
-                    placeholder="Ex: 19.12"
-                  />
-                </div>
-                {row.unit === "M2" && (
-                  <>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Largura (m)</label>
-                      <input
-                        type="number"
-                        step="0.001"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
-                        defaultValue=""
-                        onBlur={(e) => patch({ supplierRollWidth: e.target.value || null })}
-                        placeholder="Ex: 0.615"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Comprimento (m)</label>
-                      <input
-                        type="number"
-                        step="0.001"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
-                        defaultValue=""
-                        onBlur={(e) => patch({ supplierRollLength: e.target.value || null })}
-                        placeholder="Ex: 5.0"
-                      />
-                    </div>
-                  </>
-                )}
-                {row.unit === "SHEET" && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade no Pack</label>
-                    <input
-                      type="number"
-                      step="1"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
-                      defaultValue=""
-                      onBlur={(e) => patch({ supplierRollQuantity: e.target.value || null })}
-                      placeholder="Ex: 500"
-                    />
-                  </div>
-                )}
+            {supplierType !== "none" && (
+              <div>
+                <label className="block text-sm font-medium text-[#341601] mb-2">Custo do Fornecedor (opcional)</label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] h-11"
+                  value={formData.supplierUnitCost != null ? String(formData.supplierUnitCost) : ""}
+                  onChange={(e) => patch({ supplierUnitCost: e.target.value || null })}
+                  placeholder="0.0000"
+                />
+                <p className="text-xs text-gray-500 mt-1">Custo por unidade do fornecedor</p>
               </div>
-            </div>
+            )}
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Custo Unitário (€)</label>
