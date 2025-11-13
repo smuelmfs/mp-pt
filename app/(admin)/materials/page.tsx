@@ -241,7 +241,7 @@ export default function MaterialsPage() {
               )}
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
             <input className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]" placeholder="Filtrar por tipo (ex.: vinil, papel)" value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} />
             <select className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]" value={unitFilter} onChange={e=>setUnitFilter(e.target.value as any)}>
               <option value="">Todas unidades</option>
@@ -262,13 +262,13 @@ export default function MaterialsPage() {
               <option value="active">Ativos</option>
               <option value="inactive">Inativos</option>
             </select>
-            <div className="flex gap-2">
+            <div className="flex gap-2 sm:col-span-2 xl:col-span-1">
               <select className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]" value={sortKey} onChange={e=>setSortKey(e.target.value as any)}>
                 <option value="name">Ordenar por Nome</option>
                 <option value="type">Ordenar por Tipo</option>
                 <option value="unitCost">Ordenar por Custo</option>
               </select>
-              <button className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-white transition-colors" onClick={()=>setSortDir(d=> d==="asc"?"desc":"asc")}>{sortDir==="asc"?"↑":"↓"}</button>
+              <button className="px-3 sm:px-4 py-3 border border-gray-300 rounded-lg hover:bg-white transition-colors min-w-[48px]" onClick={()=>setSortDir(d=> d==="asc"?"desc":"asc")}>{sortDir==="asc"?"↑":"↓"}</button>
             </div>
           </div>
         </div>
@@ -371,20 +371,20 @@ export default function MaterialsPage() {
 
       {/* Create Modal */}
       {openCreate && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-xl w-full max-w-md my-4 max-h-[90vh] overflow-y-auto">
             {/* Header */}
-            <div className="border-b border-gray-200 px-6 py-4">
+            <div className="border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 sticky top-0 bg-white z-10">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-[#341601]">Novo Material</h2>
-                  <p className="text-sm text-gray-600 mt-1">Configure as informações do material</p>
+                  <h2 className="text-lg sm:text-xl font-semibold text-[#341601]">Novo Material</h2>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">Configure as informações do material</p>
                 </div>
                 <button 
                   onClick={() => setOpenCreate(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 p-1"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -392,7 +392,7 @@ export default function MaterialsPage() {
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
               <div>
                 <label className="block text-sm font-medium text-[#341601] mb-2">
                   Nome do Material
@@ -523,13 +523,13 @@ export default function MaterialsPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[#341601] mb-2">
                     Unidade
                   </label>
                   <select
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] h-11"
                     value={form.unit}
                     onChange={(e) => setForm({...form, unit: e.target.value as Material["unit"]})}
                   >
@@ -547,7 +547,7 @@ export default function MaterialsPage() {
                   <input
                     type="number"
                     step="0.0001"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] h-11"
                     value={form.unitCost}
                     onChange={(e) => setForm({...form, unitCost: e.target.value})}
                     placeholder="0.0000"
@@ -613,19 +613,19 @@ export default function MaterialsPage() {
             })()}
 
             {/* Footer */}
-            <div className="border-t border-gray-200 px-6 py-4">
-              <div className="flex justify-end gap-3">
+            <div className="border-t border-gray-200 px-4 sm:px-6 py-3 sm:py-4 sticky bottom-0 bg-white">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
                 <button 
-                  className="px-6 py-3 border border-gray-300 text-[#341601] rounded-lg hover:bg-white transition-colors"
+                  className="px-4 sm:px-6 py-2 sm:py-3 border border-gray-300 text-[#341601] text-sm sm:text-base rounded-lg hover:bg-white transition-colors w-full sm:w-auto"
                   onClick={() => setOpenCreate(false)}
                 >
                   Cancelar
                 </button>
-                        <button 
-                          className="px-6 py-3 bg-[#F66807] text-white rounded-lg hover:bg-[#F66807]/90 transition-colors"
-                          onClick={createMaterial}
-                          disabled={saving}
-                        >
+                <button 
+                  className="px-4 sm:px-6 py-2 sm:py-3 bg-[#F66807] text-white text-sm sm:text-base rounded-lg hover:bg-[#F66807]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+                  onClick={createMaterial}
+                  disabled={saving}
+                >
                   {saving ? 'Criando...' : 'Criar Material'}
                 </button>
               </div>

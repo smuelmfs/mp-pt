@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { SimplePagination } from "@/components/ui/simple-pagination";
+import { PageLoading } from "@/components/ui/loading";
 
 type Printing = {
   id: number;

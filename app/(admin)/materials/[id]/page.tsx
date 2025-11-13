@@ -259,46 +259,48 @@ export default function MaterialDetail() {
       />
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <Link href="/materials" className="text-gray-600 hover:text-[#F66807] transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{row.name}</h1>
-                <p className="text-sm text-gray-600 mt-1">Detalhes e configurações do material</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{row.name}</h1>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">Detalhes e configurações do material</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <button
                 onClick={() => setConfirmDelete(true)}
-                className="inline-flex items-center px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+                className="inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-2.5 bg-red-600 text-white text-sm sm:text-base font-medium rounded-lg hover:bg-red-700 transition-colors flex-1 sm:flex-initial"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Eliminar
+                <Trash2 className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Eliminar</span>
               </button>
               <button
                 onClick={saveChanges}
                 disabled={saving || !hasChanges}
-                className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-[#F66807] text-white text-sm sm:text-base font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-1 sm:flex-initial"
               >
                 {saving ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 sm:h-5 sm:w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Salvando...
+                    <span className="hidden sm:inline">Salvando...</span>
+                    <span className="sm:hidden">Salvando</span>
                   </>
                 ) : (
                   <>
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    Salvar Alterações
+                    <span className="hidden sm:inline">Salvar Alterações</span>
+                    <span className="sm:hidden">Salvar</span>
                   </>
                 )}
               </button>
@@ -308,12 +310,12 @@ export default function MaterialDetail() {
       </div>
 
       {/* Content */}
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {/* Informações Básicas */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Informações Básicas</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Nome
@@ -481,17 +483,18 @@ export default function MaterialDetail() {
         </div>
 
         {/* Variantes */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Variantes</h2>
-              <p className="text-sm text-gray-600 mt-1">Gerencie as variações deste material</p>
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">Variantes</h2>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">Gerencie as variações deste material</p>
             </div>
           </div>
 
           {variants.length > 0 ? (
-            <div className="overflow-x-auto mb-6">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto mb-4 sm:mb-6 -mx-4 sm:mx-0">
+              <div className="min-w-full inline-block align-middle">
+                <table className="w-full text-xs sm:text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider">Label</th>
@@ -517,6 +520,7 @@ export default function MaterialDetail() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           ) : (
             <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg mb-6">
@@ -528,10 +532,10 @@ export default function MaterialDetail() {
           )}
 
           {/* Formulário de Nova Variante */}
-          <div className="border border-gray-200 rounded-lg p-4 bg-[#F6EEE8]">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Adicionar Nova Variante</h3>
+          <div className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-[#F6EEE8]">
+            <h3 className="text-xs sm:text-sm font-semibold text-gray-900 mb-3 sm:mb-4">Adicionar Nova Variante</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
                   Label *

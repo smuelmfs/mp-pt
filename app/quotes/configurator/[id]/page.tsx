@@ -811,22 +811,22 @@ export default function ConfiguratorPage() {
     <div className="min-h-screen bg-[#F6EEE8]">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <h1 className="text-3xl font-bold text-[#341601]">{config?.product?.name || 'Configurador'}</h1>
-          <p className="text-gray-600 mt-2">Configure seu produto e veja o preço em tempo real</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#341601]">{config?.product?.name || 'Configurador'}</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-2">Configure seu produto e veja o preço em tempo real</p>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Configurações */}
           <div className="space-y-6">
             {/* Seleção de Cliente - Ocultar em modo multi-quote */}
             {!isMultiQuoteMode && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-[#341601] mb-3">Cliente (Opcional)</h3>
-                <p className="text-sm text-gray-600 mb-3">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-semibold text-[#341601] mb-3">Cliente (Opcional)</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mb-3">
                   Selecione um cliente para aplicar preços específicos automaticamente
                 </p>
                 <select
@@ -852,9 +852,9 @@ export default function ConfiguratorPage() {
             
             {/* Informação do Cliente em modo multi-quote */}
             {isMultiQuoteMode && (
-              <div className="bg-blue-50 rounded-lg shadow-sm border border-blue-200 p-6">
-                <h3 className="text-lg font-semibold text-[#341601] mb-2">Cliente do Orçamento</h3>
-                <p className="text-sm text-gray-700">
+              <div className="bg-blue-50 rounded-lg shadow-sm border border-blue-200 p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-semibold text-[#341601] mb-2">Cliente do Orçamento</h3>
+                <p className="text-xs sm:text-sm text-gray-700">
                   {(() => {
                     if (typeof window === 'undefined') return 'Carregando...';
                     const storedCustomerName = sessionStorage.getItem('multiQuoteCustomerName');
@@ -872,8 +872,8 @@ export default function ConfiguratorPage() {
             )}
 
             {config && config.optionGroups && config.optionGroups.length > 0 ? config.optionGroups.map((group) => (
-              <div key={group.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-[#341601] mb-3">
+              <div key={group.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-semibold text-[#341601] mb-3">
                   {group.name}
                   {group.required && <span className="text-red-500 ml-1">*</span>}
                   {group.id === 'finishes' && Array.isArray(selectedChoices[group.id]) && selectedChoices[group.id].length > 0 && (

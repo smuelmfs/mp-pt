@@ -82,27 +82,28 @@ export default function ProductsPage() {
      <main className="min-h-screen bg-[#F6EEE8]">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-[#341601]">Produtos</h1>
-              <p className="text-gray-600 mt-2">Gerencie os produtos e suas configurações</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#341601]">Produtos</h1>
+              <p className="text-sm sm:text-base text-gray-600 mt-2">Gerencie os produtos e suas configurações</p>
             </div>
             <button 
               onClick={()=>setOpenCreate(true)} 
-              className="inline-flex items-center px-6 py-3 bg-[#F66807] text-white font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors shadow-sm"
+              className="inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-[#F66807] text-white text-sm sm:text-base font-medium rounded-lg hover:bg-[#F66807]/90 transition-colors shadow-sm w-full sm:w-auto"
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              Novo Produto
+              <span className="hidden sm:inline">Novo Produto</span>
+              <span className="sm:hidden">Novo</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           {/* Search and Filters */}
           <div className="mb-8">

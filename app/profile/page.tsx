@@ -201,7 +201,7 @@ export default function ProfilePage() {
           <Button
             variant="ghost"
             onClick={() => router.back()}
-            className="mb-4 text-sm sm:text-base"
+            className="mb-4 text-sm sm:text-base !text-[#341601] !bg-white hover:!bg-gray-50 hover:!text-[#F66807] border border-gray-200"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar
