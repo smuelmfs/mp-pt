@@ -113,8 +113,26 @@ export default function MarginsPage() {
         setOpenCreate(false);
         loadRules();
       } else {
-        const j = await res.json(); 
-        toast.error("Erro: "+(j.error?.message || "Falha ao criar"));
+        const errorData = await res.json().catch(() => ({}));
+        let errorMessage = "Falha ao criar";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error("Erro: " + errorMessage);
       }
     } catch (error) {
       toast.error("Erro ao criar regra");
@@ -153,8 +171,26 @@ export default function MarginsPage() {
         setOpenCreate(false);
         loadRules();
       } else {
-        const j = await res.json(); 
-        toast.error("Erro: "+(j.error?.message || "Falha ao criar"));
+        const errorData = await res.json().catch(() => ({}));
+        let errorMessage = "Falha ao criar";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error("Erro: " + errorMessage);
       }
     } catch (error) {
       toast.error("Erro ao criar regra");
@@ -230,8 +266,26 @@ export default function MarginsPage() {
         setOpenCreate(false);
         loadRules();
       } else {
-        const j = await res.json(); 
-        toast.error("Erro: "+(j.error?.message || "Falha ao atualizar"));
+        const errorData = await res.json().catch(() => ({}));
+        let errorMessage = "Falha ao atualizar";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error("Erro: " + errorMessage);
       }
     } catch (error) {
       toast.error("Erro ao atualizar regra");
@@ -271,8 +325,26 @@ export default function MarginsPage() {
         setOpenCreate(false);
         loadRules();
       } else {
-        const j = await res.json(); 
-        toast.error("Erro: "+(j.error?.message || "Falha ao atualizar"));
+        const errorData = await res.json().catch(() => ({}));
+        let errorMessage = "Falha ao atualizar";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error("Erro: " + errorMessage);
       }
     } catch (error) {
       toast.error("Erro ao atualizar regra");

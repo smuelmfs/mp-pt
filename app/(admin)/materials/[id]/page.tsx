@@ -38,17 +38,28 @@ export default function MaterialDetail() {
 
   async function load() {
     setLoading(true);
+    try {
     const res = await fetch(`/api/admin/materials/${id}`);
-    const json = await res.json();
+      if (!res.ok) {
+        throw new Error("Erro ao carregar material");
+      }
+      const text = await res.text();
+      const json = text ? JSON.parse(text) : null;
+      if (json) {
     setRow(json);
     setFormData(json);
-    // Define o tipo de fornecedor baseado nos dados carregados
-    if (json.supplier?.id) {
-      setSupplierType("existing");
-    } else {
-      setSupplierType("none");
-    }
+        // Define o tipo de fornecedor baseado nos dados carregados
+        if (json.supplier?.id) {
+          setSupplierType("existing");
+        } else {
+          setSupplierType("none");
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao carregar material:", error);
+    } finally {
     setLoading(false);
+    }
   }
 
   function handleChange(field: string, value: any) {
@@ -177,8 +188,26 @@ export default function MaterialDetail() {
       setVf({ label: "", gramagem: "", widthMm: "", heightMm: "", sheetsPerPack: "", packPrice: "", unitPrice: "" });
       load();
     } else {
-      const j = await res.json().catch(() => ({}));
-      toast.error("Erro: " + (j.error?.message || "Falha ao criar variante"));
+      const errorData = await res.json().catch(() => ({}));
+      let errorMessage = "Falha ao criar variante";
+      
+      if (errorData.error) {
+        if (typeof errorData.error === 'string') {
+          errorMessage = errorData.error;
+        } else if (errorData.error.message) {
+          errorMessage = errorData.error.message;
+        } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+          errorMessage = errorData.error.formErrors[0];
+        } else if (errorData.error.fieldErrors) {
+          const firstField = Object.keys(errorData.error.fieldErrors)[0];
+          const firstError = errorData.error.fieldErrors[firstField];
+          if (Array.isArray(firstError) && firstError.length > 0) {
+            errorMessage = `${firstField}: ${firstError[0]}`;
+          }
+        }
+      }
+      
+      toast.error("Erro: " + errorMessage);
     }
   }
 
@@ -190,8 +219,27 @@ export default function MaterialDetail() {
         toast.success("Material eliminado com sucesso");
         router.push("/materials");
       } else {
-        const j = await res.json();
-        toast.error(j.error || "Falha ao eliminar material");
+        const errorData = await res.json().catch(() => ({}));
+        // Extrai mensagem de erro do objeto Zod ou erro genérico
+        let errorMessage = "Falha ao eliminar material";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error(errorMessage);
       }
     } finally {
       setDeleting(false);
@@ -383,8 +431,8 @@ export default function MaterialDetail() {
                     <Label htmlFor="supplier-none-edit" className="font-semibold text-[#341601] cursor-pointer text-base">
                       Sem Fornecedor
                     </Label>
-                  </div>
-                </div>
+              </div>
+            </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center space-x-3">
@@ -425,7 +473,7 @@ export default function MaterialDetail() {
                     <Label htmlFor="supplier-new-edit" className="font-semibold text-[#341601] cursor-pointer text-base">
                       Novo Fornecedor
                     </Label>
-                  </div>
+                    </div>
                   {supplierType === "new" && (
                     <div className="ml-8 mt-3">
                       <input
@@ -445,10 +493,10 @@ export default function MaterialDetail() {
             </div>
 
             {supplierType !== "none" && (
-              <div>
+                  <div>
                 <label className="block text-sm font-medium text-[#341601] mb-2">Custo do Fornecedor (opcional)</label>
-                <input
-                  type="number"
+                    <input
+                      type="number"
                   step="0.0001"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] h-11"
                   value={formData.supplierUnitCost != null ? String(formData.supplierUnitCost) : ""}
@@ -456,8 +504,8 @@ export default function MaterialDetail() {
                   placeholder="0.0000"
                 />
                 <p className="text-xs text-gray-500 mt-1">Custo por unidade do fornecedor</p>
-              </div>
-            )}
+                  </div>
+                )}
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Custo Unitário (€)</label>

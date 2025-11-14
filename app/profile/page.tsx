@@ -120,8 +120,26 @@ export default function ProfilePage() {
         
         window.dispatchEvent(new CustomEvent('userProfileUpdated'));
       } else {
-        const error = await res.json();
-        toast.error(error.error || "Erro ao atualizar perfil");
+        const errorData = await res.json().catch(() => ({}));
+        let errorMessage = "Erro ao atualizar perfil";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error(errorMessage);
       }
     } catch (error: any) {
       console.error("Erro ao salvar perfil:", error);

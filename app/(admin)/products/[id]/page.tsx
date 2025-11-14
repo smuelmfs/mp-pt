@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { Trash2, Edit } from "lucide-react";
 
 export default function ProductDetail() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const id = Number(params.id);
 
   const [row, setRow] = useState<any>(null);
@@ -67,6 +69,7 @@ export default function ProductDetail() {
   const [addingDimension, setAddingDimension] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [wizardProcessed, setWizardProcessed] = useState(false);
   const router = useRouter();
 
   function showSuccessToast(message: string) {
@@ -109,15 +112,146 @@ export default function ProductDetail() {
     setFinishes(Array.isArray(fins) ? fins : []);      // blindagem
     setSuggestedQuantities(Array.isArray(quantities) ? quantities : []);
     setDimensions(Array.isArray(dimensions) ? dimensions : []);
-    
-    // Debug: verificar se as dimensões estão sendo carregadas
-    console.log('Dimensions loaded:', dimensions);
-    console.log('Dimensions response status:', dimensionsRes.status);
     setLoading(false);
   }
 
+  // Processa parâmetros do wizard após carregar
   useEffect(() => {
-    if (Number.isFinite(id)) load();
+    if (!row || !searchParams || loading || wizardProcessed) return;
+    
+    const wizardMaterials = searchParams.get('materials');
+    const wizardFinishes = searchParams.get('finishes');
+    const isWizard = searchParams.get('wizard') === 'true';
+    
+    if (!isWizard) return;
+    
+    setWizardProcessed(true); // Marca como processado para evitar reprocessamento
+    
+    const materialIds = wizardMaterials 
+      ? wizardMaterials.split(',').map(Number).filter((id) => Number.isFinite(id) && id > 0)
+      : [];
+    const finishIds = wizardFinishes 
+      ? wizardFinishes.split(',').map(Number).filter((id) => Number.isFinite(id) && id > 0)
+      : [];
+    
+    console.log('Wizard params:', { wizardMaterials, wizardFinishes, materialIds, finishIds });
+    
+    if (materialIds.length === 0 && finishIds.length === 0) {
+      // Se não há materiais nem acabamentos, apenas limpa a URL
+      router.replace(`/products/${id}`);
+      return;
+    }
+    
+    // Processa materiais e acabamentos em paralelo
+    const promises: Promise<any>[] = [];
+    
+    // Adiciona materiais automaticamente
+    if (materialIds.length > 0) {
+      materialIds.forEach((materialId) => {
+        promises.push(
+          fetch(`/api/admin/product-materials`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              productId: id,
+              materialId: materialId,
+              qtyPerUnit: '1',
+              wasteFactor: '0',
+            }),
+          }).then(async (res) => {
+            if (res.ok) {
+              return { success: true, type: 'material', id: materialId };
+            } else {
+              const error = await res.json().catch(() => ({}));
+              console.error('Erro ao adicionar material:', error);
+              return { success: false, type: 'material', id: materialId };
+            }
+          }).catch((error) => {
+            console.error('Erro ao adicionar material do wizard:', error);
+            return { success: false, type: 'material', id: materialId };
+          })
+        );
+      });
+    }
+    
+    // Adiciona acabamentos automaticamente
+    if (finishIds.length > 0) {
+      finishIds.forEach((finishId) => {
+        promises.push(
+          fetch(`/api/admin/product-finishes`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              productId: id,
+              finishId: finishId,
+              qtyPerUnit: '1',
+            }),
+          }).then(async (res) => {
+            if (res.ok) {
+              return { success: true, type: 'finish', id: finishId };
+            } else {
+              const error = await res.json().catch(() => ({}));
+              console.error('Erro ao adicionar acabamento:', error);
+              return { success: false, type: 'finish', id: finishId };
+            }
+          }).catch((error) => {
+            console.error('Erro ao adicionar acabamento do wizard:', error);
+            return { success: false, type: 'finish', id: finishId };
+          })
+        );
+      });
+    }
+    
+    // Aguarda todas as requisições e então recarrega
+    Promise.all(promises).then((results) => {
+      console.log('Results from adding materials/finishes:', results);
+      
+      const materialSuccess = results.filter(r => r.type === 'material' && r.success).length;
+      const finishSuccess = results.filter(r => r.type === 'finish' && r.success).length;
+      
+      if (materialSuccess > 0 || finishSuccess > 0) {
+        const messages: string[] = [];
+        if (materialSuccess > 0) {
+          messages.push(`${materialSuccess} material(is) adicionado(s)`);
+        }
+        if (finishSuccess > 0) {
+          messages.push(`${finishSuccess} acabamento(s) adicionado(s)`);
+        }
+        toast.success(messages.join(' e ') + ' ao produto');
+      } else {
+        // Se nenhum foi adicionado com sucesso, mostra um aviso
+        if (materialIds.length > 0 || finishIds.length > 0) {
+          console.warn('Nenhum material ou acabamento foi adicionado com sucesso', results);
+        }
+      }
+      
+      // Recarrega os dados do produto para mostrar os novos materiais/acabamentos
+      load();
+      
+      // Abre a aba apropriada
+      if (materialIds.length > 0) {
+        setActiveTab('materials');
+      } else if (finishIds.length > 0) {
+        setActiveTab('finishes');
+      }
+      
+      // Limpa os parâmetros da URL após processar
+      setTimeout(() => {
+        router.replace(`/products/${id}`);
+      }, 1000); // Aumentado para dar tempo de recarregar
+    }).catch((error) => {
+      console.error('Erro ao processar materiais/acabamentos do wizard:', error);
+      toast.error('Erro ao adicionar materiais/acabamentos ao produto');
+      load(); // Recarrega mesmo em caso de erro
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [row, searchParams, loading]);
+
+  useEffect(() => {
+    if (Number.isFinite(id)) {
+      setWizardProcessed(false); // Reseta quando o ID muda
+      load();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -158,8 +292,27 @@ export default function ProductDetail() {
         toast.success("Produto eliminado com sucesso");
         router.push("/products");
       } else {
-        const j = await res.json();
-        toast.error(j.error || "Falha ao eliminar produto");
+        const errorData = await res.json().catch(() => ({}));
+        // Extrai mensagem de erro do objeto Zod ou erro genérico
+        let errorMessage = "Falha ao eliminar produto";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error(errorMessage);
       }
     } finally {
       setDeleting(false);
@@ -571,18 +724,6 @@ export default function ProductDetail() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Sourcing Mode</label>
-                <select
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  defaultValue={row.sourcingMode ?? "INTERNAL"}
-                  onChange={(e) => update({ sourcingMode: e.target.value })}
-                >
-                  <option value="INTERNAL">INTERNAL</option>
-                  <option value="SUPPLIER">SUPPLIER</option>
-                  <option value="HYBRID">HYBRID</option>
-                </select>
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Margem Padrão</label>
                 <input
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -932,15 +1073,26 @@ export default function ProductDetail() {
                           <p className="text-sm text-gray-600">Variante: {pm.variant.label}</p>
                         )}
                       </div>
-                      <button
-                        onClick={() => removePM(pm.id)}
-                        className="p-1 rounded-md text-red-600 hover:text-red-800 hover:bg-red-50 transition-colors"
-                        title="Remover material"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {pm.material?.id && (
+                          <Link
+                            href={`/materials/${pm.material.id}`}
+                            className="p-1 rounded-md text-[#F66807] hover:text-[#F66807]/80 hover:bg-[#F6EEE8] transition-colors"
+                            title="Editar material"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Link>
+                        )}
+                        <button
+                          onClick={() => removePM(pm.id)}
+                          className="p-1 rounded-md text-red-600 hover:text-red-800 hover:bg-red-50 transition-colors"
+                          title="Remover material"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
                       <div>
@@ -1060,15 +1212,26 @@ export default function ProductDetail() {
                           Tipo de cálculo: {pf.calcTypeOverride ?? pf.finish?.calcType}
                         </p>
                       </div>
-                      <button
-                        onClick={() => removePF(pf.id)}
-                        className="p-1 rounded-md text-red-600 hover:text-red-800 hover:bg-red-50 transition-colors"
-                        title="Remover acabamento"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {pf.finish?.id && (
+                          <Link
+                            href={`/finishes/${pf.finish.id}`}
+                            className="p-1 rounded-md text-[#F66807] hover:text-[#F66807]/80 hover:bg-[#F6EEE8] transition-colors"
+                            title="Editar acabamento"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Link>
+                        )}
+                        <button
+                          onClick={() => removePF(pf.id)}
+                          className="p-1 rounded-md text-red-600 hover:text-red-800 hover:bg-red-50 transition-colors"
+                          title="Remover acabamento"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
                       <div>

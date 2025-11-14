@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
+import { markStepComplete } from "@/lib/admin-progress";
 import { SimplePagination } from "@/components/ui/simple-pagination";
 import {
   Table,
@@ -61,10 +62,31 @@ export default function SuppliersPage() {
       });
       if (!res.ok) {
         const j = await res.json().catch(()=>({}));
-        toast.error("Erro ao criar: " + (j.error || "verifique os campos"));
+        const errorData = j;
+        // Extrai mensagem de erro do objeto Zod ou erro genérico
+        let errorMessage = "verifique os campos";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error("Erro ao criar: " + errorMessage);
         return;
       }
       toast.success("Fornecedor criado com sucesso!");
+      markStepComplete('suppliers');
       setOpenCreate(false);
       setFormName("");
       load();

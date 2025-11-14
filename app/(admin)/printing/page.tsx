@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { markStepComplete } from "@/lib/admin-progress";
 import { SimplePagination } from "@/components/ui/simple-pagination";
 import { PageLoading } from "@/components/ui/loading";
 
@@ -47,14 +48,24 @@ export default function PrintingListPage() {
 
   async function load() {
     setLoading(true);
+    try {
     const params = new URLSearchParams();
     if (debouncedQ) params.append("q", debouncedQ);
     if (technologyFilter) params.append("technology", technologyFilter);
     if (activeFilter !== "all") params.append("active", activeFilter === "active" ? "true" : "false");
     const res = await fetch(`/api/admin/printing?${params.toString()}`);
-    const json = await res.json();
+      if (!res.ok) {
+        throw new Error("Erro ao carregar impressões");
+      }
+      const text = await res.text();
+      const json = text ? JSON.parse(text) : [];
     setRows(Array.isArray(json) ? json : []);
+    } catch (error) {
+      console.error("Erro ao carregar impressões:", error);
+      setRows([]);
+    } finally {
     setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -88,10 +99,30 @@ export default function PrintingListPage() {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        toast.error("Erro ao criar: " + (j.error?.message || "verifique os campos"));
+        const errorData = j;
+        let errorMessage = "verifique os campos";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error("Erro ao criar: " + errorMessage);
         return;
       }
       toast.success("Impressão criada com sucesso!");
+      markStepComplete('printing');
       setOpenCreate(false);
       setForm({
         technology: "OFFSET", formatLabel: "", colors: "", sides: 1,

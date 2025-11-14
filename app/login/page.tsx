@@ -148,8 +148,26 @@ function LoginForm() {
       } else {
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
-          const error = await res.json();
-          toast.error(error.error || "Erro ao verificar autenticação");
+          const errorData = await res.json().catch(() => ({}));
+          let errorMessage = "Erro ao verificar autenticação";
+          
+          if (errorData.error) {
+            if (typeof errorData.error === 'string') {
+              errorMessage = errorData.error;
+            } else if (errorData.error.message) {
+              errorMessage = errorData.error.message;
+            } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+              errorMessage = errorData.error.formErrors[0];
+            } else if (errorData.error.fieldErrors) {
+              const firstField = Object.keys(errorData.error.fieldErrors)[0];
+              const firstError = errorData.error.fieldErrors[firstField];
+              if (Array.isArray(firstError) && firstError.length > 0) {
+                errorMessage = `${firstField}: ${firstError[0]}`;
+              }
+            }
+          }
+          
+          toast.error(errorMessage);
         } else {
           toast.error("Erro ao verificar autenticação");
         }

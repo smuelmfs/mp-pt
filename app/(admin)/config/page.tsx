@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { markStepComplete } from "@/lib/admin-progress";
 
 export default function ConfigPage() {
   const [config, setConfig] = useState<any>(null);
@@ -15,13 +16,21 @@ export default function ConfigPage() {
     setLoading(true);
     try {
       const res = await fetch('/api/admin/config');
-      const data = await res.json();
-      setConfig(data);
-      setFormData(data);
+      if (!res.ok) {
+        throw new Error("Erro ao carregar configuração");
+      }
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (data) {
+        setConfig(data);
+        setFormData(data);
+      }
     } catch (error) {
       console.error('Erro ao carregar configuração:', error);
+      toast.error("Erro ao carregar configurações");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   function handleChange(field: string, value: any) {
@@ -32,13 +41,19 @@ export default function ConfigPage() {
   async function saveChanges() {
     setSaving(true);
     try {
-      await fetch('/api/admin/config', {
+      const res = await fetch('/api/admin/config', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(formData)
       });
-      setHasChanges(false);
-      load();
+      if (res.ok) {
+        markStepComplete('config');
+        setHasChanges(false);
+        load();
+        toast.success("Configurações salvas com sucesso!");
+      } else {
+        throw new Error("Erro ao salvar");
+      }
     } catch (error) {
       console.error('Erro ao salvar configuração:', error);
       toast.error("Erro ao salvar configurações");

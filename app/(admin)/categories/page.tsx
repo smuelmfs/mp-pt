@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
+import { markStepComplete } from "@/lib/admin-progress";
 import { SimplePagination } from "@/components/ui/simple-pagination";
 
 interface Category {
@@ -65,12 +66,32 @@ export default function CategoriesPage() {
 
       if (res.ok) {
         toast.success("Categoria criada com sucesso!");
+        markStepComplete('categories');
         setOpenCreate(false);
         setFormData({ name: "", roundingStep: 0.05, roundingStrategy: "", pricingStrategy: "", minPricePerPiece: "", lossFactor: "" });
         load();
       } else {
-        const error = await res.json();
-        toast.error("Erro: " + (error.error || "Falha ao criar categoria"));
+        const errorData = await res.json().catch(() => ({}));
+        // Extrai mensagem de erro do objeto Zod ou erro genérico
+        let errorMessage = "Falha ao criar categoria";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error("Erro: " + errorMessage);
       }
     } catch (error) {
       console.error("Erro ao criar categoria:", error);
@@ -97,8 +118,27 @@ export default function CategoriesPage() {
         setFormData({ name: "", roundingStep: 0.05, roundingStrategy: "", pricingStrategy: "", minPricePerPiece: "", lossFactor: "" });
         load();
       } else {
-        const error = await res.json();
-        toast.error("Erro: " + (error.error || "Falha ao atualizar categoria"));
+        const errorData = await res.json().catch(() => ({}));
+        // Extrai mensagem de erro do objeto Zod ou erro genérico
+        let errorMessage = "Falha ao atualizar categoria";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error("Erro: " + errorMessage);
       }
     } catch (error) {
       console.error("Erro ao atualizar categoria:", error);

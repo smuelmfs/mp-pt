@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PageLoading } from "@/components/ui/loading";
 import { Trash2 } from "lucide-react";
 
 export default function FinishDetailPage() {
@@ -59,12 +60,41 @@ export default function FinishDetailPage() {
   async function saveChanges() {
     setSaving(true);
     try {
-      await fetch(`/api/admin/finishes/${id}`, {
+      const res = await fetch(`/api/admin/finishes/${id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(formData),
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        // Extrai mensagem de erro do objeto Zod ou erro genérico
+        let errorMessage = "Erro ao salvar alterações";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            // Erro do Zod: pega o primeiro erro de formulário
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            // Erro do Zod: pega o primeiro erro de campo
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error(errorMessage);
+        return;
+      }
+      
       setHasChanges(false);
+      toast.success("Alterações salvas com sucesso");
       load();
     } catch (error) {
       console.error("Erro ao salvar:", error);
@@ -88,8 +118,27 @@ export default function FinishDetailPage() {
         toast.success("Acabamento eliminado com sucesso");
         router.push("/finishes");
       } else {
-        const j = await res.json();
-        toast.error(j.error || "Falha ao eliminar acabamento");
+        const errorData = await res.json().catch(() => ({}));
+        // Extrai mensagem de erro do objeto Zod ou erro genérico
+        let errorMessage = "Falha ao eliminar acabamento";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error(errorMessage);
       }
     } finally {
       setDeleting(false);

@@ -25,26 +25,48 @@ export default function PrintingDetailPage() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch(`/api/admin/printing/${id}`);
-    const json = await res.json();
-    setRow(json);
-    setFormData(json);
+    try {
+      const res = await fetch(`/api/admin/printing/${id}`);
+      if (!res.ok) {
+        throw new Error("Erro ao carregar impressão");
+      }
+      const text = await res.text();
+      const json = text ? JSON.parse(text) : null;
+      if (json) {
+        setRow(json);
+        setFormData(json);
+      }
+      
+      // Carrega preços por cliente
+      const pricesRes = await fetch(`/api/admin/customer-prices/printing?printingId=${id}`);
+      if (pricesRes.ok) {
+        try {
+          const pricesText = await pricesRes.text();
+          const prices = pricesText ? JSON.parse(pricesText) : [];
+          setCustomerPrices(Array.isArray(prices) ? prices : []);
+        } catch (e) {
+          console.error("Erro ao carregar preços:", e);
+          setCustomerPrices([]);
+        }
+      }
     
-    // Carrega preços por cliente
-    const pricesRes = await fetch(`/api/admin/customer-prices/printing?printingId=${id}`);
-    if (pricesRes.ok) {
-      const prices = await pricesRes.json();
-      setCustomerPrices(prices);
+      // Carrega lista de clientes
+      const customersRes = await fetch(`/api/admin/customers?activeOnly=true`);
+      if (customersRes.ok) {
+        try {
+          const customersText = await customersRes.text();
+          const customersData = customersText ? JSON.parse(customersText) : [];
+          setCustomers(Array.isArray(customersData) ? customersData : []);
+        } catch (e) {
+          console.error("Erro ao carregar clientes:", e);
+          setCustomers([]);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao carregar impressão:", error);
+    } finally {
+      setLoading(false);
     }
-    
-    // Carrega lista de clientes
-    const customersRes = await fetch(`/api/admin/customers?activeOnly=true`);
-    if (customersRes.ok) {
-      const customersData = await customersRes.json();
-      setCustomers(customersData);
-    }
-    
-    setLoading(false);
   }
 
   useEffect(() => {
@@ -89,8 +111,27 @@ export default function PrintingDetailPage() {
         toast.success("Impressão eliminada com sucesso");
         router.push("/printing");
       } else {
-        const j = await res.json();
-        toast.error(j.error || "Falha ao eliminar impressão");
+        const errorData = await res.json().catch(() => ({}));
+        // Extrai mensagem de erro do objeto Zod ou erro genérico
+        let errorMessage = "Falha ao eliminar impressão";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error(errorMessage);
       }
     } finally {
       setDeleting(false);

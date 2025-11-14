@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
+import { markStepComplete } from "@/lib/admin-progress";
 import { SimplePagination } from "@/components/ui/simple-pagination";
 
 export default function ProductsPage() {
@@ -21,6 +22,7 @@ export default function ProductsPage() {
   });
 
   async function load() {
+    try {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (productId) params.set("productId", productId);
@@ -34,9 +36,26 @@ export default function ProductsPage() {
       fetch(`/api/admin/categories`),
       fetch(`/api/admin/printing`), // lista já existe (GET sem [id]) no teu projeto
     ]);
-    setRows(await pRes.json());
-    setCats(await cRes.json());
-    setPrints(await prRes.json());
+      
+      if (!pRes.ok || !cRes.ok || !prRes.ok) {
+        throw new Error("Erro ao carregar dados");
+      }
+
+      const [products, categories, printings] = await Promise.all([
+        pRes.json().catch(() => []),
+        cRes.json().catch(() => []),
+        prRes.json().catch(() => []),
+      ]);
+      
+      setRows(Array.isArray(products) ? products : []);
+      setCats(Array.isArray(categories) ? categories : []);
+      setPrints(Array.isArray(printings) ? printings : []);
+    } catch (error) {
+      console.error("Erro ao carregar produtos:", error);
+      setRows([]);
+      setCats([]);
+      setPrints([]);
+    }
   }
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
@@ -69,12 +88,31 @@ export default function ProductsPage() {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body)
     });
     if (res.ok) {
+      markStepComplete('products');
       setOpenCreate(false);
       setForm({ name: "", categoryId: "", printingId: "", marginDefault: "", markupDefault: "", roundingStep: "", roundingStrategy: "", pricingStrategy: "", minPricePerPiece: "" });
       load();
     } else {
-      const j = await res.json();
-      toast.error("Erro: " + (j.error?.message || "Falha ao criar"));
+      const errorData = await res.json().catch(() => ({}));
+      let errorMessage = "Falha ao criar";
+      
+      if (errorData.error) {
+        if (typeof errorData.error === 'string') {
+          errorMessage = errorData.error;
+        } else if (errorData.error.message) {
+          errorMessage = errorData.error.message;
+        } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+          errorMessage = errorData.error.formErrors[0];
+        } else if (errorData.error.fieldErrors) {
+          const firstField = Object.keys(errorData.error.fieldErrors)[0];
+          const firstError = errorData.error.fieldErrors[firstField];
+          if (Array.isArray(firstError) && firstError.length > 0) {
+            errorMessage = `${firstField}: ${firstError[0]}`;
+          }
+        }
+      }
+      
+      toast.error("Erro: " + errorMessage);
     }
   }
 

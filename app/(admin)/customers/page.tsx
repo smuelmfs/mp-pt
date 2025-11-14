@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { markStepComplete } from "@/lib/admin-progress";
 import { SimplePagination } from "@/components/ui/simple-pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,10 +32,20 @@ export default function CustomersPage() {
 
   async function load() {
     setLoading(true);
+    try {
     const res = await fetch("/api/admin/customers");
-    const j = await res.json();
+      if (!res.ok) {
+        throw new Error("Erro ao carregar clientes");
+      }
+      const text = await res.text();
+      const j = text ? JSON.parse(text) : [];
     setRows(Array.isArray(j) ? j : []);
+    } catch (error) {
+      console.error("Erro ao carregar clientes:", error);
+      setRows([]);
+    } finally {
     setLoading(false);
+    }
   }
 
   async function createCustomer() {
@@ -54,12 +65,32 @@ export default function CustomersPage() {
       });
       if (res.ok) {
         toast.success("Cliente criado com sucesso");
+        markStepComplete('customers');
         setForm({ name: "", email: "", taxId: "", groupId: "", isActive: true });
         setOpenCreate(false);
         load();
       } else {
-        const j = await res.json();
-        toast.error(j.error || "Falha ao criar cliente");
+        const errorData = await res.json().catch(() => ({}));
+        // Extrai mensagem de erro do objeto Zod ou erro genérico
+        let errorMessage = "Falha ao criar cliente";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error(errorMessage);
       }
     } finally {
       setSaving(false);

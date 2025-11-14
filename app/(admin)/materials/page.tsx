@@ -51,13 +51,23 @@ export default function MaterialsPage() {
 
   async function load() {
     setLoading(true);
+    try {
     const params = new URLSearchParams();
     if (debouncedQ) params.append("q", debouncedQ);
     if (supplierFilter) params.append("supplierId", supplierFilter);
     const res = await fetch(`/api/admin/materials?${params.toString()}`);
-    const json = await res.json();
+      if (!res.ok) {
+        throw new Error("Erro ao carregar materiais");
+      }
+      const text = await res.text();
+      const json = text ? JSON.parse(text) : [];
     setRows(Array.isArray(json) ? json : []);
+    } catch (error) {
+      console.error("Erro ao carregar materiais:", error);
+      setRows([]);
+    } finally {
     setLoading(false);
+    }
   }
 
   useEffect(()=>{
@@ -101,8 +111,26 @@ export default function MaterialsPage() {
           const sup = await supRes.json();
           supplierIdToUse = sup?.id || null;
         } else {
-          const j = await supRes.json().catch(()=>({}));
-          toast.error("Erro ao criar fornecedor: " + (j.error || "tente novamente"));
+          const errorData = await supRes.json().catch(()=>({}));
+          let errorMessage = "tente novamente";
+          
+          if (errorData.error) {
+            if (typeof errorData.error === 'string') {
+              errorMessage = errorData.error;
+            } else if (errorData.error.message) {
+              errorMessage = errorData.error.message;
+            } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+              errorMessage = errorData.error.formErrors[0];
+            } else if (errorData.error.fieldErrors) {
+              const firstField = Object.keys(errorData.error.fieldErrors)[0];
+              const firstError = errorData.error.fieldErrors[firstField];
+              if (Array.isArray(firstError) && firstError.length > 0) {
+                errorMessage = `${firstField}: ${firstError[0]}`;
+              }
+            }
+          }
+          
+          toast.error("Erro ao criar fornecedor: " + errorMessage);
           setSaving(false);
           return;
         }
@@ -125,12 +153,31 @@ export default function MaterialsPage() {
       }),
       });
       if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        toast.error("Erro ao criar: " + (j.error?.message || "verifique os campos"));
+        const errorData = await res.json().catch(() => ({}));
+        let errorMessage = "verifique os campos";
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
+            errorMessage = errorData.error.formErrors[0];
+          } else if (errorData.error.fieldErrors) {
+            const firstField = Object.keys(errorData.error.fieldErrors)[0];
+            const firstError = errorData.error.fieldErrors[firstField];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              errorMessage = `${firstField}: ${firstError[0]}`;
+            }
+          }
+        }
+        
+        toast.error("Erro ao criar: " + errorMessage);
         setSaving(false);
         return;
       }
       toast.success("Material criado com sucesso!");
+      markStepComplete('materials');
       // refresh list and suppliers cache so the new supplier appears
       await Promise.all([
         load(),
@@ -421,10 +468,10 @@ export default function MaterialsPage() {
                 <p className="text-xs text-gray-500 mt-1">Categoria do material</p>
               </div>
 
-              <div>
+                <div>
                 <label className="block text-sm font-medium text-[#341601] mb-3">
-                  Fornecedor (opcional)
-                </label>
+                    Fornecedor (opcional)
+                  </label>
                 <RadioGroup 
                   value={supplierType} 
                   onValueChange={(value) => {
@@ -490,10 +537,10 @@ export default function MaterialsPage() {
                     </div>
                     {supplierType === "new" && (
                       <div className="ml-8 mt-3">
-                        <input
+                  <input
                           type="text"
                           className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807] h-11"
-                          value={form.supplierName}
+                    value={form.supplierName}
                           onChange={(e) => setForm({ ...form, supplierName: e.target.value, supplierId: "" })}
                           placeholder="Nome do novo fornecedor"
                         />
@@ -504,7 +551,7 @@ export default function MaterialsPage() {
                     )}
                   </div>
                 </RadioGroup>
-              </div>
+                </div>
 
               {supplierType !== "none" && (
                 <div>
@@ -520,8 +567,8 @@ export default function MaterialsPage() {
                     placeholder="0.0000"
                   />
                   <p className="text-xs text-gray-500 mt-1">Custo por unidade do fornecedor</p>
-                </div>
-              )}
+                    </div>
+                  )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -621,11 +668,11 @@ export default function MaterialsPage() {
                 >
                   Cancelar
                 </button>
-                <button 
+                        <button 
                   className="px-4 sm:px-6 py-2 sm:py-3 bg-[#F66807] text-white text-sm sm:text-base rounded-lg hover:bg-[#F66807]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
-                  onClick={createMaterial}
-                  disabled={saving}
-                >
+                          onClick={createMaterial}
+                          disabled={saving}
+                        >
                   {saving ? 'Criando...' : 'Criar Material'}
                 </button>
               </div>

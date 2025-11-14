@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { markStepComplete } from "@/lib/admin-progress";
 import { SimplePagination } from "@/components/ui/simple-pagination";
 import { PageLoading } from "@/components/ui/loading";
 
@@ -105,6 +106,7 @@ export default function FinishesListPage() {
         return;
       }
       toast.success("Acabamento criado com sucesso!");
+      markStepComplete('finishes');
       setOpenCreate(false);
       setForm({
         name: "",
