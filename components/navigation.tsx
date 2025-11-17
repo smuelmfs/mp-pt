@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { cn } from "@/lib/utils";
 
 export function Navigation() {
   const [isMounted, setIsMounted] = useState(false);
@@ -122,6 +123,36 @@ export function Navigation() {
     window.dispatchEvent(new CustomEvent('openAdminSidebar'));
   };
 
+  const isProductsSection =
+    pathname === "/" ||
+    pathname.startsWith("/quotes/categories") ||
+    pathname.startsWith("/quotes/configurator");
+
+  const isGuideSection = pathname.startsWith("/quotes/guide");
+
+  const isQuotesSection =
+    pathname.startsWith("/quotes") &&
+    !isProductsSection &&
+    !isGuideSection;
+
+  const commercialNavItems = [
+    {
+      label: "Produtos",
+      href: "/quotes/categories",
+      active: isProductsSection,
+    },
+    {
+      label: "Orçamentos",
+      href: "/quotes",
+      active: isQuotesSection,
+    },
+    {
+      label: "Manual",
+      href: "/quotes/guide",
+      active: isGuideSection,
+    },
+  ];
+
   if (!isMounted) {
     return (
       <header className="sticky top-0 z-50 w-full border-b border-[#F6EEE8] bg-white/95 backdrop-blur-md shadow-sm">
@@ -158,8 +189,8 @@ export function Navigation() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#F6EEE8] bg-white/95 backdrop-blur-md shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-14 items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex h-14 items-center justify-between gap-4">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {/* Botão do menu apenas para admin em mobile */}
             {isAdminRoute && (
               <Button
@@ -179,6 +210,44 @@ export function Navigation() {
               />
             </Link>
           </div>
+
+          {!isAdminRoute && (
+            <nav className="hidden md:flex items-center gap-2 text-sm font-semibold text-[#341601] flex-1 justify-center">
+              {commercialNavItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "px-4 py-2 rounded-lg transition-colors whitespace-nowrap",
+                    item.active
+                      ? "bg-[#341601] text-white shadow-sm"
+                      : "text-[#341601]/80 hover:text-[#341601] hover:bg-[#F6EEE8]"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          )}
+
+          {!isAdminRoute && (
+            <nav className="md:hidden flex items-center gap-2 text-sm font-semibold text-[#341601]/80">
+              {commercialNavItems.map((item) => (
+                <Link
+                  key={`mobile-${item.href}`}
+                  href={item.href}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg transition-colors",
+                    item.active
+                      ? "bg-[#341601] text-white shadow-sm"
+                      : "hover:text-[#341601] hover:bg-[#F6EEE8]"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          )}
 
           <div className="flex items-center space-x-3">
             <DropdownMenu>

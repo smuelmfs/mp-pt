@@ -8,6 +8,8 @@ import { PageLoading } from "@/components/ui/loading";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { parseZodErrors } from "@/lib/parse-zod-errors";
+import { markStepComplete } from "@/lib/admin-progress";
 
 type Material = {
   id: number;
@@ -48,6 +50,7 @@ export default function MaterialsPage() {
     supplierId: "",
     supplierName: "",
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   async function load() {
     setLoading(true);
@@ -112,25 +115,9 @@ export default function MaterialsPage() {
           supplierIdToUse = sup?.id || null;
         } else {
           const errorData = await supRes.json().catch(()=>({}));
-          let errorMessage = "tente novamente";
-          
-          if (errorData.error) {
-            if (typeof errorData.error === 'string') {
-              errorMessage = errorData.error;
-            } else if (errorData.error.message) {
-              errorMessage = errorData.error.message;
-            } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
-              errorMessage = errorData.error.formErrors[0];
-            } else if (errorData.error.fieldErrors) {
-              const firstField = Object.keys(errorData.error.fieldErrors)[0];
-              const firstError = errorData.error.fieldErrors[firstField];
-              if (Array.isArray(firstError) && firstError.length > 0) {
-                errorMessage = `${firstField}: ${firstError[0]}`;
-              }
-            }
-          }
-          
-          toast.error("Erro ao criar fornecedor: " + errorMessage);
+          const parsed = parseZodErrors(errorData);
+          setFieldErrors({ supplierName: parsed.fieldErrors.supplierName || parsed.generalMessage });
+          toast.error("Erro ao criar fornecedor: " + parsed.generalMessage);
           setSaving(false);
           return;
         }
@@ -154,25 +141,9 @@ export default function MaterialsPage() {
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        let errorMessage = "verifique os campos";
-        
-        if (errorData.error) {
-          if (typeof errorData.error === 'string') {
-            errorMessage = errorData.error;
-          } else if (errorData.error.message) {
-            errorMessage = errorData.error.message;
-          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
-            errorMessage = errorData.error.formErrors[0];
-          } else if (errorData.error.fieldErrors) {
-            const firstField = Object.keys(errorData.error.fieldErrors)[0];
-            const firstError = errorData.error.fieldErrors[firstField];
-            if (Array.isArray(firstError) && firstError.length > 0) {
-              errorMessage = `${firstField}: ${firstError[0]}`;
-            }
-          }
-        }
-        
-        toast.error("Erro ao criar: " + errorMessage);
+        const parsed = parseZodErrors(errorData);
+        setFieldErrors(parsed.fieldErrors);
+        toast.error("Erro ao criar: " + parsed.generalMessage);
         setSaving(false);
         return;
       }
@@ -186,6 +157,7 @@ export default function MaterialsPage() {
       setOpenCreate(false);
       setForm({ name: "", type: "", unit: "UNIT", unitCost: "0.0000", supplierUnitCost: "", active: true, supplierId: "", supplierName: "" });
       setSupplierType("none");
+      setFieldErrors({});
     } finally {
       setSaving(false);
     }
@@ -446,12 +418,29 @@ export default function MaterialsPage() {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#F66807] ${
+                    fieldErrors.name 
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                      : 'border-gray-300 focus:border-[#F66807]'
+                  }`}
                   value={form.name}
-                  onChange={(e) => setForm({...form, name: e.target.value})}
+                  onChange={(e) => {
+                    setForm({...form, name: e.target.value});
+                    if (fieldErrors.name) {
+                      setFieldErrors((prev) => {
+                        const { name, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  }}
                   placeholder="Ex: Papel Couché 300g"
                 />
-                <p className="text-xs text-gray-500 mt-1">Nome que identifica o material</p>
+                {fieldErrors.name && (
+                  <p className="text-xs text-red-600 mt-1">{fieldErrors.name}</p>
+                )}
+                {!fieldErrors.name && (
+                  <p className="text-xs text-gray-500 mt-1">Nome que identifica o material</p>
+                )}
               </div>
 
               <div>

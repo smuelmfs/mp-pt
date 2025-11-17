@@ -441,13 +441,6 @@ export default function AdminGuidePage() {
             </Card>
           ))}
         </div>
-
-        {/* Footer */}
-        <div className="mt-8 p-4 bg-white rounded-lg border border-gray-200 text-center">
-          <p className="text-sm text-gray-600">
-            Precisa de ajuda? Entre em contato com o suporte técnico.
-          </p>
-        </div>
       </div>
     </main>
   );

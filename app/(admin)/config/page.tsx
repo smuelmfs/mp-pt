@@ -22,14 +22,14 @@ export default function ConfigPage() {
       const text = await res.text();
       const data = text ? JSON.parse(text) : null;
       if (data) {
-        setConfig(data);
-        setFormData(data);
+      setConfig(data);
+      setFormData(data);
       }
     } catch (error) {
       console.error('Erro ao carregar configuração:', error);
       toast.error("Erro ao carregar configurações");
     } finally {
-      setLoading(false);
+    setLoading(false);
     }
   }
 
@@ -48,8 +48,8 @@ export default function ConfigPage() {
       });
       if (res.ok) {
         markStepComplete('config');
-        setHasChanges(false);
-        load();
+      setHasChanges(false);
+      load();
         toast.success("Configurações salvas com sucesso!");
       } else {
         throw new Error("Erro ao salvar");

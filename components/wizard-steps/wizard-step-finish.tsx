@@ -9,6 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Scissors, Plus, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { parseZodErrors } from "@/lib/parse-zod-errors";
+
+type FinishCategory = "LAMINACAO" | "VERNIZ" | "CORTE" | "DOBRA" | "OUTROS";
 
 export function WizardStepFinish() {
   const { data, updateData, nextStep, prevStep } = useProductWizard();
@@ -19,13 +22,26 @@ export function WizardStepFinish() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
     name: "",
-    category: "OUTROS" as "LAMINACAO" | "VERNIZ" | "CORTE" | "DOBRA" | "OUTROS",
+    category: "OUTROS" as FinishCategory,
     unit: "UNIT" as "UNIT" | "M2" | "LOT" | "HOUR" | "SHEET",
     baseCost: "",
     calcType: "PER_UNIT" as "PER_UNIT" | "PER_M2" | "PER_LOT" | "PER_HOUR",
     minFee: "",
     marginDefault: "",
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  function setFieldError(field: string, message: string) {
+    setFieldErrors((prev) => ({ ...prev, [field]: message }));
+  }
+
+  function clearFieldError(field: string) {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const { [field]: _, ...rest } = prev;
+      return rest;
+    });
+  }
 
   useEffect(() => {
     loadFinishes();
@@ -48,19 +64,24 @@ export function WizardStepFinish() {
   }
 
   async function createFinish() {
+    const validationErrors: Record<string, string> = {};
     if (!form.name.trim()) {
-      toast.error("Nome é obrigatório");
-      return;
+      validationErrors.name = "Informe o nome do acabamento";
     }
     if (!form.baseCost || !form.baseCost.trim()) {
-      toast.error("Custo base é obrigatório");
+      validationErrors.baseCost = "Informe o custo base";
+    }
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors((prev) => ({ ...prev, ...validationErrors }));
+      toast.error("Preencha os campos obrigatórios.");
       return;
     }
     
     // Valida e formata baseCost (deve ser um número com até 4 casas decimais)
     const baseCostValue = form.baseCost.trim();
     if (!/^\d+(\.\d{1,4})?$/.test(baseCostValue)) {
-      toast.error("Custo base deve ser um número válido (ex: 0.0000 ou 0)");
+      setFieldError("baseCost", "Use um número válido (ex: 0.0000)");
+      toast.error("Custo base inválido.");
       return;
     }
     
@@ -100,34 +121,19 @@ export function WizardStepFinish() {
         setShowCreate(false);
         setForm({
           name: "",
-          category: "OUTROS",
+          category: "OUTROS" as FinishCategory,
           unit: "UNIT",
           baseCost: "",
           calcType: "PER_UNIT",
           minFee: "",
           marginDefault: "",
         });
+        setFieldErrors({});
       } else {
         const errorData = await res.json().catch(() => ({}));
-        let errorMessage = "Erro ao criar acabamento";
-        
-        if (errorData.error) {
-          if (typeof errorData.error === 'string') {
-            errorMessage = errorData.error;
-          } else if (errorData.error.message) {
-            errorMessage = errorData.error.message;
-          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
-            errorMessage = errorData.error.formErrors[0];
-          } else if (errorData.error.fieldErrors) {
-            const firstField = Object.keys(errorData.error.fieldErrors)[0];
-            const firstError = errorData.error.fieldErrors[firstField];
-            if (Array.isArray(firstError) && firstError.length > 0) {
-              errorMessage = `${firstField}: ${firstError[0]}`;
-            }
-          }
-        }
-        
-        toast.error(errorMessage);
+        const parsed = parseZodErrors(errorData);
+        setFieldErrors((prev) => ({ ...prev, ...parsed.fieldErrors }));
+        toast.error(parsed.generalMessage || "Erro ao criar acabamento");
       }
     } catch (error) {
       toast.error("Erro ao criar acabamento");
@@ -224,28 +230,49 @@ export function WizardStepFinish() {
             <Label>Nome *</Label>
             <Input
               value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              onChange={(e) => {
+                setForm({ ...form, name: e.target.value });
+                clearFieldError("name");
+              }}
               placeholder="Nome do acabamento"
+              className={fieldErrors.name ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
             />
+            {fieldErrors.name && (
+              <p className="text-xs text-red-600 mt-1">{fieldErrors.name}</p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Custo Base *</Label>
               <Input
-                type="number"
-                step="0.0001"
+                type="text"
                 value={form.baseCost}
-                onChange={(e) => setForm({ ...form, baseCost: e.target.value })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "" || /^\d+(\.\d{0,4})?$/.test(value)) {
+                    setForm({ ...form, baseCost: value });
+                    clearFieldError("baseCost");
+                  }
+                }}
                 placeholder="0.0000"
+                className={fieldErrors.baseCost ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
               />
+              {fieldErrors.baseCost ? (
+                <p className="text-xs text-red-600 mt-1">{fieldErrors.baseCost}</p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">Formato: número até 4 casas decimais</p>
+              )}
             </div>
             <div>
               <Label>Categoria</Label>
               <Select
                 value={form.category}
-                onValueChange={(value) => setForm({ ...form, category: value })}
+                onValueChange={(value: FinishCategory) => {
+                  setForm({ ...form, category: value });
+                  clearFieldError("category");
+                }}
               >
-                <SelectTrigger>
+                <SelectTrigger className={fieldErrors.category ? "border-red-500" : ""}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -256,6 +283,77 @@ export function WizardStepFinish() {
                   <SelectItem value="OUTROS">Outros</SelectItem>
                 </SelectContent>
               </Select>
+              {fieldErrors.category && (
+                <p className="text-xs text-red-600 mt-1">{fieldErrors.category}</p>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Unidade</Label>
+              <Select
+                value={form.unit}
+                onValueChange={(value) => setForm({ ...form, unit: value as typeof form.unit })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="UNIT">Unidade</SelectItem>
+                  <SelectItem value="M2">Metro Quadrado</SelectItem>
+                  <SelectItem value="LOT">Lote</SelectItem>
+                  <SelectItem value="HOUR">Hora</SelectItem>
+                  <SelectItem value="SHEET">Folha</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Tipo de Cálculo</Label>
+              <Select
+                value={form.calcType}
+                onValueChange={(value) => setForm({ ...form, calcType: value as typeof form.calcType })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PER_UNIT">Por Unidade</SelectItem>
+                  <SelectItem value="PER_M2">Por m²</SelectItem>
+                  <SelectItem value="PER_LOT">Por Lote</SelectItem>
+                  <SelectItem value="PER_HOUR">Por Hora</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Taxa Mínima</Label>
+              <Input
+                type="text"
+                value={form.minFee}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "" || /^\d+(\.\d{0,2})?$/.test(value)) {
+                    setForm({ ...form, minFee: value });
+                    clearFieldError("minFee");
+                  }
+                }}
+                placeholder="0.00"
+                className={fieldErrors.minFee ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+              />
+              {fieldErrors.minFee ? (
+                <p className="text-xs text-red-600 mt-1">{fieldErrors.minFee}</p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">Formato: número até 2 casas decimais</p>
+              )}
+            </div>
+            <div>
+              <Label>Margem Padrão (opcional)</Label>
+              <Input
+                value={form.marginDefault}
+                onChange={(e) => setForm({ ...form, marginDefault: e.target.value })}
+                placeholder="Ex: 0.20"
+              />
             </div>
           </div>
           <div className="flex gap-2">

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Printer, Plus, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { parseZodErrors } from "@/lib/parse-zod-errors";
 
 export function WizardStepPrinting() {
   const { data, updateData, nextStep, prevStep } = useProductWizard();
@@ -27,6 +28,19 @@ export function WizardStepPrinting() {
     setupMinutes: "0",
     minFee: "0.00",
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  function setFieldError(field: string, message: string) {
+    setFieldErrors((prev) => ({ ...prev, [field]: message }));
+  }
+
+  function clearFieldError(field: string) {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const { [field]: _, ...rest } = prev;
+      return rest;
+    });
+  }
 
   useEffect(() => {
     loadPrintings();
@@ -49,12 +63,16 @@ export function WizardStepPrinting() {
   }
 
   async function createPrinting() {
+    const validationErrors: Record<string, string> = {};
     if (!form.formatLabel || !form.formatLabel.trim()) {
-      toast.error("Nome da impressão é obrigatório");
-      return;
+      validationErrors.formatLabel = "Informe o nome da impressão";
     }
     if (!form.unitPrice || !form.unitPrice.trim()) {
-      toast.error("Preço unitário é obrigatório");
+      validationErrors.unitPrice = "Informe o preço unitário";
+    }
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors((prev) => ({ ...prev, ...validationErrors }));
+      toast.error("Preencha os campos obrigatórios.");
       return;
     }
     
@@ -62,7 +80,8 @@ export function WizardStepPrinting() {
     const unitPriceValue = form.unitPrice.trim();
     // Aceita números inteiros ou decimais com até 4 casas (ex: 0, 0.0, 0.0000)
     if (!/^\d+(\.\d{1,4})?$/.test(unitPriceValue)) {
-      toast.error("Preço unitário deve ser um número válido (ex: 0.0000 ou 0)");
+      setFieldError("unitPrice", "Use um número válido (ex: 0.0000)");
+      toast.error("Preço unitário inválido.");
       return;
     }
     
@@ -74,13 +93,15 @@ export function WizardStepPrinting() {
     if (form.minFee && form.minFee.trim()) {
       const minFeeTrimmed = form.minFee.trim();
       if (!/^\d+(\.\d{1,2})?$/.test(minFeeTrimmed)) {
-        toast.error("Taxa mínima deve ser um número válido (ex: 0.00)");
+        setFieldError("minFee", "Use um número válido (ex: 0.00)");
+        toast.error("Taxa mínima inválida.");
         return;
       }
       minFeeValue = minFeeTrimmed;
     }
     
     setCreating(true);
+    setFieldErrors({});
     try {
       const body: any = {
         technology: form.technology,
@@ -132,32 +153,14 @@ export function WizardStepPrinting() {
           setupMinutes: "0",
           minFee: "0.00",
         });
+        setFieldErrors({});
         // Recarrega a lista para incluir a nova impressão
         loadPrintings();
       } else {
         const errorData = await res.json().catch(() => ({}));
-        // Extrai mensagem de erro do objeto Zod ou erro genérico
-        let errorMessage = "Erro ao criar impressão";
-        
-        if (errorData.error) {
-          if (typeof errorData.error === 'string') {
-            errorMessage = errorData.error;
-          } else if (errorData.error.message) {
-            errorMessage = errorData.error.message;
-          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
-            // Erro do Zod: pega o primeiro erro de formulário
-            errorMessage = errorData.error.formErrors[0];
-          } else if (errorData.error.fieldErrors) {
-            // Erro do Zod: pega o primeiro erro de campo
-            const firstField = Object.keys(errorData.error.fieldErrors)[0];
-            const firstError = errorData.error.fieldErrors[firstField];
-            if (Array.isArray(firstError) && firstError.length > 0) {
-              errorMessage = `${firstField}: ${firstError[0]}`;
-            }
-          }
-        }
-        
-        toast.error(errorMessage);
+        const parsed = parseZodErrors(errorData);
+        setFieldErrors((prev) => ({ ...prev, ...parsed.fieldErrors }));
+        toast.error(parsed.generalMessage || "Erro ao criar impressão");
       }
     } catch (error) {
       console.error("Erro ao criar impressão:", error);
@@ -265,9 +268,20 @@ export function WizardStepPrinting() {
             <Label>Nome da Impressão *</Label>
             <Input
               value={form.formatLabel}
-              onChange={(e) => setForm({ ...form, formatLabel: e.target.value })}
+              onChange={(e) => {
+                setForm({ ...form, formatLabel: e.target.value });
+                clearFieldError("formatLabel");
+              }}
               placeholder="Ex: A4, A3, Cartão de Visita..."
+              className={cn(
+                fieldErrors.formatLabel
+                  ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                  : ""
+              )}
             />
+            {fieldErrors.formatLabel && (
+              <p className="text-xs text-red-600 mt-1">{fieldErrors.formatLabel}</p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -294,15 +308,49 @@ export function WizardStepPrinting() {
                 value={form.unitPrice}
                 onChange={(e) => {
                   const value = e.target.value;
-                  // Permite apenas números e ponto decimal, com até 4 casas decimais
                   if (value === "" || /^\d+(\.\d{0,4})?$/.test(value)) {
                     setForm({ ...form, unitPrice: value });
+                    clearFieldError("unitPrice");
                   }
                 }}
                 placeholder="0.0000"
+                className={cn(
+                  fieldErrors.unitPrice
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                    : ""
+                )}
               />
-              <p className="text-xs text-gray-500 mt-1">Formato: número com até 4 casas decimais (ex: 0.0000)</p>
+              {fieldErrors.unitPrice ? (
+                <p className="text-xs text-red-600 mt-1">{fieldErrors.unitPrice}</p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">
+                  Formato: número com até 4 casas decimais (ex: 0.0000)
+                </p>
+              )}
             </div>
+          </div>
+          <div>
+            <Label>Taxa mínima (opcional)</Label>
+            <Input
+              type="text"
+              value={form.minFee}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === "" || /^\d+(\.\d{0,2})?$/.test(value)) {
+                  setForm({ ...form, minFee: value });
+                  clearFieldError("minFee");
+                }
+              }}
+              placeholder="0.00"
+              className={cn(
+                fieldErrors.minFee
+                  ? "border-red-500 focus:border-red-500 focus:ring-red-500 mt-1"
+                  : "mt-1"
+              )}
+            />
+            {fieldErrors.minFee && (
+              <p className="text-xs text-red-600 mt-1">{fieldErrors.minFee}</p>
+            )}
           </div>
           <div className="flex gap-2">
             <Button

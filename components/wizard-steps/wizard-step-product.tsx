@@ -2,16 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useProductWizard } from "@/contexts/product-wizard-context";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Package } from "lucide-react";
+import { parseZodErrors } from "@/lib/parse-zod-errors";
 
 export function WizardStepProduct() {
   const { data, updateData, nextStep, prevStep } = useProductWizard();
-  const router = useRouter();
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -22,6 +21,7 @@ export function WizardStepProduct() {
     pricingStrategy: "",
     minPricePerPiece: "",
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     // Pré-preenche o nome se não tiver
@@ -32,7 +32,8 @@ export function WizardStepProduct() {
 
   async function createProduct() {
     if (!form.name.trim()) {
-      toast.error("Nome do produto é obrigatório");
+      setFieldErrors({ name: "Informe o nome do produto" });
+      toast.error("Preencha o campo obrigatório.");
       return;
     }
     if (!data.categoryId) {
@@ -66,31 +67,16 @@ export function WizardStepProduct() {
           productName: form.name.trim(),
           productId: newProduct.id 
         });
+        setFieldErrors({});
         
         // Avança para o último passo (margem) que mostra a confirmação
         // O passo de margem irá redirecionar
         nextStep();
       } else {
         const errorData = await res.json().catch(() => ({}));
-        let errorMessage = "Erro ao criar produto";
-        
-        if (errorData.error) {
-          if (typeof errorData.error === 'string') {
-            errorMessage = errorData.error;
-          } else if (errorData.error.message) {
-            errorMessage = errorData.error.message;
-          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
-            errorMessage = errorData.error.formErrors[0];
-          } else if (errorData.error.fieldErrors) {
-            const firstField = Object.keys(errorData.error.fieldErrors)[0];
-            const firstError = errorData.error.fieldErrors[firstField];
-            if (Array.isArray(firstError) && firstError.length > 0) {
-              errorMessage = `${firstField}: ${firstError[0]}`;
-            }
-          }
-        }
-        
-        toast.error(errorMessage);
+        const parsed = parseZodErrors(errorData);
+        setFieldErrors(parsed.fieldErrors.name ? { name: parsed.fieldErrors.name } : {});
+        toast.error(parsed.generalMessage || "Erro ao criar produto");
       }
     } catch (error) {
       toast.error("Erro ao criar produto");
@@ -131,9 +117,16 @@ export function WizardStepProduct() {
             onChange={(e) => {
               setForm({ ...form, name: e.target.value });
               updateData({ productName: e.target.value });
+              if (fieldErrors.name) {
+                setFieldErrors({});
+              }
             }}
             placeholder="Nome do produto"
+            className={fieldErrors.name ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
           />
+          {fieldErrors.name && (
+            <p className="text-xs text-red-600 mt-1">{fieldErrors.name}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">

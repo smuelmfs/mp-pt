@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Users, Plus, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { parseZodErrors } from "@/lib/parse-zod-errors";
 
 export function WizardStepCustomer() {
   const { data, updateData, nextStep, prevStep, currentStep } = useProductWizard();
@@ -17,6 +18,19 @@ export function WizardStepCustomer() {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", taxId: "" });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  function setFieldError(field: string, message: string) {
+    setFieldErrors((prev) => ({ ...prev, [field]: message }));
+  }
+
+  function clearFieldError(field: string) {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const { [field]: _, ...rest } = prev;
+      return rest;
+    });
+  }
 
   useEffect(() => {
     loadCustomers();
@@ -40,7 +54,8 @@ export function WizardStepCustomer() {
 
   async function createCustomer() {
     if (!form.name.trim()) {
-      toast.error("Nome é obrigatório");
+      setFieldError("name", "Informe o nome do cliente");
+      toast.error("Preencha os campos obrigatórios.");
       return;
     }
     setCreating(true);
@@ -62,27 +77,12 @@ export function WizardStepCustomer() {
         updateData({ customerId: newCustomer.id });
         setShowCreate(false);
         setForm({ name: "", email: "", taxId: "" });
+        setFieldErrors({});
       } else {
         const errorData = await res.json().catch(() => ({}));
-        let errorMessage = "Erro ao criar cliente";
-        
-        if (errorData.error) {
-          if (typeof errorData.error === 'string') {
-            errorMessage = errorData.error;
-          } else if (errorData.error.message) {
-            errorMessage = errorData.error.message;
-          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
-            errorMessage = errorData.error.formErrors[0];
-          } else if (errorData.error.fieldErrors) {
-            const firstField = Object.keys(errorData.error.fieldErrors)[0];
-            const firstError = errorData.error.fieldErrors[firstField];
-            if (Array.isArray(firstError) && firstError.length > 0) {
-              errorMessage = `${firstField}: ${firstError[0]}`;
-            }
-          }
-        }
-        
-        toast.error(errorMessage);
+        const parsed = parseZodErrors(errorData);
+        setFieldErrors((prev) => ({ ...prev, ...parsed.fieldErrors }));
+        toast.error(parsed.generalMessage || "Erro ao criar cliente");
       }
     } catch (error) {
       toast.error("Erro ao criar cliente");
@@ -194,9 +194,16 @@ export function WizardStepCustomer() {
             <Label>Nome *</Label>
             <Input
               value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              onChange={(e) => {
+                setForm({ ...form, name: e.target.value });
+                clearFieldError("name");
+              }}
               placeholder="Nome do cliente"
+              className={fieldErrors.name ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
             />
+            {fieldErrors.name && (
+              <p className="text-xs text-red-600 mt-1">{fieldErrors.name}</p>
+            )}
           </div>
           <div>
             <Label>Email</Label>

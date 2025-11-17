@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { markStepComplete } from "@/lib/admin-progress";
+import { parseZodErrors } from "@/lib/parse-zod-errors";
 import { SimplePagination } from "@/components/ui/simple-pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ export default function CustomersPage() {
   const [saving, setSaving] = useState(false);
   const [openCreate, setOpenCreate] = useState(false);
   const [q, setQ] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [debouncedQ, setDebouncedQ] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all"|"active"|"inactive">("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,7 +51,11 @@ export default function CustomersPage() {
   }
 
   async function createCustomer() {
-    if (!form.name) { toast.error("Nome é obrigatório"); return; }
+    if (!form.name) {
+      setFieldErrors({ name: "Informe o nome do cliente" });
+      toast.error("Preencha o campo obrigatório.");
+      return;
+    }
     try {
       setSaving(true);
       const res = await fetch("/api/admin/customers", {
@@ -68,29 +74,13 @@ export default function CustomersPage() {
         markStepComplete('customers');
         setForm({ name: "", email: "", taxId: "", groupId: "", isActive: true });
         setOpenCreate(false);
+        setFieldErrors({});
         load();
       } else {
         const errorData = await res.json().catch(() => ({}));
-        // Extrai mensagem de erro do objeto Zod ou erro genérico
-        let errorMessage = "Falha ao criar cliente";
-        
-        if (errorData.error) {
-          if (typeof errorData.error === 'string') {
-            errorMessage = errorData.error;
-          } else if (errorData.error.message) {
-            errorMessage = errorData.error.message;
-          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
-            errorMessage = errorData.error.formErrors[0];
-          } else if (errorData.error.fieldErrors) {
-            const firstField = Object.keys(errorData.error.fieldErrors)[0];
-            const firstError = errorData.error.fieldErrors[firstField];
-            if (Array.isArray(firstError) && firstError.length > 0) {
-              errorMessage = `${firstField}: ${firstError[0]}`;
-            }
-          }
-        }
-        
-        toast.error(errorMessage);
+        const parsed = parseZodErrors(errorData);
+        setFieldErrors(parsed.fieldErrors.name ? { name: parsed.fieldErrors.name } : {});
+        toast.error(parsed.generalMessage || "Falha ao criar cliente");
       }
     } finally {
       setSaving(false);
@@ -282,12 +272,18 @@ export default function CustomersPage() {
                 <div>
                   <label className="block text-sm font-medium text-[#341601] mb-2">Nome *</label>
                   <input
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F66807] focus:border-[#F66807]"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#F66807] ${fieldErrors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-[#F66807]'}`}
                     placeholder="Nome"
                     value={form.name}
-                    onChange={(e)=> setForm({...form, name: e.target.value.toUpperCase()})}
+                    onChange={(e)=> {
+                      setForm({...form, name: e.target.value.toUpperCase()});
+                      if (fieldErrors.name) setFieldErrors({});
+                    }}
                     style={{ textTransform: 'uppercase' }}
                   />
+                  {fieldErrors.name && (
+                    <p className="text-xs text-red-600 mt-1">{fieldErrors.name}</p>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>

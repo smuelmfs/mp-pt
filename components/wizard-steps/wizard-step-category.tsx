@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Layers, Plus, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { parseZodErrors } from "@/lib/parse-zod-errors";
 
 export function WizardStepCategory() {
   const { data, updateData, nextStep, prevStep } = useProductWizard();
@@ -24,6 +25,7 @@ export function WizardStepCategory() {
     minPricePerPiece: "",
     lossFactor: "",
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadCategories();
@@ -47,7 +49,8 @@ export function WizardStepCategory() {
 
   async function createCategory() {
     if (!form.name.trim()) {
-      toast.error("Nome é obrigatório");
+      setFieldErrors({ name: "Informe o nome da categoria" });
+      toast.error("Preencha o campo obrigatório.");
       return;
     }
     setCreating(true);
@@ -78,27 +81,12 @@ export function WizardStepCategory() {
           minPricePerPiece: "",
           lossFactor: "",
         });
+        setFieldErrors({});
       } else {
         const errorData = await res.json().catch(() => ({}));
-        let errorMessage = "Erro ao criar categoria";
-        
-        if (errorData.error) {
-          if (typeof errorData.error === 'string') {
-            errorMessage = errorData.error;
-          } else if (errorData.error.message) {
-            errorMessage = errorData.error.message;
-          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
-            errorMessage = errorData.error.formErrors[0];
-          } else if (errorData.error.fieldErrors) {
-            const firstField = Object.keys(errorData.error.fieldErrors)[0];
-            const firstError = errorData.error.fieldErrors[firstField];
-            if (Array.isArray(firstError) && firstError.length > 0) {
-              errorMessage = `${firstField}: ${firstError[0]}`;
-            }
-          }
-        }
-        
-        toast.error(errorMessage);
+        const parsed = parseZodErrors(errorData);
+        setFieldErrors(parsed.fieldErrors.name ? { name: parsed.fieldErrors.name } : {});
+        toast.error(parsed.generalMessage || "Erro ao criar categoria");
       }
     } catch (error) {
       toast.error("Erro ao criar categoria");
@@ -195,9 +183,18 @@ export function WizardStepCategory() {
             <Label>Nome *</Label>
             <Input
               value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              onChange={(e) => {
+                setForm({ ...form, name: e.target.value });
+                if (fieldErrors.name) {
+                  setFieldErrors({});
+                }
+              }}
               placeholder="Nome da categoria"
+              className={fieldErrors.name ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
             />
+            {fieldErrors.name && (
+              <p className="text-xs text-red-600 mt-1">{fieldErrors.name}</p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

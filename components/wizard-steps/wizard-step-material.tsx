@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Package, Plus, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { parseZodErrors } from "@/lib/parse-zod-errors";
 
 export function WizardStepMaterial() {
   const { data, updateData, nextStep, prevStep } = useProductWizard();
@@ -27,6 +28,19 @@ export function WizardStepMaterial() {
     supplierName: "",
     supplierUnitCost: "",
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  function setFieldError(field: string, message: string) {
+    setFieldErrors((prev) => ({ ...prev, [field]: message }));
+  }
+
+  function clearFieldError(field: string) {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const { [field]: _, ...rest } = prev;
+      return rest;
+    });
+  }
 
   useEffect(() => {
     loadMaterials();
@@ -49,15 +63,22 @@ export function WizardStepMaterial() {
   }
 
   async function createMaterial() {
+    const validationErrors: Record<string, string> = {};
     if (!form.name.trim()) {
-      toast.error("Nome é obrigatório");
-      return;
+      validationErrors.name = "Informe o nome do material";
     }
     if (!form.unitCost) {
-      toast.error("Custo unitário é obrigatório");
+      validationErrors.unitCost = "Informe o custo unitário";
+    } else if (!/^\d+(\.\d{1,4})?$/.test(form.unitCost)) {
+      validationErrors.unitCost = "Use um número válido (ex: 0.0000)";
+    }
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors((prev) => ({ ...prev, ...validationErrors }));
+      toast.error("Preencha os campos obrigatórios.");
       return;
     }
     setCreating(true);
+    setFieldErrors({});
     try {
       let supplierIdToUse: number | null = null;
       if (supplierType === "existing" && form.supplierId) {
@@ -115,27 +136,12 @@ export function WizardStepMaterial() {
           supplierUnitCost: "",
         });
         setSupplierType("none");
+        setFieldErrors({});
       } else {
         const errorData = await res.json().catch(() => ({}));
-        let errorMessage = "Erro ao criar material";
-        
-        if (errorData.error) {
-          if (typeof errorData.error === 'string') {
-            errorMessage = errorData.error;
-          } else if (errorData.error.message) {
-            errorMessage = errorData.error.message;
-          } else if (errorData.error.formErrors && errorData.error.formErrors.length > 0) {
-            errorMessage = errorData.error.formErrors[0];
-          } else if (errorData.error.fieldErrors) {
-            const firstField = Object.keys(errorData.error.fieldErrors)[0];
-            const firstError = errorData.error.fieldErrors[firstField];
-            if (Array.isArray(firstError) && firstError.length > 0) {
-              errorMessage = `${firstField}: ${firstError[0]}`;
-            }
-          }
-        }
-        
-        toast.error(errorMessage);
+        const parsed = parseZodErrors(errorData);
+        setFieldErrors((prev) => ({ ...prev, ...parsed.fieldErrors }));
+        toast.error(parsed.generalMessage || "Erro ao criar material");
       }
     } catch (error) {
       toast.error("Erro ao criar material");
@@ -237,9 +243,16 @@ export function WizardStepMaterial() {
             <Label>Nome *</Label>
             <Input
               value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              onChange={(e) => {
+                setForm({ ...form, name: e.target.value });
+                clearFieldError("name");
+              }}
               placeholder="Nome do material"
+              className={fieldErrors.name ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
             />
+            {fieldErrors.name && (
+              <p className="text-xs text-red-600 mt-1">{fieldErrors.name}</p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -270,12 +283,21 @@ export function WizardStepMaterial() {
           <div>
             <Label>Custo Unitário *</Label>
             <Input
-              type="number"
-              step="0.0001"
+              type="text"
               value={form.unitCost}
-              onChange={(e) => setForm({ ...form, unitCost: e.target.value })}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === "" || /^\d+(\.\d{0,4})?$/.test(value)) {
+                  setForm({ ...form, unitCost: value });
+                  clearFieldError("unitCost");
+                }
+              }}
               placeholder="0.0000"
+              className={fieldErrors.unitCost ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
             />
+            {fieldErrors.unitCost && (
+              <p className="text-xs text-red-600 mt-1">{fieldErrors.unitCost}</p>
+            )}
           </div>
           <div className="flex gap-2">
             <Button
