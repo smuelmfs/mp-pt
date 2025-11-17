@@ -91,37 +91,93 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       yPos += 5;
     }
 
-    // Informações do Produto
-    doc.setFont("helvetica", "bold");
-    doc.text("Produto:", margin, yPos);
-    doc.setFont("helvetica", "normal");
-    yPos += 6;
-    doc.text(quote.product.name, margin + 10, yPos);
-    yPos += 6;
-    doc.text(`Quantidade: ${quote.quantity} unidades`, margin + 10, yPos);
-    yPos += 10;
+    // Tabela de Itens (agrupada)
+    type GroupedItem = {
+      name: string;
+      total: number;
+      details: {
+        label: string;
+        quantity?: string;
+        unit?: string;
+        unitCost?: string;
+        totalCost: string;
+      }[];
+    };
 
-    // Tabela de Itens
-    const itemsData = quote.items.map((item: typeof quote.items[0], idx: number) => [
-      (idx + 1).toString(),
-      item.name || "-",
-      item.quantity ? Number(item.quantity).toFixed(2) : "-",
-      item.unit || "-",
-      item.unitCost ? formatMoney(Number(item.unitCost)) : "-",
-      formatMoney(Number(item.totalCost))
-    ]);
+    const grouped = new Map<string, GroupedItem>();
+
+    quote.items.forEach((item) => {
+      const rawName = item.name || "Item";
+      const [groupNamePart, detailPart] = rawName.split(" - ");
+      const groupName = (detailPart ? groupNamePart : rawName).trim();
+      const detailLabel = (detailPart || rawName).trim();
+
+      let entry = grouped.get(groupName);
+      if (!entry) {
+        entry = { name: groupName, total: 0, details: [] };
+        grouped.set(groupName, entry);
+      }
+
+      entry.total += Number(item.totalCost) || 0;
+      entry.details.push({
+        label: detailLabel,
+        quantity: item.quantity ? Number(item.quantity).toFixed(2) : undefined,
+        unit: item.unit || undefined,
+        unitCost: item.unitCost ? formatMoney(Number(item.unitCost)) : undefined,
+        totalCost: formatMoney(Number(item.totalCost)),
+      });
+    });
+
+    const groupedItems = Array.from(grouped.values());
+    const tableBody = groupedItems.flatMap((group, idx) => {
+      const descriptionText = group.details
+        .map((detail) => {
+          const fragments = [detail.label];
+          const metrics: string[] = [];
+          if (detail.quantity) metrics.push(`Qtd: ${detail.quantity}`);
+          if (detail.unit) metrics.push(`Unidade: ${detail.unit}`);
+          if (detail.unitCost) metrics.push(`Custo: ${detail.unitCost}`);
+          metrics.push(`Total: ${detail.totalCost}`);
+          return `${fragments.join(" ")} (${metrics.join(" | ")})`;
+        })
+        .join("\n");
+
+      return [
+        [
+          (idx + 1).toString(),
+          group.name,
+          "",
+          "",
+          "",
+          formatMoney(group.total),
+        ],
+        [
+          "",
+          {
+            content: descriptionText,
+            colSpan: 5,
+            styles: { fontStyle: "italic", textColor: [90, 90, 90] },
+          },
+        ],
+      ];
+    });
 
     (autoTable as any)(doc, {
       startY: yPos,
       head: [["#", "Item", "Quantidade", "Unidade", "Custo Unit.", "Total"]],
-      body: itemsData,
+      body: tableBody,
       theme: "striped",
       headStyles: { fillColor: [246, 104, 7], textColor: [255, 255, 255], fontStyle: "bold" },
-      styles: { fontSize: 9 },
-      margin: { left: margin, right: margin }
+      bodyStyles: { fontSize: 9 },
+      margin: { left: margin, right: margin },
     });
 
     yPos = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 10 : yPos + 50;
+
+    const totalItens = groupedItems.reduce((sum, group) => sum + group.total, 0);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total dos Itens: ${formatMoney(totalItens)}`, margin, yPos);
+    yPos += 10;
 
     // Resumo de Custos
     doc.setFont("helvetica", "bold");
@@ -140,21 +196,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     }
     if (breakdown?.costFinish) {
       doc.text(`Custo de Acabamentos: ${formatMoney(breakdown.costFinish)}`, margin + 10, yPos);
-      yPos += 6;
-    }
-    yPos += 5;
-
-    // Ajustes e Margens
-    doc.setFont("helvetica", "bold");
-    doc.text("Ajustes Aplicados:", margin, yPos);
-    yPos += 6;
-    doc.setFont("helvetica", "normal");
-    doc.text(`Markup: ${quote.markupApplied}%`, margin + 10, yPos);
-    yPos += 6;
-    doc.text(`Margem: ${quote.marginApplied}%`, margin + 10, yPos);
-    yPos += 6;
-    if (quote.dynamicAdjust) {
-      doc.text(`Ajuste Dinâmico: ${quote.dynamicAdjust}%`, margin + 10, yPos);
       yPos += 6;
     }
     yPos += 5;
